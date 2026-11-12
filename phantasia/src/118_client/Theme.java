@@ -28,6 +28,11 @@ public class Theme implements constants {
 	    }
 	}
 	else if (c instanceof Label) {
+		/* Windows keeps a label's original light background unless
+		   it is set explicitly, so match it to its container */
+	    Container parent = c.getParent();
+	    c.setBackground(parent != null && parent.isBackgroundSet() ?
+		    parent.getBackground() : backgroundColor);
 	    if (!c.isForegroundSet() || c.getForeground().equals(Color.black)) {
 		c.setForeground(foregroundColor);
 	    }
