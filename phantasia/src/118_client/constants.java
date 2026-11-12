@@ -59,15 +59,15 @@ public interface constants {
     public static final String C_ERROR_PACKET = new String("6\0");
     public static final String C_SCOREBOARD_PACKET = new String("7\0");
 
-	/* various colors */
-/*
-    public static final Color foregroundColor = new Color(10, 70, 17);
-    public static final Color backgroundColor = new Color(240, 236, 199);
-    public static final Color highlightColor = new Color(232, 220, 183);
-*/
-    public static final Color foregroundColor = new Color(000, 51, 000);
-    public static final Color backgroundColor = new Color(255, 255, 204);
-    public static final Color highlightColor = new Color(204, 204, 153);
+	/* colors: dark fantasy theme (matches the browser client) */
+    public static final Color foregroundColor = new Color(233, 223, 200);
+    public static final Color backgroundColor = new Color(18, 15, 11);
+    public static final Color highlightColor = new Color(30, 25, 18);
+    public static final Color fieldColor = new Color(11, 9, 7);
+    public static final Color buttonColor = new Color(52, 40, 25);
+    public static final Color lineColor = new Color(70, 56, 38);
+    public static final Color accentColor = new Color(214, 168, 74);
+    public static final Color mutedColor = new Color(168, 151, 122);
 
 	/* i/o identifiers */
     public static final int NO_REQUEST = 0;
@@ -81,9 +81,12 @@ public interface constants {
     public static final String CANCEL_LABEL = new String("Cancel");
 
 	/* fonts */
-    public static final Font MsgFont = new Font("TimesRoman", Font.PLAIN, 12);
-    public static final Font ChatFont = new Font("TimesRoman", Font.PLAIN, 12);
-    public static final Font ButtonFont = new Font("TimesRoman", Font.PLAIN, 9);
-    public static final Font UserFont = new Font("TimesRoman", Font.PLAIN, 12);
-    public static final Font CompassFont = new Font("Helvetica", Font.BOLD, 12);
+    public static final Font MsgFont = new Font("Serif", Font.PLAIN, 16);
+    public static final Font ChatFont = new Font("Serif", Font.PLAIN, 14);
+    public static final Font ButtonFont = new Font("SansSerif", Font.BOLD, 13);
+    public static final Font UserFont = new Font("SansSerif", Font.PLAIN, 14);
+    public static final Font CompassFont = new Font("SansSerif", Font.BOLD, 13);
+    public static final Font LabelFont = new Font("SansSerif", Font.PLAIN, 13);
+    public static final Font ValueFont = new Font("SansSerif", Font.BOLD, 13);
+    public static final Font TitleFont = new Font("Serif", Font.BOLD, 18);
 }

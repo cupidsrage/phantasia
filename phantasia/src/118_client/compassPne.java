@@ -1,3 +1,4 @@
+import java.awt.Dimension;
 import java.awt.Panel;
 import java.awt.Button;
 import java.awt.GridLayout;
@@ -18,7 +19,7 @@ public class compassPne extends Panel implements ActionListener, constants {
 
         String[] buttonTitle = { "NW", "N", "NE", "W", "Rest", "E", "SW", "S", "SE" };
 
-	this.setLayout(new GridLayout(3, 3));
+	this.setLayout(new GridLayout(3, 3, 3, 3));
 
 	for (int i = 0; i < 9; i++) {
 	    theButtons[i] = new Button(buttonTitle[i]);
@@ -31,6 +32,10 @@ public class compassPne extends Panel implements ActionListener, constants {
 	}
 
 	Deactivate();
+    }
+
+    public Dimension getPreferredSize() {
+	return new Dimension(180, 120);
     }
 
     public void Activate() {

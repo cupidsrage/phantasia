@@ -4,9 +4,14 @@
 	<TITLE>Phantasia 4 - The Game</TITLE>
 	<META NAME="viewport" CONTENT="width=device-width, initial-scale=1">
 	<STYLE>
-		code, .address { background: #222211; color: #EEEE99; padding: 2px 6px; }
-		.address { font-size: 1.4em; font-weight: bold; padding: 6px 12px; display: inline-block; }
+		code, .address-small { background: #222211; color: #EEEE99; padding: 2px 6px; }
 		td { max-width: 760px; }
+		.play-now { display: inline-block; margin-top: 10px; padding: 14px 28px;
+			font-size: 1.4em; font-weight: bold; text-decoration: none;
+			color: #1a1208; background: linear-gradient(#f0cd7a, #c8952f);
+			border: 1px solid #f0cd7a; border-radius: 10px;
+			box-shadow: 0 0 18px rgba(214, 168, 74, 0.45); }
+		.play-now:hover { background: linear-gradient(#ffe09a, #d6a84a); color: #000; }
 	</STYLE>
 </HEAD>
 <BODY BACKGROUND="graphics/mis6b.jpg" TEXT="#BBBB66" LINK="#996699" ALINK="#BB3333" VLINK="#BB3333">
@@ -20,39 +25,42 @@
    <IMG SRC="graphics/clients.jpeg" ALT="The Game" WIDTH="196" HEIGHT="22">
    </CENTER>
 
-   <P>
-Phantasia used to run inside your web browser as a Java applet.  Browsers no
-longer run applets, so the game is now played with a small program you
-download once.  It works on Windows, Mac and Linux.
-   </P>
-
-   <H4>1. Install Java</H4>
-   <P>
-You need Java 8 or newer.  If you don't have it, get the free installer from
-<A HREF="https://adoptium.net/temurin/releases/?package=jre">adoptium.net</A>.
-On Windows you can also run <CODE>winget install EclipseAdoptium.Temurin.21.JRE</CODE>
-in PowerShell.
-   </P>
-
-   <H4>2. Download the client</H4>
    <CENTER>
-   <P><A HREF="phantasia-client.jar"><B>Download phantasia-client.jar</B></A></P>
+   <P><A HREF="client/" CLASS="play-now">&#9876;&nbsp; Play in your browser &nbsp;&#9876;</A></P>
+   <P><SMALL>Nothing to install. Works on Windows, Mac, Linux, phones and tablets.</SMALL></P>
    </CENTER>
 
-   <H4>3. Connect to the realm</H4>
-   <P>The game server address is:</P>
-   <CENTER><P><SPAN CLASS="address">@@GAME_ADDRESS@@</SPAN></P></CENTER>
-   <P>
-Double-click <CODE>phantasia-client.jar</CODE> and enter that address when it
-asks.  It remembers the address for next time.
-   </P>
-   <P>
-If double-clicking does nothing, open a terminal (PowerShell on Windows) in
-the folder you saved it to and run:
-   </P>
-   <P><CODE>java -jar phantasia-client.jar @@GAME_ADDRESS@@</CODE></P>
+   <HR>
+   <P>Prefer a program on your computer?  The classic downloadable client
+   still works:</P>
 
-   <H4>4. Play</H4>
+   <H4>Windows</H4>
+   <CENTER>
+   <P><A HREF="Phantasia-Windows.zip"><B>Download Phantasia for Windows</B></A><BR>
+   <SMALL>(about 45 MB, Java is included)</SMALL></P>
+   </CENTER>
+   <OL>
+    <LI>Open the downloaded zip and click <B>Extract all</B>.</LI>
+    <LI>In the extracted <B>Phantasia</B> folder, double-click <B>Play Phantasia</B>.</LI>
+   </OL>
+   <P>
+That's it: the game connects to this server by itself.  If Windows shows
+"Windows protected your PC", click <B>More info</B> and then <B>Run anyway</B>.
+   </P>
+
+   <H4>Mac and Linux</H4>
+   <P>
+Install Java from <A HREF="https://adoptium.net/temurin/releases/?package=jre">adoptium.net</A>
+if you don't already have it, then
+<A HREF="phantasia-client.jar"><B>download phantasia-client.jar</B></A> and
+double-click it.  If double-clicking doesn't work, run
+<CODE>java -jar phantasia-client.jar</CODE> in a terminal.
+   </P>
+
+   <P><SMALL>The game server address is <SPAN CLASS="address-small">@@GAME_ADDRESS@@</SPAN>
+(the downloads already know it).</SMALL></P>
+
+   <H4>Playing</H4>
    <P>
 Click <B>Sign Up</B> to create an account, then <B>Log In</B> and make a new
 character.  The number keys 1-8 press the buttons along the bottom and the

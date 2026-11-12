@@ -43,6 +43,14 @@ GAME_ADDRESS=${PHANTASIA_PUBLIC_ADDRESS:-}
 if [ -z "$GAME_ADDRESS" ] && [ -n "${RAILWAY_TCP_PROXY_DOMAIN:-}" ]; then
     GAME_ADDRESS="$RAILWAY_TCP_PROXY_DOMAIN:${RAILWAY_TCP_PROXY_PORT:-43302}"
 fi
+
+# build the client downloads with the address built in
+if [ -f /app/client/configure-client.py ] && command -v python3 >/dev/null 2>&1; then
+    python3 /app/client/configure-client.py "$GAME_ADDRESS" \
+        /app/client/phantasia-client.jar /app/client/Phantasia-Windows-base.zip \
+        "$WEB_DIR" || echo "Could not prepare the client downloads"
+fi
+
 if [ -z "$GAME_ADDRESS" ]; then
     GAME_ADDRESS="(ask the game admin for the address)"
 fi
@@ -52,15 +60,15 @@ if [ -f "$WEB_DIR/play.html" ]; then
 fi
 
 if [ -d "$WEB_DIR" ] && command -v python3 >/dev/null 2>&1; then
-    python3 -m http.server "$WEB_PORT" --bind 0.0.0.0 --directory "$WEB_DIR" \
-        >/dev/null 2>/tmp/website.log &
+    # website + browser-client bridge; its messages go to the deploy log
+    python3 /app/web/server.py --port "$WEB_PORT" --dir "$WEB_DIR" \
+        --game-port "$PHANTASIA_PORT" &
     WEB_PID=$!
     sleep 1
     if kill -0 "$WEB_PID" 2>/dev/null; then
-        echo "Website listening on port $WEB_PORT (game address: $GAME_ADDRESS)"
+        echo "Game address for downloaded clients: $GAME_ADDRESS"
     else
-        echo "Website failed to start on port $WEB_PORT:"
-        cat /tmp/website.log
+        echo "Website failed to start on port $WEB_PORT (see the error above)"
     fi
 fi
 

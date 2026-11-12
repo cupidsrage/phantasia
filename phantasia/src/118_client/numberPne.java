@@ -18,21 +18,30 @@ public class numberPne extends Canvas implements constants {
 
     public void paint(Graphics g) {
 
+	if (g == null) {
+	    return;
+	}
+
+	Graphics2D g2 = Theme.smooth(g);
+
 	theBounds = getBounds();
 	canvasWidth = theBounds.width - 1;
 	canvasHeight = theBounds.height - 1;
 
-	g.setColor(highlightColor);
-	g.clearRect(0, 0, canvasWidth, canvasHeight);
+	g2.setColor(highlightColor);
+	g2.fillRect(0, 0, canvasWidth + 1, canvasHeight + 1);
+	g2.setColor(foregroundColor);
+	g2.setFont(ValueFont);
+	FontMetrics fm = g2.getFontMetrics();
+	g2.drawString(theValue, 2, (canvasHeight + fm.getAscent() - fm.getDescent()) / 2 + 1);
+    }
 
-	g.setColor(foregroundColor);
-	g.setFont(theFont);
-	g.drawString(theValue, 0, canvasHeight - 3);
+    public Dimension getPreferredSize() {
+	return new Dimension(90, 22);
     }
 
     public void changeStats(String message) {
-
 	theValue = message;
-	paint(getGraphics());
+	repaint();
     }
 }
