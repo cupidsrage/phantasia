@@ -19,7 +19,7 @@ public class labelPne extends Canvas implements constants {
 	theBounds = getBounds();
 	canvasWidth = theBounds.width - 1;
 
-	g.setColor(highlightColor);
+	g.setColor(lineColor);
 	g.drawLine(0, 4, canvasWidth, 4);
 	g.drawLine(0, 2, 0, 6);
 	g.drawLine(canvasWidth, 2, canvasWidth, 6);

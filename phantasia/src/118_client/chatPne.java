@@ -1,3 +1,4 @@
+import java.awt.Label;
 import java.awt.Panel;
 import java.awt.Button;
 import java.awt.TextField;
@@ -56,6 +57,11 @@ public class chatPne extends Panel implements ActionListener, KeyListener, const
 	this.setLayout(new BorderLayout());
 	this.add("South", controlPane);
 	this.add("Center", textArea);
+
+	Label heading = new Label("Chat");
+	heading.setFont(ValueFont);
+	heading.setForeground(accentColor);
+	this.add("North", heading);
     }
 
     public void PrintLine() {

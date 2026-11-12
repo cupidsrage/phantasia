@@ -19,19 +19,22 @@ public class titlePne extends Canvas implements constants {
 
     public void paint(Graphics g) {
 
+	Graphics2D g2 = Theme.smooth(g);
+
 	theBounds = getBounds();
 	canvasWidth = theBounds.width - 1;
 	canvasHeight = theBounds.height - 1;
 
-	fm = getFontMetrics(theFont);
-	cx = (int) ((canvasWidth - fm.stringWidth(theValue)) / 2);
+	g2.setColor(highlightColor);
+	g2.fillRect(0, 0, canvasWidth + 1, canvasHeight + 1);
 
-	g.setColor(highlightColor);
-	g.clearRect(0, 0, canvasWidth, canvasHeight);
+	g2.setFont(LabelFont);
+	fm = g2.getFontMetrics();
+	g2.setColor(mutedColor);
+	g2.drawString(theValue, 2, canvasHeight - 4);
+    }
 
-	g.setColor(foregroundColor);
-	g.drawLine(0, canvasHeight - 3, canvasWidth, canvasHeight - 3);
-	g.setFont(theFont);
-	g.drawString(theValue, cx, canvasHeight - 4);
+    public Dimension getPreferredSize() {
+	return new Dimension(60, 20);
     }
 }

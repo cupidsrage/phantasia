@@ -1,3 +1,4 @@
+import java.awt.Label;
 import java.awt.Panel;
 import java.awt.List;
 import java.awt.BorderLayout;
@@ -21,6 +22,11 @@ public class userPne extends Panel implements ActionListener, constants {
 
 	this.setLayout(new BorderLayout());
 	this.add("Center", theDisplay);
+
+	Label heading = new Label("Adventurers");
+	heading.setFont(ValueFont);
+	heading.setForeground(accentColor);
+	this.add("North", heading);
     }
 
     public void AddUser() {

@@ -25,46 +25,66 @@ public class barGraph extends Canvas implements constants {
 
     public void paint(Graphics g) {
 
+	if (g == null) {
+	    return;
+	}
+
+	Graphics2D g2 = Theme.smooth(g);
+
 	theBounds = getBounds();
 	canvasWidth = theBounds.width - 1;
 	canvasHeight = theBounds.height - 1;
 
-	if (percent == 1) {
-	    fillColor = Color.green;
+	    /* red when low, gold in the middle, green when full */
+	if (percent >= 1) {
+	    fillColor = new Color(95, 163, 90);
 	}
-	else if (percent < .2) {
-	    fillColor = Color.red;
+	else if (percent < .25) {
+	    fillColor = new Color(196, 72, 62);
 	}
-	else if (percent > .7) {
-	    fillColor = new Color((float)Math.cos(3.14159*(percent-.7)), (float)1.0, (float)0);
+	else if (percent < .6) {
+	    fillColor = new Color(214, 140, 60);
 	}
 	else {
-	    fillColor = new Color((float)1.0, (float)Math.sin(3.14159*(percent-.2)), (float)0);
+	    fillColor = new Color(214, 168, 74);
 	}
 
-	fm = getFontMetrics(theFont);
-	cx = (int) ((canvasWidth - fm.stringWidth(theValue)) / 2);
+	g2.setColor(highlightColor);
+	g2.fillRect(0, 0, canvasWidth + 1, canvasHeight + 1);
 
-	g.setColor(highlightColor);
-	g.clearRect(0, 0, canvasWidth, canvasHeight);
+	    /* track */
+	int barHeight = Math.max(8, canvasHeight - 6);
+	int top = (canvasHeight - barHeight) / 2;
+	g2.setColor(fieldColor);
+	g2.fillRoundRect(0, top, canvasWidth, barHeight, barHeight, barHeight);
+	g2.setColor(lineColor);
+	g2.drawRoundRect(0, top, canvasWidth, barHeight, barHeight, barHeight);
 
+	    /* fill */
+	theFill = (int) (Math.max(0, Math.min(1, percent)) * (canvasWidth - 2));
+	if (theFill > 0) {
+	    g2.setColor(fillColor);
+	    g2.fillRoundRect(1, top + 1, theFill, barHeight - 1, barHeight - 1, barHeight - 1);
+	}
+
+	    /* the bonus (shield etc.) as a thin blue line */
 	if (otherPercent > 0) {
-	    g.setColor(Color.blue);
-	    theFill = (int) (otherPercent * canvasWidth);
-	    g.fillRect(0, 0, theFill, canvasHeight);
+	    g2.setColor(new Color(79, 134, 198));
+	    g2.fillRect(4, top + barHeight - 3, (int) (otherPercent * (canvasWidth - 8)), 2);
 	}
 
-	g.setColor(foregroundColor);
-	g.drawRect(0, 0, canvasWidth, canvasHeight);
-	g.drawRect(1, 1, canvasWidth - 2, canvasHeight - 2);
-	
-	g.setColor(fillColor);
-	theFill = (int) (percent * (canvasWidth - 7));
-	g.fillRect(4, 4, theFill, canvasHeight - 7);
+	g2.setFont(ValueFont);
+	fm = g2.getFontMetrics();
+	cx = (canvasWidth - fm.stringWidth(theValue)) / 2;
+	int cy = top + (barHeight + fm.getAscent() - fm.getDescent()) / 2;
+	g2.setColor(new Color(0, 0, 0, 150));
+	g2.drawString(theValue, cx + 1, cy + 1);
+	g2.setColor(foregroundColor);
+	g2.drawString(theValue, cx, cy);
+    }
 
-	g.setColor(foregroundColor);
-	g.setFont(theFont);
-	g.drawString(theValue, cx, 14);
+    public Dimension getPreferredSize() {
+	return new Dimension(160, 22);
     }
 
     public void changeStats(String value, long maxValue, long secondValue) {
@@ -84,6 +104,6 @@ public class barGraph extends Canvas implements constants {
 	    otherPercent = (float)secondValue/otherMax;
 	}
 
-	paint(getGraphics());
+	repaint();
     }
 }

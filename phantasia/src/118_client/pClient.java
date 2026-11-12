@@ -185,7 +185,11 @@ public class pClient extends Panel implements KeyListener, constants {
 
 	f.addKeyListener(this);
 
-	f.setSize(600, 400);
+	Theme.install();
+
+	f.setSize(1000, 700);
+	f.setMinimumSize(new Dimension(760, 520));
+	f.setLocationRelativeTo(null);
 	f.setLayout(new GridBagLayout());
 
 	    /* handle the closing of the window */
@@ -198,9 +202,9 @@ public class pClient extends Panel implements KeyListener, constants {
 	GridBagConstraints constraints = new GridBagConstraints();
 
 	addComponent(status, 0, 0, 2, 1, 0, 0);
-	addComponent(messages, 0, 1, 1, 1, 1, 1);
+	addComponent(messages, 0, 1, 1, 1, 1, 3);
 	addComponent(buttons, 0, 2, 1, 1, 0, 0);
-	addComponent(chat, 0, 3, 1, 1, 1, 2);
+	addComponent(chat, 0, 3, 1, 1, 1, 1);
 	addComponent(rightPane, 1, 1, 1, 3, 0, 0);
 
 	rightPane.setLayout(new BorderLayout(0, 1));
@@ -208,6 +212,7 @@ public class pClient extends Panel implements KeyListener, constants {
 	rightPane.add("Center", users);
 
 	f.setBackground(backgroundColor);
+	Theme.apply(f);
 
 /*
 	f.pack();

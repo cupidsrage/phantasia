@@ -61,7 +61,18 @@ player that the e-mail could not be sent.
 copy is in the volume at `/app/phantasia/data/wizards`. You can edit it with
 `railway ssh` or seed your own before the first deploy.
 
-## Playing: the client
+## Playing in the browser
+
+The website's **The Game** page links to the browser client at `/client/`.
+It is plain HTML/JavaScript (`public_html/client/`) and talks to the game
+through a WebSocket bridge in `web/server.py`, the same small Python server
+that serves the website. Nothing needs installing, and it works on phones.
+
+The bridge does the game's connection handshake for the browser and passes
+the player's real IP (from Railway's `X-Forwarded-For`), so the game's
+per-address connection limits and bans apply to each player.
+
+## Playing: the downloadable client
 
 The original client was a Java applet. Browsers have not run applets for
 years, so it is now a desktop program. You need Java 8 or newer.
