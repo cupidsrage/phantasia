@@ -26,4 +26,31 @@ if [ -n "$PHANTASIA_MOTD" ]; then
     printf '%s\n' "$PHANTASIA_MOTD" > "$DATA_DIR/motd"
 fi
 
+# the game keeps its own port so it never collides with the website's $PORT
+export PHANTASIA_PORT=${PHANTASIA_PORT:-43302}
+
+# ---- website ----
+WEB_DIR=/app/public_html
+WEB_PORT=${PORT:-8080}
+
+# the address players connect the client to: set PHANTASIA_PUBLIC_ADDRESS,
+# or let Railway's TCP proxy variables fill it in
+GAME_ADDRESS=${PHANTASIA_PUBLIC_ADDRESS:-}
+if [ -z "$GAME_ADDRESS" ] && [ -n "${RAILWAY_TCP_PROXY_DOMAIN:-}" ]; then
+    GAME_ADDRESS="$RAILWAY_TCP_PROXY_DOMAIN:${RAILWAY_TCP_PROXY_PORT:-43302}"
+fi
+if [ -z "$GAME_ADDRESS" ]; then
+    GAME_ADDRESS="(ask the game admin for the address)"
+fi
+
+if [ -f "$WEB_DIR/play.html" ]; then
+    sed -i "s|@@GAME_ADDRESS@@|$GAME_ADDRESS|g" "$WEB_DIR/play.html"
+fi
+
+if [ -d "$WEB_DIR" ] && command -v python3 >/dev/null 2>&1; then
+    python3 -m http.server "$WEB_PORT" --bind 0.0.0.0 --directory "$WEB_DIR" \
+        >/dev/null 2>&1 &
+    echo "Website listening on port $WEB_PORT (game address: $GAME_ADDRESS)"
+fi
+
 exec /app/phantasia/bin/phantasia "$@"

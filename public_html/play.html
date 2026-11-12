@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+	<TITLE>Phantasia 4 - The Game</TITLE>
+	<META NAME="viewport" CONTENT="width=device-width, initial-scale=1">
+	<STYLE>
+		code, .address { background: #222211; color: #EEEE99; padding: 2px 6px; }
+		.address { font-size: 1.4em; font-weight: bold; padding: 6px 12px; display: inline-block; }
+		td { max-width: 760px; }
+	</STYLE>
+</HEAD>
+<BODY BACKGROUND="graphics/mis6b.jpg" TEXT="#BBBB66" LINK="#996699" ALINK="#BB3333" VLINK="#BB3333">
+
+<TABLE WIDTH="100%" CELLPADDING="0">
+ <TR>
+  <TD WIDTH=90></TD>
+  <TD>
+
+   <CENTER>
+   <IMG SRC="graphics/clients.jpeg" ALT="The Game" WIDTH="196" HEIGHT="22">
+   </CENTER>
+
+   <P>
+Phantasia used to run inside your web browser as a Java applet.  Browsers no
+longer run applets, so the game is now played with a small program you
+download once.  It works on Windows, Mac and Linux.
+   </P>
+
+   <H4>1. Install Java</H4>
+   <P>
+You need Java 8 or newer.  If you don't have it, get the free installer from
+<A HREF="https://adoptium.net/temurin/releases/?package=jre">adoptium.net</A>.
+On Windows you can also run <CODE>winget install EclipseAdoptium.Temurin.21.JRE</CODE>
+in PowerShell.
+   </P>
+
+   <H4>2. Download the client</H4>
+   <CENTER>
+   <P><A HREF="phantasia-client.jar"><B>Download phantasia-client.jar</B></A></P>
+   </CENTER>
+
+   <H4>3. Connect to the realm</H4>
+   <P>The game server address is:</P>
+   <CENTER><P><SPAN CLASS="address">@@GAME_ADDRESS@@</SPAN></P></CENTER>
+   <P>
+Double-click <CODE>phantasia-client.jar</CODE> and enter that address when it
+asks.  It remembers the address for next time.
+   </P>
+   <P>
+If double-clicking does nothing, open a terminal (PowerShell on Windows) in
+the folder you saved it to and run:
+   </P>
+   <P><CODE>java -jar phantasia-client.jar @@GAME_ADDRESS@@</CODE></P>
+
+   <H4>4. Play</H4>
+   <P>
+Click <B>Sign Up</B> to create an account, then <B>Log In</B> and make a new
+character.  The number keys 1-8 press the buttons along the bottom and the
+numeric keypad moves you around the realm.  New to Phantasia?  Read
+<A HREF="intro.html">The Rules</A> first.
+   </P>
+
+   <HR>
+   <BR>
+
+   <CENTER>
+   <P>
+   <A HREF="index.html">Home</A>
+ |
+   The Game
+ |
+   <A HREF="intro.html">The Rules</A>
+ |
+   <A HREF="info.html">Game Info</A>
+   </P>
+   </CENTER>
+
+  </TD>
+ </TR>
+</TABLE>
+</BODY>
+</HTML>

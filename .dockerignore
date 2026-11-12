@@ -2,5 +2,7 @@
 **/*.o
 phantasia/src/phantasia
 phantasia/src/102_client
-phantasia/src/118_client
+phantasia/src/118_client/*.jar
+phantasia/src/118_client/build
+client
 phantasia/log
