@@ -13,8 +13,9 @@ import java.awt.event.KeyEvent;
  *
  *     java -jar phantasia-client.jar [host[:port]] [port]
  *
- * Started with no address (e.g. by double-clicking the jar) it asks for
- * one and remembers it for next time.
+ * Started with no address (e.g. by double-clicking the jar) it uses the
+ * address in /server.txt inside the jar, which the game's website adds to
+ * the downloads; failing that it asks for one and remembers it.
  *
  * The host/port can also come from the PHANTASIA_HOST / PHANTASIA_PORT
  * environment variables.  The default port is 43302.
@@ -38,6 +39,11 @@ public class pClient extends Panel implements KeyListener, constants {
 
 	if (args.length > 1) {
 	    portString = args[1];
+	}
+
+	    /* use the address the website built into this download */
+	if (host == null || host.length() == 0) {
+	    host = builtInAddress();
 	}
 
 	    /* started without an address (e.g. double-clicked): ask for one */
@@ -72,6 +78,31 @@ public class pClient extends Panel implements KeyListener, constants {
 
 	System.out.println("Connecting to " + client.host + ":" + client.port);
 	client.init();
+    }
+
+	/* the server address stored in the jar as /server.txt, if any */
+    static String builtInAddress() {
+
+	InputStream in = pClient.class.getResourceAsStream("/server.txt");
+
+	if (in == null) {
+	    return null;
+	}
+
+	try {
+	    BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+	    String line = reader.readLine();
+	    reader.close();
+
+	    if (line != null && line.trim().length() > 0) {
+		return line.trim();
+	    }
+	}
+	catch (IOException e) {
+	    System.out.println("Error reading server.txt: " + e);
+	}
+
+	return null;
     }
 
 	/* ask the player for the server address, remembering the last one */

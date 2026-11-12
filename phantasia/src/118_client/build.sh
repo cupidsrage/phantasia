@@ -11,7 +11,7 @@ cd "$(dirname "$0")"
 
 rm -rf build
 mkdir -p build/classes
-javac -nowarn -encoding ISO-8859-1 -d build/classes *.java
+javac -nowarn -encoding ISO-8859-1 --release 8 -d build/classes *.java
 
 if [ -d images ]; then
     mkdir -p build/classes/images

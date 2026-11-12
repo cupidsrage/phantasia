@@ -43,6 +43,14 @@ GAME_ADDRESS=${PHANTASIA_PUBLIC_ADDRESS:-}
 if [ -z "$GAME_ADDRESS" ] && [ -n "${RAILWAY_TCP_PROXY_DOMAIN:-}" ]; then
     GAME_ADDRESS="$RAILWAY_TCP_PROXY_DOMAIN:${RAILWAY_TCP_PROXY_PORT:-43302}"
 fi
+
+# build the client downloads with the address built in
+if [ -f /app/client/configure-client.py ] && command -v python3 >/dev/null 2>&1; then
+    python3 /app/client/configure-client.py "$GAME_ADDRESS" \
+        /app/client/phantasia-client.jar /app/client/Phantasia-Windows-base.zip \
+        "$WEB_DIR" || echo "Could not prepare the client downloads"
+fi
+
 if [ -z "$GAME_ADDRESS" ]; then
     GAME_ADDRESS="(ask the game admin for the address)"
 fi
