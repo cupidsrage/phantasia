@@ -824,21 +824,10 @@ Do_handshake(struct client_t *c)
 	return;
     }
 
-	/* make sure the time is recent past */
-    ltemp = time(NULL) - ltemp;
-    if (ltemp > 3600 || ltemp < 0) {
-
-	sprintf(error_msg, "[%s] Returned a refresh time %ld seconds old.\n",
-		c->connection_id, ltemp);
-
-        Do_log(CONNECTION_LOG, &error_msg);
-
-	sprintf(string_buffer, "The game was loaded from an outdated page.  Please try again from Phantasia home.\n");
-
-	Do_send_error(c, string_buffer);
-        c->run_level=EXIT_THREAD;
-	return;
-    }
+	/* The client used to send the time its web page was generated, and
+	   stale pages were refused.  The standalone client has no web page and
+	   players' clocks can differ from the server's, so the value is
+	   accepted without checking. */
 
     return;
 }
