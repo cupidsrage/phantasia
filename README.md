@@ -68,6 +68,15 @@ circle it appears in. Edit that file to add or change monsters, then restart
 the server. Daily quest progress is kept in `data/quests`. Character save
 files are unchanged.
 
+Shields, swords and quicksilver are now **gear** (`src/gear.c`). Characters
+wear a weapon, armor, helm, boots and trinket, and carry a 6-item backpack.
+Many items have an ability. Ten one-of-a-kind **artifacts** exist, and
+whoever holds each one is shown live on the website's Legends page (served
+from `/api/artifacts`). Gear is kept in `data/gear` and artifact holders in
+`data/artifacts`. Existing characters' shield, sword and quicksilver are
+turned into equal "Worn" gear the first time they play. The player guide
+is `public_html/gear.html`.
+
 ### Wizards (admins)
 
 `phantasia/data/wizards` lists the characters that get wizard powers. The live

@@ -1,0 +1,119 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+	<TITLE>Phantasia 4 - Legends</TITLE>
+	<META NAME="viewport" CONTENT="width=device-width, initial-scale=1">
+	<STYLE>
+		td { max-width: 860px; }
+		h3 { color: #DDCC77; }
+		table.legends { border-collapse: collapse; margin: 10px 0; }
+		table.legends th, table.legends td { padding: 6px 14px; text-align: left; border-bottom: 1px solid #333322; }
+		table.legends th { color: #DDCC77; }
+		.art { color: #f0cd7a; font-weight: bold; }
+		.held { color: #EEEE99; font-weight: bold; }
+		.lost { color: #887755; font-style: italic; }
+	</STYLE>
+</HEAD>
+<BODY BACKGROUND="graphics/mis6b.jpg" TEXT="#BBBB66" LINK="#996699" ALINK="#BB3333" VLINK="#BB3333">
+
+<TABLE WIDTH="100%" CELLPADDING="0">
+ <TR>
+  <TD WIDTH=90></TD>
+  <TD>
+
+   <CENTER>
+   <H2>Legends of the Realm</H2>
+   <P>Ten artifacts, only one of each.  Who holds them now?</P>
+   </CENTER>
+
+   <CENTER>
+   <TABLE CLASS="legends" ID="legends">
+    <TR><TH>Artifact</TH><TH>Slot</TH><TH>Held by</TH></TR>
+   </TABLE>
+   <P><SMALL ID="updated">Loading&hellip;</SMALL></P>
+   </CENTER>
+
+   <P>
+Artifacts that are <I>lost in the realm</I> are waiting to be found in
+treasure or taken from a champion.  See
+<A HREF="gear.html#artifacts">Gear and Artifacts</A> for what each one does
+and how they change hands.  In the game, type <CODE>/artifacts</CODE> in
+chat for the same list.
+   </P>
+
+   <HR>
+   <BR>
+
+   <CENTER>
+   <P>
+   <A HREF="index.html">Home</A>
+ |
+   <A HREF="play.html">The Game</A>
+ |
+   <A HREF="gear.html">Gear and Artifacts</A>
+ |
+   <A HREF="whatsnew.html">New in the Realm</A>
+   </P>
+   </CENTER>
+
+  </TD>
+ </TR>
+</TABLE>
+
+<SCRIPT>
+(function () {
+  var ARTIFACTS = {
+    1: ["Mourneblade", "Weapon"],
+    2: ["The Phoenix Amulet", "Trinket"],
+    3: ["The Crown of the Deep", "Helm"],
+    4: ["Gwaihir's Feather", "Boots"],
+    5: ["The Dragonscale Aegis", "Armor"],
+    6: ["The Ring of Hoarding", "Trinket"],
+    7: ["Wyrmslayer", "Weapon"],
+    8: ["The Mantle of Shadows", "Armor"],
+    9: ["The Helm of Ages", "Helm"],
+    10: ["The Wind-lord's Boots", "Boots"]
+  };
+
+  function cell(row, text, cls) {
+    var td = document.createElement("td");
+    td.textContent = text;
+    if (cls) td.className = cls;
+    row.appendChild(td);
+  }
+
+  function show(list) {
+    var table = document.getElementById("legends");
+    while (table.rows.length > 1) table.deleteRow(1);
+    list.forEach(function (a) {
+      var info = ARTIFACTS[a.id];
+      if (!info) return;
+      var row = table.insertRow(-1);
+      cell(row, info[0], "art");
+      cell(row, info[1]);
+      if (a.holder) {
+        cell(row, a.holder.charAt(0).toUpperCase() + a.holder.slice(1), "held");
+      } else {
+        cell(row, "lost in the realm", "lost");
+      }
+    });
+    document.getElementById("updated").textContent =
+      "Updated " + new Date().toLocaleTimeString() + ". Refreshes every minute.";
+  }
+
+  function load() {
+    fetch("/api/artifacts", { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(show)
+      .catch(function () {
+        document.getElementById("updated").textContent =
+          "Could not reach the realm right now.";
+      });
+  }
+
+  load();
+  setInterval(load, 60000);
+})();
+</SCRIPT>
+</BODY>
+</HTML>

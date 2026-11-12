@@ -80,6 +80,43 @@ typedef char bool;
 #define QT_REACH		3	/* reach a circle */
 #define QT_TREASURE		4	/* discover treasure N times */
 #define QT_CHAMPION		5	/* defeat a champion */
+
+	/* gear: equipment slots */
+#define SLOT_WEAPON		0	/* adds to sword (damage) */
+#define SLOT_ARMOR		1	/* adds to shield (energy) */
+#define SLOT_HELM		2	/* adds to shield (energy) */
+#define SLOT_BOOTS		3	/* adds to quicksilver (speed) */
+#define SLOT_TRINKET		4	/* small mixed bonus */
+#define NUM_SLOTS		5
+#define BACKPACK_SIZE		6
+#define MAX_GEAR		(NUM_SLOTS + BACKPACK_SIZE)
+
+	/* gear: tiers */
+#define TIER_WORN		0	/* converted from old shield/sword/quicksilver */
+#define TIER_COMMON		1
+#define TIER_FINE		2
+#define TIER_MASTERWORK		3
+#define TIER_ENCHANTED		4
+#define TIER_ARTIFACT		5
+
+	/* gear: abilities */
+#define AB_NONE			0
+#define AB_EVASION		1	/* chance to avoid a monster's hit */
+#define AB_LEECH		2	/* heal part of damage dealt */
+#define AB_SWIFTNESS		3	/* always strike first */
+#define AB_CRUSHING		4	/* chance of double damage */
+#define AB_THORNS		5	/* reflect part of damage taken */
+#define AB_FORTUNE		6	/* more gold from treasure */
+#define AB_WARDING		7	/* less poison */
+#define AB_MENDING		8	/* regain energy each turn */
+#define AB_PROSPECTING		9	/* find treasure more often */
+#define NUM_COMMON_ABILITIES	9
+#define AB_PHOENIX		10	/* artifact: cheat death once */
+#define AB_SEAFARER		11	/* artifact: water monsters flee */
+#define AB_DRAGONBANE		12	/* artifact: double damage to dragons */
+#define NUM_ABILITIES		13
+
+#define NUM_ARTIFACTS		10
 #define NUM_CHARS		6	/* number of character types */
 #define NUM_ITEMS		7	/* items in the shops */
 
@@ -254,6 +291,7 @@ typedef char bool;
 #define PALANTIR_PACKET		55	/* refresh the player's palantir */
 #define RING_PACKET		56	/* refresh the player's ring */
 #define VIRGIN_PACKET		57	/* refresh the player's virgin */
+#define GEAR_PACKET		60	/* gear list (browser client only) */
 
 
 /* player->client packet headers */

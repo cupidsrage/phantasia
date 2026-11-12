@@ -308,4 +308,39 @@ void Do_quest_check_location(struct client_t *c);
 void Do_gameplay_login(struct client_t *c);
 int Do_chat_command(struct client_t *c, char *text);
 
+/* gear.c - equipment and artifacts */
+void Do_gear_name(struct gear_item_t *item, char *buffer);
+void Do_gear_describe(struct gear_item_t *item, char *buffer);
+void Do_gear_make(struct gear_item_t *item, int slot, double circle, int minTier);
+void Do_gear_save(struct client_t *c);
+void Do_load_artifacts(struct realm_t *the_realm);
+void Do_gear_load(struct client_t *c);
+void Do_gear_apply(struct client_t *c, int gainEnergy);
+double Do_gear_ability(struct client_t *c, int ability);
+void Do_gear_send(struct client_t *c);
+void Do_gear_offer(struct client_t *c, struct gear_item_t *item);
+void Do_gear_monster_drop(struct client_t *c);
+void Do_gear_treasure_find(struct client_t *c, int slot, double value, double circle);
+void Do_gear_corpse_find(struct client_t *c, double sword, double shield, double quicksilver);
+void Do_gear_quest_reward(struct client_t *c);
+void Do_gear_enchant(struct client_t *c, int stat, double amount);
+void Do_gear_wear(struct client_t *c, int stat, double factor);
+void Do_gear_cerberus(struct client_t *c);
+void Do_gear_death(struct client_t *c);
+int Do_gear_phoenix(struct client_t *c);
+double Do_gear_attack(struct client_t *c, double inflict);
+void Do_gear_after_attack(struct client_t *c, double inflict);
+int Do_gear_defend(struct client_t *c);
+void Do_gear_after_defend(struct client_t *c, double inflict);
+int Do_gear_seafarer(struct client_t *c);
+int Do_gear_holds_artifact(struct client_t *c);
+void Do_gear_turn(struct client_t *c);
+double Do_gear_gold_factor(struct client_t *c);
+double Do_gear_treasure_factor(struct client_t *c);
+double Do_gear_poison_factor(struct client_t *c);
+void Do_gear_menu(struct client_t *c);
+void Do_gear_armory(struct client_t *c, int slot);
+void Do_gear_chat(struct client_t *c);
+void Do_artifacts_chat(struct client_t *c);
+
 #endif /* PHANTASIA_PROTOTYPES_H */

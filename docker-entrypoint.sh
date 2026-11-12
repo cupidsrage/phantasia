@@ -68,7 +68,7 @@ fi
 if [ -d "$WEB_DIR" ] && command -v python3 >/dev/null 2>&1; then
     # website + browser-client bridge; its messages go to the deploy log
     python3 /app/web/server.py --port "$WEB_PORT" --dir "$WEB_DIR" \
-        --game-port "$PHANTASIA_PORT" &
+        --game-port "$PHANTASIA_PORT" --data-dir "$DATA_DIR" &
     WEB_PID=$!
     sleep 1
     if kill -0 "$WEB_PID" 2>/dev/null; then

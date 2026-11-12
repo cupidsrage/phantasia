@@ -391,8 +391,8 @@ void Do_champion_slain(struct client_t *c)
 	return;
     }
 
-    c->championFight = FALSE;
-
+	/* championFight stays set so the gear drop that follows knows; it is
+	   reset when the next monster appears */
     gold = floor(c->battle.opponent->size * 250.0 * (1.0 + RND()));
     gems = floor(1.0 + c->battle.opponent->size / 4.0 + RND() * 3.0);
 
@@ -606,6 +606,11 @@ static void Do_quest_complete(struct client_t *c)
 
     sprintf(message, "%s has completed today's quest.\n", c->player.name);
     Do_broadcast(c, message);
+
+	/* half of all quests also reward a piece of gear */
+    if (q->type == QT_CHAMPION || RND() < 0.5) {
+	Do_gear_quest_reward(c);
+    }
 }
 
 	/* something quest-worthy happened */
@@ -681,6 +686,10 @@ void Do_gameplay_login(struct client_t *c)
     c->questLoaded = FALSE;
     Do_quest_ensure(c);
 
+	/* equipment (old shield/sword/quicksilver become gear) */
+    Do_gear_load(c);
+    Do_gear_apply(c, FALSE);
+
     if (c->questLoaded) {
 	Do_quest_describe(&c->quest, message);
 	Do_send_chat_self(c, message);
@@ -723,10 +732,28 @@ int Do_chat_command(struct client_t *c, char *text)
 	Do_world_event_status(c, message);
 	Do_send_chat_self(c, message);
     }
+    else if (strncasecmp(text, "/gear", 5) == 0) {
+
+	Do_gear_chat(c);
+    }
+    else if (strncasecmp(text, "/artifacts", 10) == 0 ||
+	    strncasecmp(text, "/legends", 8) == 0) {
+
+	Do_artifacts_chat(c);
+    }
+    else if (strncasecmp(text, "/filter", 7) == 0) {
+
+	c->game->chatFilter = !c->game->chatFilter;
+	Do_send_chat_self(c, c->game->chatFilter ?
+		"Chat filter on.\n" : "Chat filter off.\n");
+    }
     else if (strncasecmp(text, "/help", 5) == 0) {
 
 	Do_send_chat_self(c, "/quest - show today's quest and your progress\n");
 	Do_send_chat_self(c, "/event - show the current world event\n");
+	Do_send_chat_self(c, "/gear - list your gear (Info > Gear to change it)\n");
+	Do_send_chat_self(c, "/artifacts - who holds each artifact\n");
+	Do_send_chat_self(c, "/filter - turn the chat filter on or off\n");
     }
     else {
 	Do_send_chat_self(c, "Unknown command.  Type /help for a list.\n");

@@ -67,6 +67,10 @@
 #define QUEST_FILE		PHANTASIA_DIR "/data/quests"
 #define TEMP_QUEST_FILE		PHANTASIA_DIR "/data/quests.tmp"
 #define EXTRA_MONSTER_FILE	PHANTASIA_DIR "/data/extramonsters"
+#define GEAR_FILE		PHANTASIA_DIR "/data/gear"
+#define TEMP_GEAR_FILE		PHANTASIA_DIR "/data/gear.tmp"
+#define ARTIFACT_FILE		PHANTASIA_DIR "/data/artifacts"
+#define TEMP_ARTIFACT_FILE	PHANTASIA_DIR "/data/artifacts.tmp"
 
 /* Log Files */
 #define BATTLE_LOG		PHANTASIA_DIR "/log/battles"

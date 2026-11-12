@@ -5,3 +5,5 @@ phantasia/src/phantasia.old
 phantasia/src/118_client/build/
 phantasia/src/118_client/*.jar
 phantasia/log/
+__pycache__/
+*.pyc

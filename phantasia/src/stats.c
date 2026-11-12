@@ -1461,6 +1461,11 @@ Do_adjusted_poison(struct client_t *c, double poison)
 
 Do_poison(struct client_t *c, double poison)
 {
+	/* Warding gear resists poison */
+    if (poison > 0) {
+	poison *= Do_gear_poison_factor(c);
+    }
+
     if (poison != 0) {
 	c->player.poison += poison;
 

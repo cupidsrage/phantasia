@@ -190,6 +190,20 @@ struct it_combat_t
     struct it_combat_t *next_opponent;	/* pointer to next player to fight */
 };
 
+struct gear_item_t		/* one piece of equipment */
+{
+    short	slot;			/* SLOT_ */
+    short	equipped;		/* worn (TRUE) or in the backpack */
+    short	tier;			/* TIER_ */
+    short	base;			/* index into the slot's base names */
+    short	ability;		/* AB_ */
+    short	ability2;		/* AB_ (artifacts have two) */
+    short	artifact;		/* artifact number, 0 if none */
+    double	shield;			/* energy bonus */
+    double	sword;			/* damage bonus */
+    double	quicksilver;		/* speed bonus */
+};
+
 struct quest_t			/* a character's daily quest */
 {
     char	lcname[SZ_NAME];	/* character the quest belongs to */
@@ -262,6 +276,10 @@ struct client_t		/* structure for client variables */
     int		championFight;		/* fighting a champion monster */
     struct quest_t quest;		/* today's quest */
     bool	questLoaded;		/* quest has been loaded */
+    struct gear_item_t gear[MAX_GEAR];	/* equipped items and backpack */
+    int		numGear;		/* items in gear[] */
+    bool	gearLoaded;		/* gear has been loaded */
+    bool	isBrowser;		/* playing through the browser client */
     struct event_t *events;		/* pointer to character events */
     struct realm_t *realm;		/* pointer to server realm variables */
     struct game_t *game;		/* pointer to game's game_t struct */
@@ -435,6 +453,11 @@ struct realm_t		/* variables for the entire realm */
     pthread_mutex_t kings_gold_lock;	/* lock of the kings gold */
     pthread_mutex_t connections_lock;	/* lock the connection linked list */
     pthread_mutex_t quest_lock;		/* lock the daily quest file */
+    pthread_mutex_t gear_lock;		/* lock the gear and artifact files */
+
+	/* one-of-a-kind artifacts: who holds each (empty: lost in the realm) */
+    char	artifactHolder[NUM_ARTIFACTS + 1][SZ_NAME];
+    time_t	artifactSeen[NUM_ARTIFACTS + 1];	/* holder last seen */
 
 	/* world events (in memory only) */
     int		worldEvent;		/* WE_ current world event */

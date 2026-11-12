@@ -1300,8 +1300,10 @@ Do_guru(struct client_t *c)
 	Do_mana(c, 40.0 + 10 * c->player.circle, FALSE);
 
 	Do_energy(c, c->player.energy + 2 + c->player.circle / 5,
-		c->player.max_energy, c->player.shield + 2 + c->player.circle
-		/ 5, 0, FALSE);
+		c->player.max_energy, c->player.shield, 0, FALSE);
+
+	    /* the guru blesses your armor */
+	Do_gear_enchant(c, 0, 2 + c->player.circle / 5);
     }
 }
 
@@ -1618,12 +1620,8 @@ Do_information(struct client_t *c)
     }
 
 
-    if (c->game->chatFilter) {
-        strcpy(buttons.button[6], "Filter Off\n");
-    }
-    else {
-        strcpy(buttons.button[6], "Filter On\n");
-    }
+	/* the chat filter toggle moved to the /filter chat command */
+    strcpy(buttons.button[6], "Gear\n");
 	
     strcpy(buttons.button[7], "Cancel\n");
 
@@ -1775,7 +1773,8 @@ Do_information(struct client_t *c)
 	return;
 
     case 6:
-	c->game->chatFilter = !c->game->chatFilter;
+	free((void *)event_ptr);
+	Do_gear_menu(c);
         return;
 
     default:

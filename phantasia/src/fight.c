@@ -32,6 +32,9 @@ Do_monster(struct client_t *c, struct event_t *the_event)
 {
     struct event_t *event_ptr;
     bool firsthit = c->player.blessing;  /* set if player gets the first hit */
+    if (Do_gear_ability(c, AB_SWIFTNESS) > 0) {
+	firsthit = TRUE;
+    }
     bool monsthit = TRUE;
     int count, extraMonster;
     int randomMonster = TRUE;	/* picked at random (may become a champion) */
@@ -357,7 +360,8 @@ Do_monster(struct client_t *c, struct event_t *the_event)
 
 	/* rarely, a random monster is a named champion */
     c->championFight = FALSE;
-    if (randomMonster && (int) the_event->arg1 != MONSTER_PURGATORY) {
+    if (randomMonster && (int) the_event->arg1 != MONSTER_PURGATORY &&
+	    !Do_gear_seafarer(c)) {
 	Do_maybe_make_champion(c);
     }
 
@@ -713,9 +717,10 @@ Do_monster(struct client_t *c, struct event_t *the_event)
     if (c->battle.opponent->experience) {
 	Do_experience(c, c->battle.opponent->experience, FALSE);
 
-	    /* champions and daily quests */
+	    /* champions, daily quests and gear */
 	Do_champion_slain(c);
 	Do_quest_kill(c);
+	Do_gear_monster_drop(c);
 
 	    /* log the victory */
         sprintf(string_buffer, "%s killed size %.0lf %s\n",
@@ -1448,7 +1453,7 @@ Do_monsthits(struct client_t *c)
 
     case SM_TITAN:
 
-        c->player.shield = ceil(c->player.shield * .99);
+        Do_gear_wear(c, 0, .99);
 	inflict = floor(1.0 + RND() * c->battle.opponent->strength);
 	inflict = MIN(inflict, c->player.energy);
 
@@ -1775,11 +1780,7 @@ Do_monsthits(struct client_t *c)
 
 	        Do_log(COMBAT_LOG, &string_buffer);
 
-		Do_energy(c, c->player.energy, c->player.max_energy, 0.0,
-			c->battle.force_field, FALSE);
-
-		Do_strength(c, c->player.max_strength, 0.0,
-			c->battle.strengthSpell, FALSE);
+		Do_gear_cerberus(c);
 
                 if (c->player.level > MIN_KING) {
 		        Do_crowns(c, -c->player.crowns, FALSE);
@@ -1828,8 +1829,7 @@ Do_monsthits(struct client_t *c)
 			c->battle.opponent->name);
 
 		Do_send_line(c, string_buffer);
-		Do_speed(c, c->player.max_quickness,
-			floor(c->player.quicksilver * .5), c->battle.speedSpell, FALSE);
+		Do_gear_wear(c, 2, .5);
 		return;
               }
 
@@ -1983,6 +1983,11 @@ Do_monsthits(struct client_t *c)
 	inflict = floor(1.0 + RND() * c->battle.opponent->strength);
     }
 
+	/* gear: evade the blow (or lose an artifact to a thief) */
+    if (Do_gear_defend(c)) {
+	return;
+    }
+
     sprintf(string_buffer, "%s hit you for %.0f damage!\n",
 	    c->battle.opponent->name, inflict);
 
@@ -1998,6 +2003,9 @@ Do_monsthits(struct client_t *c)
 	Do_energy(c, c->player.energy, c->player.max_energy, c->player.shield,
 		c->battle.force_field - inflict, FALSE);
     }
+
+	/* thorns */
+    Do_gear_after_defend(c, inflict);
 
     return;
 }
@@ -2060,6 +2068,9 @@ Do_hitmonster(struct client_t *c, double inflict)
 {
     char string_buffer[SZ_LINE];
 
+	/* gear abilities (crushing blows, dragonbane) */
+    inflict = Do_gear_attack(c, inflict);
+
     sprintf(string_buffer, "You hit %s for %.0f damage!\n", c->battle.opponent->name,
 	    inflict);
 
@@ -2071,6 +2082,9 @@ Do_hitmonster(struct client_t *c, double inflict)
         c->battle.opponent->energy += c->battle.opponent->shield;
 	c->battle.opponent->shield = 0.0;
     }
+
+	/* lifesteal */
+    Do_gear_after_attack(c, inflict);
 
     if (c->battle.opponent->special_type != SM_IT_COMBAT) {
 

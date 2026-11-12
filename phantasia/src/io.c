@@ -784,6 +784,8 @@ Do_handshake(struct client_t *c)
 	    c->network[SZ_FROM - 1] = '\0';
 	    c->addressResolved = FALSE;
 
+	    c->isBrowser = TRUE;
+
 	    sprintf(error_msg, "[%s] Browser client connected from %s.\n",
 		    c->connection_id, c->IP);
 
