@@ -31,7 +31,11 @@ export PHANTASIA_PORT=${PHANTASIA_PORT:-43302}
 
 # ---- website ----
 WEB_DIR=/app/public_html
-WEB_PORT=${PORT:-8080}
+# the website uses $PORT, unless that is missing or is the game's own port
+WEB_PORT=${PHANTASIA_WEB_PORT:-${PORT:-8080}}
+if [ "$WEB_PORT" = "$PHANTASIA_PORT" ]; then
+    WEB_PORT=8080
+fi
 
 # the address players connect the client to: set PHANTASIA_PUBLIC_ADDRESS,
 # or let Railway's TCP proxy variables fill it in
@@ -49,8 +53,15 @@ fi
 
 if [ -d "$WEB_DIR" ] && command -v python3 >/dev/null 2>&1; then
     python3 -m http.server "$WEB_PORT" --bind 0.0.0.0 --directory "$WEB_DIR" \
-        >/dev/null 2>&1 &
-    echo "Website listening on port $WEB_PORT (game address: $GAME_ADDRESS)"
+        >/dev/null 2>/tmp/website.log &
+    WEB_PID=$!
+    sleep 1
+    if kill -0 "$WEB_PID" 2>/dev/null; then
+        echo "Website listening on port $WEB_PORT (game address: $GAME_ADDRESS)"
+    else
+        echo "Website failed to start on port $WEB_PORT:"
+        cat /tmp/website.log
+    fi
 fi
 
 exec /app/phantasia/bin/phantasia "$@"
