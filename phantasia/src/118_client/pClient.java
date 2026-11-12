@@ -13,6 +13,9 @@ import java.awt.event.KeyEvent;
  *
  *     java -jar phantasia-client.jar [host[:port]] [port]
  *
+ * Started with no address (e.g. by double-clicking the jar) it asks for
+ * one and remembers it for next time.
+ *
  * The host/port can also come from the PHANTASIA_HOST / PHANTASIA_PORT
  * environment variables.  The default port is 43302.
  */
@@ -37,8 +40,12 @@ public class pClient extends Panel implements KeyListener, constants {
 	    portString = args[1];
 	}
 
+	    /* started without an address (e.g. double-clicked): ask for one */
 	if (host == null || host.length() == 0) {
-	    host = "localhost";
+	    host = askForAddress();
+	    if (host == null) {
+		System.exit(0);
+	    }
 	}
 
 	    /* accept host:port, which is how Railway shows TCP proxies */
@@ -65,6 +72,32 @@ public class pClient extends Panel implements KeyListener, constants {
 
 	System.out.println("Connecting to " + client.host + ":" + client.port);
 	client.init();
+    }
+
+	/* ask the player for the server address, remembering the last one */
+    static String askForAddress() {
+
+	java.util.prefs.Preferences prefs =
+		java.util.prefs.Preferences.userNodeForPackage(pClient.class);
+	String last = prefs.get("address", "");
+
+	String address = (String) javax.swing.JOptionPane.showInputDialog(null,
+		"Enter the game server address (host:port), as shown\n" +
+		"on the Phantasia website's \"The Game\" page:",
+		"Phantasia v4", javax.swing.JOptionPane.QUESTION_MESSAGE,
+		null, null, last);
+
+	if (address == null) {
+	    return null;
+	}
+
+	address = address.trim();
+	if (address.length() == 0) {
+	    return null;
+	}
+
+	prefs.put("address", address);
+	return address;
     }
 
 	/* replacement for the applet parameters sent in the handshake */

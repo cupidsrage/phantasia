@@ -31,7 +31,14 @@ Dockerfile, railway.json, docker-entrypoint.sh   deployment
    TCP proxy, not a domain. Go to *Settings → Networking → TCP Proxy* and
    enter port `43302`. Railway gives you an address like
    `shuttle.proxy.rlwy.net:12345`. Players connect to that address.
-4. Deploy. The logs show `Phantasia server listening on port 43302`, along with
+4. **Give the website a domain.** In *Settings → Networking*, click
+   *Generate Domain*. If Railway asks for a port, enter the one shown in the
+   log line `Website listening on port ...` (8080 unless Railway sets `PORT`).
+   The site is the old phantasia4.com pages from `public_html/`. Its
+   "The Game" page (`play.html`) offers the client download and shows the TCP
+   proxy address, which is filled in from Railway's `RAILWAY_TCP_PROXY_DOMAIN`
+   and `RAILWAY_TCP_PROXY_PORT` variables.
+5. Deploy. The logs show `Phantasia server listening on port 43302`, along with
    connection and error logs.
 
 Keep the service at **one replica**: the game state lives in that one process.
@@ -41,6 +48,7 @@ Keep the service at **one replica**: the game state lives in that one process.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PHANTASIA_PORT` | `43302` | Port the server listens on. Takes priority over `PORT`. |
+| `PHANTASIA_PUBLIC_ADDRESS` | Railway TCP proxy | Game address shown on the website's play page. |
 | `PHANTASIA_MOTD` | – | Replaces the message of the day on startup. |
 | `PHANTASIA_EMAIL_CONFIRM` | unset | Set to `1` to require e-mailed confirmation codes for new accounts. This needs a working `mail` command in the image, which Railway does not provide, so leave it unset. |
 
@@ -58,6 +66,9 @@ copy is in the volume at `/app/phantasia/data/wizards`. You can edit it with
 The original client was a Java applet. Browsers have not run applets for
 years, so it is now a desktop program. You need Java 8 or newer.
 
+Players download `phantasia-client.jar` from the website's "The Game" page
+and double-click it; it asks for the server address and remembers it. Or:
+
 ```bash
 cd phantasia/src/118_client
 ./build.sh
@@ -69,8 +80,7 @@ You can also pass the host and port as separate arguments
 `PHANTASIA_HOST` / `PHANTASIA_PORT` environment variables. If you leave them
 out, the client connects to `localhost:43302`.
 
-The original `.gif` status icons are not in this repository. If you have them,
-put them in `phantasia/src/118_client/images/` before running `build.sh`.
+The status icons are bundled from `phantasia/src/118_client/images/`.
 
 ## Running locally
 
