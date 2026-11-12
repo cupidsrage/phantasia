@@ -11,7 +11,7 @@ override LDLIBS += -pthread -lm
 
 OBJS = main.o account.o character.o commands.o event.o fight.o \
        file.o hack.o info.o init.o io.o itcombat.o md5c.o misc.o socket.o \
-       stats.o tags.o treasure.o
+       stats.o tags.o treasure.o gameplay.o
 
 phantasia : $(OBJS)
 	$(CC) $(CFLAGS) -o phantasia $(OBJS) $(LDLIBS)

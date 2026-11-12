@@ -104,6 +104,9 @@ Do_treasure(struct client_t *c, struct event_t *the_event)
         "\tWizards have been known to be nice if you are polite without being obsequious.\n",
         };
 
+	/* finding treasure counts toward "discover treasure" quests */
+    Do_quest_progress(c, QT_TREASURE, 1);
+
 	/* Gold and gems only in circles that aren't fully beyond */
     if ((the_event->arg2 == 10) ||
         ((c->player.circle <= D_BEYOND / 88.388 && RND() > 0.65) && 
@@ -131,6 +134,9 @@ Do_treasure(struct client_t *c, struct event_t *the_event)
                 /* gold */
             gold = floor(ROLL(the_event->arg3 * 10.0, the_event->arg3 *
 		    the_event->arg3 * 8.0 * (the_event->arg1 - 1.0)));
+
+		/* a Gold Rush doubles gold finds */
+	    gold = floor(gold * Do_gold_find_factor(c));
 
                 /* avoid single gold pieces */
             if (gold == 1.0) {
@@ -1202,7 +1208,7 @@ Do_corpse(struct client_t *c, struct event_t *the_event)
     struct player_t *the_player;
     struct event_t *event_ptr;
     char string_buffer[SZ_LINE];
-    int theAnswer;
+    long theAnswer;	/* Do_yes_no stores a long */
     double dtemp;
 
     the_player = (struct player_t *)the_event->arg4;
@@ -1401,7 +1407,7 @@ Do_award_blessing(struct client_t *c)
 
 Do_award_virgin(struct client_t *c)
 {
-    int theAnswer;
+    long theAnswer;	/* Do_yes_no stores a long */
     float ftemp;
 
     if (c->player.gender == MALE) {

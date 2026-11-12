@@ -65,6 +65,21 @@ typedef char bool;
 
 /* total number of things */
 #define NUM_MONSTERS		100	/* monsters in the game */
+#define MAX_EXTRA_MONSTERS	50	/* extra monsters from the data file */
+
+	/* world events */
+#define WE_NONE			0
+#define WE_BLOOD_MOON		1	/* more monsters, double experience */
+#define WE_GOLD_RUSH		2	/* more treasure, double gold */
+#define WE_CHAMPION_HUNT	3	/* champions are far more common */
+#define WE_COUNT		3
+
+	/* daily quest types */
+#define QT_SLAY			1	/* slay N monsters */
+#define QT_SLAY_DEEP		2	/* slay N monsters at circle >= param */
+#define QT_REACH		3	/* reach a circle */
+#define QT_TREASURE		4	/* discover treasure N times */
+#define QT_CHAMPION		5	/* defeat a champion */
 #define NUM_CHARS		6	/* number of character types */
 #define NUM_ITEMS		7	/* items in the shops */
 

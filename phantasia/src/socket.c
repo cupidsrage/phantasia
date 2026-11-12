@@ -1508,6 +1508,11 @@ int Do_packet(struct client_t *c, int thePacket)
 	if (Do_get_socket_string(c, string_buffer, SZ_CHAT - 20) == S_ERROR)
 	    return S_ERROR;
 
+	    /* chat commands such as /quest are answered privately */
+	if (Do_chat_command(c, string_buffer)) {
+	    break;
+	}
+
 	    /* mute null chat messages */
 	if (strlen(string_buffer) > 0) {
 

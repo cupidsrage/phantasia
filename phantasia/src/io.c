@@ -328,7 +328,8 @@ int Do_player_dialog(struct client_t *c, char *message, char *thePlayer)
 Do_wait_flag(struct client_t *c, bool *flag, pthread_mutex_t *the_mutex)
 {
     sigset_t sigMask;
-    int theAnswer, theSignal;
+    long theAnswer;	/* Do_yes_no stores a long */
+    int theSignal;
     char error_msg[SZ_ERROR_MESSAGE];
 
         /* prepare to unblock SIGIO */
@@ -829,7 +830,7 @@ Do_handshake(struct client_t *c)
         }
 
 	    /* the machine id is valid */
-	sprintf(c->connection_id, "%d:%s:%d", c->machineID, c->IP,
+	sprintf(c->connection_id, "%ld:%s:%d", c->machineID, c->IP,
 		c->game->clientPid);
 
         Do_lock_mutex(&c->realm->realm_lock);

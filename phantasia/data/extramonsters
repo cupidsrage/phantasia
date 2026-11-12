@@ -1,0 +1,33 @@
+# Extra monsters for Phantasia.
+#
+# Each monster is two lines: its name, then its stats:
+#   strength brains speed energy experience treasure special flock min_circle max_circle
+#
+# The stats use the same scale as the "monsters" file (they are multiplied
+# by the monster's size, which is the circle it is met in).  "special" should
+# be 0.  Edit freely; the server reads this file when it starts.
+
+A Giant Rat
+8 6 22 25 70 0 0 40 1 5
+A Will-o'-the-Wisp
+5 50 40 20 140 1 0 0 1 7
+A Bog Hag
+20 45 14 50 220 2 0 0 3 9
+A Barrow-wight
+26 38 18 70 330 3 0 10 5 12
+A Cave Bear
+45 12 17 120 480 3 0 15 6 14
+A Night-gaunt
+30 50 30 110 700 4 0 0 8 16
+A Basilisk
+60 40 18 200 1600 5 0 0 10 19
+A Mountain Giant
+120 30 12 400 3200 5 0 10 12 24
+A Fell Beast
+150 70 30 600 7000 6 0 0 16 35
+A Lich
+90 400 22 700 9500 7 0 0 25 40
+A Fire Wyrm
+280 120 24 1200 12500 8 0 0 30 999
+A Shadow Dragon
+350 200 28 1800 16000 9 0 0 36 999

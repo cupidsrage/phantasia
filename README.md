@@ -49,11 +49,24 @@ Keep the service at **one replica**: the game state lives in that one process.
 | --- | --- | --- |
 | `PHANTASIA_PORT` | `43302` | Port the server listens on. Takes priority over `PORT`. |
 | `PHANTASIA_PUBLIC_ADDRESS` | Railway TCP proxy | Game address shown on the website's play page. |
+| `PHANTASIA_EVENT_MINUTES` | `90` | Average minutes between world events (Blood Moon, Gold Rush, Champion Hunt). |
+| `PHANTASIA_EVENT_LENGTH` | `20` | How many minutes a world event lasts. |
 | `PHANTASIA_MOTD` | – | Replaces the message of the day on startup. |
 | `PHANTASIA_EMAIL_CONFIRM` | unset | Set to `1` to require e-mailed confirmation codes for new accounts. This needs a working `mail` command in the image, which Railway does not provide, so leave it unset. |
 
 Password-reset e-mails also need `mail`. Without it, the game tells the
 player that the e-mail could not be sent.
+
+### Gameplay additions
+
+The revived realm adds daily quests, champion monsters, world events and 12
+new monsters (`src/gameplay.c`). Players can read the details and exact
+numbers on the website's "New in the Realm" page (`public_html/whatsnew.html`)
+and in the new section of the Monsters page. New monsters live in
+`data/extramonsters`. Each one has its stats plus the lowest and highest
+circle it appears in. Edit that file to add or change monsters, then restart
+the server. Daily quest progress is kept in `data/quests`. Character save
+files are unchanged.
 
 ### Wizards (admins)
 
