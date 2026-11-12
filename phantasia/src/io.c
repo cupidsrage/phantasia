@@ -765,6 +765,31 @@ Do_handshake(struct client_t *c)
 	return;
     }
 
+	/* The website's browser-client bridge connects from this machine and
+	   passes the player's real address as "ip:a.b.c.d" in place of the
+	   hash, so connection limits and bans apply per player. */
+    if (c->machineID == 0 && strncmp(string_buffer, "ip:", 3) == 0 &&
+	    c->address.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
+
+	struct in_addr realAddress, theNetwork;
+
+	if (inet_aton(&string_buffer[3], &realAddress)) {
+
+	    strncpy(c->IP, inet_ntoa(realAddress), SZ_FROM - 1);
+	    c->IP[SZ_FROM - 1] = '\0';
+
+	    theNetwork.s_addr = realAddress.s_addr & 0x00FFFFFF;
+	    strncpy(c->network, inet_ntoa(theNetwork), SZ_FROM - 1);
+	    c->network[SZ_FROM - 1] = '\0';
+	    c->addressResolved = FALSE;
+
+	    sprintf(error_msg, "[%s] Browser client connected from %s.\n",
+		    c->connection_id, c->IP);
+
+	    Do_log(CONNECTION_LOG, error_msg);
+	}
+    }
+
 	/* if a machine number was passed */
     if (c->machineID > 0) {
 

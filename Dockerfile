@@ -40,7 +40,7 @@ RUN mkdir -p /pkg/Phantasia \
 FROM debian:bookworm-slim
 
 # perl runs the (optional) account e-mail scripts, tini forwards signals,
-# python3 serves the website
+# python3 serves the website and the browser client's WebSocket bridge
 RUN apt-get update \
     && apt-get install -y --no-install-recommends perl tini python3 \
     && rm -rf /var/lib/apt/lists/*
@@ -51,6 +51,7 @@ COPY --from=build /src/phantasia bin/phantasia
 COPY phantasia/bin/*.pl bin/
 COPY phantasia/data/ /app/seed-data/
 COPY public_html/ /app/public_html/
+COPY web/server.py /app/web/server.py
 COPY --from=client /client/phantasia-client.jar /app/client/phantasia-client.jar
 COPY --from=client /client/Phantasia-Windows-base.zip /app/client/Phantasia-Windows-base.zip
 COPY client-package/configure-client.py /app/client/configure-client.py

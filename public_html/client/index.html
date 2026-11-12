@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phantasia IV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="client.css">
+</head>
+<body>
+
+<div id="app">
+
+  <header class="topbar">
+    <a class="brand" href="../index.html" title="Back to the Phantasia website">Phantasia <span>IV</span></a>
+    <div class="whereabouts">
+      <div id="title-head">Welcome to Phantasia!</div>
+      <div id="title-tail"></div>
+    </div>
+    <div id="conn" class="conn connecting" title="Connection status"><i></i><span>Connecting</span></div>
+  </header>
+
+  <section class="stats panel" aria-label="Character statistics">
+    <div class="bars">
+      <div class="bar energy" id="bar-energy">
+        <div class="bar-label"><span>Energy</span><b id="val-energy">0</b></div>
+        <div class="track"><div class="fill"></div><div class="fill extra"></div></div>
+      </div>
+      <div class="bar strength" id="bar-strength">
+        <div class="bar-label"><span>Strength</span><b id="val-strength">0</b></div>
+        <div class="track"><div class="fill"></div></div>
+      </div>
+      <div class="bar speed" id="bar-speed">
+        <div class="bar-label"><span>Speed</span><b id="val-speed">0</b></div>
+        <div class="track"><div class="fill"></div></div>
+      </div>
+    </div>
+    <div class="chips">
+      <div class="chip" title="Shield"><em>🛡️</em><span>Shield</span><b id="val-shield">0</b></div>
+      <div class="chip" title="Sword"><em>⚔️</em><span>Sword</span><b id="val-sword">0</b></div>
+      <div class="chip" title="Quicksilver"><em>☿</em><span>Quicksilver</span><b id="val-quicksilver">0</b></div>
+      <div class="chip" title="Mana"><em>✨</em><span>Mana</span><b id="val-mana">0</b></div>
+      <div class="chip" title="Level"><em>⭐</em><span>Level</span><b id="val-level">0</b></div>
+      <div class="chip" title="Gold"><em>🪙</em><span>Gold</span><b id="val-gold">0</b></div>
+      <div class="chip" title="Gems"><em>💎</em><span>Gems</span><b id="val-gems">0</b></div>
+    </div>
+    <div class="items" aria-label="Magic items">
+      <span class="item" id="item-cloak" title="Cloak">🧥</span>
+      <span class="item" id="item-blessing" title="Blessing">✝️</span>
+      <span class="item" id="item-crown" title="Crown">👑</span>
+      <span class="item" id="item-palantir" title="Palantir">🔮</span>
+      <span class="item" id="item-ring" title="Ring">💍</span>
+      <span class="item" id="item-virgin" title="Virgin">👸</span>
+    </div>
+  </section>
+
+  <main class="story panel">
+    <div id="log" class="log" aria-live="polite"></div>
+    <div id="actions" class="actions"></div>
+  </main>
+
+  <aside class="side">
+    <section class="panel compass-panel">
+      <h2>Travel</h2>
+      <div id="compass" class="compass"></div>
+    </section>
+
+    <section class="panel players-panel">
+      <h2>Adventurers <small id="player-count"></small></h2>
+      <ul id="players" class="players"></ul>
+    </section>
+
+    <section class="panel chat-panel">
+      <h2>Chat</h2>
+      <div id="chat-log" class="chat-log"></div>
+      <form id="chat-form" class="chat-form" autocomplete="off">
+        <input id="chat-input" type="text" maxlength="400" placeholder="Chat opens once you're in the realm" disabled>
+        <button type="submit" id="chat-send" disabled>Send</button>
+      </form>
+    </section>
+  </aside>
+
+  <footer class="hint">
+    Keys: <kbd>1</kbd>–<kbd>8</kbd> actions · <kbd>Space</kbd> first action · arrows or numpad to move
+  </footer>
+</div>
+
+<div id="modal" class="modal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <h3 id="modal-title"></h3>
+    <div id="modal-body"></div>
+    <div id="modal-buttons" class="modal-buttons"></div>
+  </div>
+</div>
+
+<script src="client.js"></script>
+</body>
+</html>

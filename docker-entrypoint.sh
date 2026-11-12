@@ -60,15 +60,15 @@ if [ -f "$WEB_DIR/play.html" ]; then
 fi
 
 if [ -d "$WEB_DIR" ] && command -v python3 >/dev/null 2>&1; then
-    python3 -m http.server "$WEB_PORT" --bind 0.0.0.0 --directory "$WEB_DIR" \
-        >/dev/null 2>/tmp/website.log &
+    # website + browser-client bridge; its messages go to the deploy log
+    python3 /app/web/server.py --port "$WEB_PORT" --dir "$WEB_DIR" \
+        --game-port "$PHANTASIA_PORT" &
     WEB_PID=$!
     sleep 1
     if kill -0 "$WEB_PID" 2>/dev/null; then
-        echo "Website listening on port $WEB_PORT (game address: $GAME_ADDRESS)"
+        echo "Game address for downloaded clients: $GAME_ADDRESS"
     else
-        echo "Website failed to start on port $WEB_PORT:"
-        cat /tmp/website.log
+        echo "Website failed to start on port $WEB_PORT (see the error above)"
     fi
 fi
 
