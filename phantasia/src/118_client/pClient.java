@@ -1,12 +1,96 @@
 import java.awt.*;
 import java.net.*;
 import java.io.*;
-import java.applet.*;
 import java.awt.event.*;
 import java.lang.Thread;
 import java.awt.event.KeyEvent;
 
-public class pClient extends Applet implements KeyListener, constants {
+/*
+ * pClient - the Phantasia client.
+ *
+ * Originally a Java applet; browsers and current JDKs no longer support
+ * applets, so it now runs as a standalone desktop program:
+ *
+ *     java -jar phantasia-client.jar [host[:port]] [port]
+ *
+ * The host/port can also come from the PHANTASIA_HOST / PHANTASIA_PORT
+ * environment variables.  The default port is 43302.
+ */
+public class pClient extends Panel implements KeyListener, constants {
+
+    static final int DEFAULT_PORT = 43302;
+
+	/* server to connect to */
+    String host = "localhost";
+    int port = DEFAULT_PORT;
+
+    public static void main(String[] args) {
+
+	String host = System.getenv("PHANTASIA_HOST");
+	String portString = System.getenv("PHANTASIA_PORT");
+
+	if (args.length > 0) {
+	    host = args[0];
+	}
+
+	if (args.length > 1) {
+	    portString = args[1];
+	}
+
+	if (host == null || host.length() == 0) {
+	    host = "localhost";
+	}
+
+	    /* accept host:port, which is how Railway shows TCP proxies */
+	int colon = host.lastIndexOf(':');
+	if (colon > 0 && host.indexOf(':') == colon) {
+	    if (portString == null || args.length < 2) {
+		portString = host.substring(colon + 1);
+	    }
+	    host = host.substring(0, colon);
+	}
+
+	pClient client = new pClient();
+	client.host = host;
+
+	if (portString != null && portString.length() > 0) {
+	    try {
+		client.port = Integer.parseInt(portString.trim());
+	    }
+	    catch (NumberFormatException e) {
+		System.out.println("Invalid port \"" + portString + "\", using " +
+			DEFAULT_PORT);
+	    }
+	}
+
+	System.out.println("Connecting to " + client.host + ":" + client.port);
+	client.init();
+    }
+
+	/* replacement for the applet parameters sent in the handshake */
+    public String getParameter(String name) {
+
+	if (name.equals("time")) {
+	    return Long.toString(System.currentTimeMillis() / 1000);
+	}
+
+	    /* "num" and "hash": no machine cookie */
+	return "0";
+    }
+
+	/* load an image from the jar (images/<name>) or the images directory */
+    public Image loadImage(String name) {
+
+	URL url = pClient.class.getResource("/images/" + name);
+
+	if (url != null) {
+	    return Toolkit.getDefaultToolkit().getImage(url);
+	}
+
+	return Toolkit.getDefaultToolkit().getImage("images" + File.separator +
+		name);
+    }
+
 
 	/* Main Thread */
     Thread mainThread = null;
@@ -73,7 +157,7 @@ public class pClient extends Applet implements KeyListener, constants {
 
 	    /* set up the socket */
         try {
-	    socket = new Socket(this.getCodeBase().getHost(), 43302);
+	    socket = new Socket(host, port);
 	    output = new DataOutputStream(socket.getOutputStream());
 	    input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         }
@@ -82,7 +166,7 @@ public class pClient extends Applet implements KeyListener, constants {
 	    errorDialog.bringUp("The system can not connect to the server.",
 		    "The server could be down or a firewall could exist between you and it.",
 		    "Please try again later.");
-	    stop();
+	    return;
         }
 
 	    /* start the listen thread */
@@ -117,7 +201,7 @@ System.out.println("pClientQuit called.");
 
 	    /* destroy the listen thread */
 	if (listen != null) {
-	    listen.stop();
+	    listen.running = false;
 	    listen = null;
 	}
 
@@ -139,6 +223,7 @@ System.out.println("Socket Closed.");
 System.out.println("Main window hidden.");
 	f.dispose();
 System.out.println("Main window disposed.");
+	System.exit(0);
     }
 
     public String readString() {
@@ -160,7 +245,16 @@ System.out.println("Returning from socket: " + message);
     }
 
     public long readLong() {
-	return(Long.parseLong(readString()));
+
+	String message = readString();
+
+	    /* the server closed the connection */
+	if (message == null) {
+	    System.out.println("Connection closed by the server.");
+	    pClientQuit();
+	}
+
+	return(Long.parseLong(message.trim()));
     }
 
 

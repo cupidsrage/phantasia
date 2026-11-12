@@ -746,7 +746,7 @@ Do_treasure(struct client_t *c, struct event_t *the_event)
 			  * (.75 + RND() / 2) * (1 + the_event->arg1 / 5),
 			  c->player.sword, 0, FALSE);
 
-		        Do_experience(c, 10000 * c->player.circle);
+		        Do_experience(c, 10000 * c->player.circle, 0);
 		    }
 		    else {
 

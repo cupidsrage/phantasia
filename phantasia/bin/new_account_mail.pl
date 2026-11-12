@@ -1,5 +1,8 @@
 #!/usr/bin/perl
 
+# fail (so the game reports an error) when no mail command is installed
+exit(1) if system("command -v mail >/dev/null 2>&1") != 0;
+
 open DATAFILE, ">/tmp/$ARGV[2].mail" or exit(1);
 
 print DATAFILE "Congratulations!  You have sucessfully created a new account on Phantasia\nat http://www.phantasia4.com. May all your adventures in the realm be\nfun and profitable.\n\n";

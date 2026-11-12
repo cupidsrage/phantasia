@@ -1,5 +1,8 @@
 #!/usr/bin/perl
 
+# fail (so the game reports an error) when no mail command is installed
+exit(1) if system("command -v mail >/dev/null 2>&1") != 0;
+
 open DATAFILE, ">/tmp/$ARGV[2].mail" or exit(1);
 
 print DATAFILE "As you requested, the password has been reset for the Phantasia account\nnamed $ARGV[0].  Here is the new password and remember it is\ncase sensitive:\n\n";

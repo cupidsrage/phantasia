@@ -508,7 +508,7 @@ Do_get_character(struct client_t *c)
         /* show the character the scoreboard */
     case 6:
 
-        Do_scoreboard(c, 0);
+        Do_scoreboard(c, 0, TRUE);
         break;
 
         /* exit if requested */

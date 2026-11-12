@@ -367,7 +367,7 @@ Do_wait_flag(struct client_t *c, bool *flag, pthread_mutex_t *the_mutex)
         Do_log(DEBUG_LOG, error_msg);
 #endif
 
-        sigwait(&sigMask, &theSignal);
+        theSignal = Do_wait_signal(&sigMask, 0);
 
 #ifdef SUSPEND_DEBUG
         sprintf(error_msg, "[%s] awoken on signal %d in it_combat.\n",
@@ -1098,8 +1098,8 @@ Do_suspend(struct client_t *c, struct event_t *the_event)
     char error_msg[SZ_ERROR_MESSAGE];
 
         /* prepare to unblock SIGIO */
-    sigprocmask(0, NULL, &sigMask);
-    sigdelset(&sigMask, SIGIO);
+    sigemptyset(&sigMask);
+    sigaddset(&sigMask, SIGIO);
 
 	/* set the suspended flag */
     c->suspended = TRUE;
@@ -1131,7 +1131,7 @@ Do_suspend(struct client_t *c, struct event_t *the_event)
         Do_send_buffer(c);
 
 	    /* wait for a signal to proceed */
-        sigsuspend(&sigMask);
+        Do_wait_signal(&sigMask, 0);
 
 	Do_get_nothing(c);
 

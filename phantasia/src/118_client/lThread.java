@@ -6,6 +6,9 @@ class lThread extends Thread implements constants {
 
     pClient parent = null;
 
+	/* cleared to end the thread (Thread.stop() no longer exists) */
+    volatile boolean running = true;
+
     examinDlog examinePlayer = null;
     stringDlog stringDialog = null;
     coordDlog coordinateDialog = null;
@@ -22,7 +25,7 @@ class lThread extends Thread implements constants {
 
 	int thePacket = 0;
 
-	for (;;) {
+	while (running) {
 
 	    thePacket = (int) parent.readLong();
 /*
@@ -162,7 +165,8 @@ System.out.println("Switching on packet " + thePacket);
         parent.f.setVisible(false);
         parent.f.dispose();
 
-            /* destroy the listen thread */
-        stop();
+            /* end the listen thread and the program */
+        running = false;
+        System.exit(0);
     }
 }

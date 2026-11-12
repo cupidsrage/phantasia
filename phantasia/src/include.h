@@ -33,6 +33,11 @@
 #define MUTEX_DEBUG
 */
 
+    /* needed for F_SETOWN_EX, gettid and friends on Linux */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
     /* pthread.h must be first */
 #include <pthread.h>			/* mutex_t */
 #include <fcntl.h>			/* fcntl() */
@@ -42,6 +47,11 @@
 #include <signal.h>			/* for signal(SIGINT, *) */
 #include <stdio.h>
 #include <stdlib.h>			/* rand() */
+#include <string.h>
+#include <ctype.h>
+#include <arpa/inet.h>			/* inet_ntoa() */
+#include <sys/syscall.h>		/* SYS_gettid, SYS_tgkill */
+#include <time.h>
 #include <sys/socket.h>			/* AF_INET, SOCK_STREAM, SOMAXCONN */
 #include <netdb.h>			/* gethostbyaddr for DNS queries */
 #include <sys/time.h>			/* timeval */
@@ -55,4 +65,5 @@
 #include "phantdefs.h"
 #include "phantstruct.h"
 #include "pathnames.h"
+#include "prototypes.h"
 
