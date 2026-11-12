@@ -64,6 +64,9 @@
 #define TAGGED_FILE		PHANTASIA_DIR "/data/tagged"
 #define TEMP_TAGGED_FILE	PHANTASIA_DIR "/data/tagged.tmp"
 #define HISTORY_FILE		PHANTASIA_DIR "/data/history"
+#define QUEST_FILE		PHANTASIA_DIR "/data/quests"
+#define TEMP_QUEST_FILE		PHANTASIA_DIR "/data/quests.tmp"
+#define EXTRA_MONSTER_FILE	PHANTASIA_DIR "/data/extramonsters"
 
 /* Log Files */
 #define BATTLE_LOG		PHANTASIA_DIR "/log/battles"

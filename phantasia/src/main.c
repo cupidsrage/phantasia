@@ -979,6 +979,10 @@ Do_random_events(struct client_t *c)
 {
     struct event_t *event_ptr;
 
+	/* world events and "reach a circle" quests */
+    Do_world_event_tick(c);
+    Do_quest_check_location(c);
+
         /* to shred "backups" */
         if ((c->player.quickness == 0)
              && (RND() >= .1 * c->player.degenerated)) {
@@ -1029,7 +1033,7 @@ Do_random_events(struct client_t *c)
 	    Do_send_self_event(c, TAX_EVENT);
 	}
 
-        if (RND() <= 0.015) {
+        if (RND() <= 0.015 * Do_treasure_chance_factor(c)) {
 	    event_ptr = (struct event_t *)Do_create_event();
 	    event_ptr->type = TREASURE_EVENT;
 	    event_ptr->arg1 = c->player.circle;
@@ -1037,7 +1041,7 @@ Do_random_events(struct client_t *c)
 	    Do_file_event(c, event_ptr);
         }
 
-        if (RND() <= 0.0075) {
+        if (RND() <= 0.0075 * Do_treasure_chance_factor(c)) {
 	    event_ptr = (struct event_t *)Do_create_event();
 	    event_ptr->type = TREASURE_EVENT;
 	    event_ptr->arg1 = c->player.circle;
@@ -1045,7 +1049,7 @@ Do_random_events(struct client_t *c)
 	    Do_file_event(c, event_ptr);
         }
 
-        if (RND() <= 0.20) {
+        if (RND() <= Do_monster_chance(c)) {
 	    event_ptr = (struct event_t *)Do_create_event();
 	    event_ptr->type = MONSTER_EVENT;
 	    event_ptr->arg1 = MONSTER_RANDOM;

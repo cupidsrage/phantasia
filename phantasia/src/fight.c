@@ -33,7 +33,8 @@ Do_monster(struct client_t *c, struct event_t *the_event)
     struct event_t *event_ptr;
     bool firsthit = c->player.blessing;  /* set if player gets the first hit */
     bool monsthit = TRUE;
-    int count;
+    int count, extraMonster;
+    int randomMonster = TRUE;	/* picked at random (may become a champion) */
     char string_buffer[SZ_LINE];
     char string_buffer2[SZ_LINE];
     short sTemp;
@@ -50,9 +51,11 @@ Do_monster(struct client_t *c, struct event_t *the_event)
     c->battle.opponent = (struct opponent_t *) Do_malloc(SZ_OPPONENT);
     c->battle.opponent->sin = 5;
 
-    if (the_event->arg3 >= 0 && the_event->arg3 < NUM_MONSTERS)  {
+    if (the_event->arg3 >= 0 &&
+	    the_event->arg3 < NUM_MONSTERS + c->realm->numExtraMonsters)  {
             /* monster is specified */
         c->battle.opponent->type = the_event->arg3;
+	randomMonster = FALSE;
     }
 
     else {
@@ -143,6 +146,13 @@ Do_monster(struct client_t *c, struct event_t *the_event)
 
     if (c->battle.opponent->type == 100) {
             c->battle.opponent->type = 15;
+    }
+
+	/* sometimes meet one of the newer monsters instead */
+    if (randomMonster && c->player.special_type != SC_VALAR &&
+	    (extraMonster = Do_pick_extra_monster(c)) >= 0) {
+
+	c->battle.opponent->type = extraMonster;
     }
 
 	/* set the monster's size */
@@ -338,6 +348,17 @@ Do_monster(struct client_t *c, struct event_t *the_event)
         strcpy(c->battle.opponent->name, "An Incubus");
         strcpy(c->battle.opponent->realName, "An Incubus");
 	        
+    }
+
+	/* during a Blood Moon monsters are worth double experience */
+    if (Do_current_world_event(c) == WE_BLOOD_MOON) {
+	c->battle.opponent->experience *= 2.0;
+    }
+
+	/* rarely, a random monster is a named champion */
+    c->championFight = FALSE;
+    if (randomMonster && (int) the_event->arg1 != MONSTER_PURGATORY) {
+	Do_maybe_make_champion(c);
     }
 
     Do_send_clear(c);
@@ -691,6 +712,10 @@ Do_monster(struct client_t *c, struct event_t *the_event)
         /* give player credit for killing monster */
     if (c->battle.opponent->experience) {
 	Do_experience(c, c->battle.opponent->experience, FALSE);
+
+	    /* champions and daily quests */
+	Do_champion_slain(c);
+	Do_quest_kill(c);
 
 	    /* log the victory */
         sprintf(string_buffer, "%s killed size %.0lf %s\n",

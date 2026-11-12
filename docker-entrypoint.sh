@@ -55,6 +55,12 @@ if [ -z "$GAME_ADDRESS" ]; then
     GAME_ADDRESS="(ask the game admin for the address)"
 fi
 
+# show the configured world event timing on the "New in the Realm" page
+if [ -f "$WEB_DIR/whatsnew.html" ]; then
+    sed -i -e "s|@@EVENT_MINUTES@@|${PHANTASIA_EVENT_MINUTES:-90}|g" \
+        -e "s|@@EVENT_LENGTH@@|${PHANTASIA_EVENT_LENGTH:-20}|g" "$WEB_DIR/whatsnew.html"
+fi
+
 if [ -f "$WEB_DIR/play.html" ]; then
     sed -i "s|@@GAME_ADDRESS@@|$GAME_ADDRESS|g" "$WEB_DIR/play.html"
 fi

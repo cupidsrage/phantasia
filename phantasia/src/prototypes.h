@@ -288,4 +288,24 @@ int Do_signal_thread(pid_t tid, int theSignal);
 int Do_set_socket_owner(int the_socket);
 int Do_wait_signal(sigset_t *sigMask, time_t deadline);
 
+/* gameplay.c - world events, champions, extra monsters, daily quests */
+void Do_send_chat_self(struct client_t *c, char *message);
+const char *Do_world_event_name(int theEvent);
+int Do_current_world_event(struct client_t *c);
+int Do_world_event_status(struct client_t *c, char *buffer);
+void Do_world_event_tick(struct client_t *c);
+double Do_monster_chance(struct client_t *c);
+double Do_treasure_chance_factor(struct client_t *c);
+double Do_gold_find_factor(struct client_t *c);
+void Do_load_extra_monsters(struct realm_t *the_realm);
+int Do_pick_extra_monster(struct client_t *c);
+void Do_maybe_make_champion(struct client_t *c);
+void Do_champion_slain(struct client_t *c);
+void Do_quest_describe(struct quest_t *q, char *buffer);
+void Do_quest_progress(struct client_t *c, int type, int amount);
+void Do_quest_kill(struct client_t *c);
+void Do_quest_check_location(struct client_t *c);
+void Do_gameplay_login(struct client_t *c);
+int Do_chat_command(struct client_t *c, char *text);
+
 #endif /* PHANTASIA_PROTOTYPES_H */

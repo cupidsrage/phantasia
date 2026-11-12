@@ -190,6 +190,17 @@ struct it_combat_t
     struct it_combat_t *next_opponent;	/* pointer to next player to fight */
 };
 
+struct quest_t			/* a character's daily quest */
+{
+    char	lcname[SZ_NAME];	/* character the quest belongs to */
+    long	day;			/* day number (UTC) it was given */
+    int		type;			/* QT_ quest type */
+    int		target;			/* how many/which circle */
+    int		param;			/* extra parameter (circle) */
+    int		progress;		/* progress so far */
+    int		done;			/* reward given */
+};
+
 struct client_t		/* structure for client variables */
 {
 	/* socket variables */
@@ -248,6 +259,9 @@ struct client_t		/* structure for client variables */
 	/* directory to important information */
     struct player_t player;		/* the main player structure */
     struct battle_t battle;		/* structure used for battles */
+    int		championFight;		/* fighting a champion monster */
+    struct quest_t quest;		/* today's quest */
+    bool	questLoaded;		/* quest has been loaded */
     struct event_t *events;		/* pointer to character events */
     struct realm_t *realm;		/* pointer to server realm variables */
     struct game_t *game;		/* pointer to game's game_t struct */
@@ -420,9 +434,21 @@ struct realm_t		/* variables for the entire realm */
     pthread_mutex_t object_lock;	/* realm object lock */
     pthread_mutex_t kings_gold_lock;	/* lock of the kings gold */
     pthread_mutex_t connections_lock;	/* lock the connection linked list */
+    pthread_mutex_t quest_lock;		/* lock the daily quest file */
+
+	/* world events (in memory only) */
+    int		worldEvent;		/* WE_ current world event */
+    time_t	worldEventEnds;		/* when the current event ends */
+    time_t	nextWorldEvent;		/* when the next event may start */
+
+	/* extra monsters from EXTRA_MONSTER_FILE, stored after the
+	   original NUM_MONSTERS in the monster array */
+    int		numExtraMonsters;
+    short	extraMinCircle[MAX_EXTRA_MONSTERS];
+    short	extraMaxCircle[MAX_EXTRA_MONSTERS];
 
 	/* changing game variables */
-    struct monster_t monster[NUM_MONSTERS]; /* list of all monsters */
+    struct monster_t monster[NUM_MONSTERS + MAX_EXTRA_MONSTERS]; /* all monsters */
     struct realm_object_t *objects;	/* list of objects in realm */
     double	kings_gold;		/* amount of gold in kings coffers */
     double	steward_gold;		/* amount of gold in stewards coffers */

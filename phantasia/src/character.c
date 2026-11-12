@@ -565,6 +565,7 @@ Do_roll_new_player(struct client_t *c)
     struct button_t buttons;
     char    error_msg[SZ_ERROR_MESSAGE];
     long theAnswer;
+    int approved;		/* Do_approve_name stores an int */
     FILE *liar_file;
     struct in_addr theNetwork;
 
@@ -750,12 +751,12 @@ Do_roll_new_player(struct client_t *c)
     Do_lowercase(&c->player.lcname, &c->player.name);
 
     if (Do_approve_name(c, &c->player.lcname, &c->player.name,
-        &theAnswer) != S_NORM) {
+        &approved) != S_NORM) {
 
         return;
     }
 
-    if (theAnswer) {
+    if (approved) {
         break;
     }
     }
@@ -865,7 +866,7 @@ Do_recall_player(struct client_t *c)
     else {
 
             /* loop through the the names */
-        while (fscanf(wizard_file, "%ld %s %s %s %d\n", &answer,
+        while (fscanf(wizard_file, "%ld %80s %32s %32s %d\n", &answer,
                 &wizNetwork, &wizAccount, &wizCharacter, &exceptionFlag) == 5) {
 
                 /* put down the highest wizType */
@@ -3009,7 +3010,7 @@ Do_entering_character(struct client_t *c)
     else {
 
             /* loop through the the names */
-        while (fscanf(wizard_file, "%d %s %s %s %d\n", &wizType, &theNetwork,
+        while (fscanf(wizard_file, "%hd %80s %32s %32s %d\n", &wizType, &theNetwork,
         &theAccount, &theCharacter, &exceptionFlag) == 5) {
 
         if (!strcmp(theCharacter, c->player.lcname) && !strcmp(
@@ -3164,6 +3165,9 @@ Do_entering_character(struct client_t *c)
 
         /* It's okay to chat now */
     Do_send_int(c, ACTIVATE_CHAT_PACKET);
+
+	/* today's quest and any world event */
+    Do_gameplay_login(c);
 
 
     if (c->player.energy <= 0.0) {

@@ -32,7 +32,8 @@
 
 Do_get_account(struct client_t *c)
 {
-    int rc, answer;
+    int rc;
+    long answer;	/* Do_buttons/Do_yes_no store a long */
     char error_msg[SZ_ERROR_MESSAGE];
     struct button_t buttons;
 
@@ -94,7 +95,7 @@ Do_get_account(struct client_t *c)
 	/* since it's a push button interface, any other answer is a hacker */
     default:
 
-	sprintf(error_msg, "[%s] Returned non-option %d in Do_get_account.\n",
+	sprintf(error_msg, "[%s] Returned non-option %ld in Do_get_account.\n",
 		c->connection_id, answer);
 
 	Do_log_error(error_msg);
@@ -132,7 +133,9 @@ Do_get_account(struct client_t *c)
 
 Do_account_signup(struct client_t *c)
 {
-    int rc = 0, answer, i, emailConfirm;
+    int rc = 0, i, emailConfirm;
+    int approved;	/* Do_approve_name/email store an int */
+    long answer;	/* Do_yes_no stores a long */
     char string_buffer[SZ_LINE];
     struct account_t theAccount;
     struct button_t buttons;
@@ -178,7 +181,7 @@ Do_account_signup(struct client_t *c)
     default:
 
 	sprintf(string_buffer,
-		"[%s] Returned non-option %d in Do_account_signup.\n",
+		"[%s] Returned non-option %ld in Do_account_signup.\n",
 		c->connection_id, answer);
 
 	Do_log_error(string_buffer);
@@ -205,13 +208,13 @@ Do_account_signup(struct client_t *c)
 
 	    /* Check the name for illegal characters or profanity */
         if (Do_approve_name(c, &theAccount.lcname, &theAccount.name, 
-		&answer) != S_NORM) {
+		&approved) != S_NORM) {
 
 	    return;
 	}
 
 	    /* move on to the next stage */
-	if (answer) {
+	if (approved) {
 	    break;
 	}
     }
@@ -244,14 +247,14 @@ Do_account_signup(struct client_t *c)
 	    return;
 	}
 
-        if (Do_approve_email(c, &theAccount, &answer) != S_NORM) {
+        if (Do_approve_email(c, &theAccount, &approved) != S_NORM) {
 
 	    Do_release_name(c, theAccount.lcname);
 	    return;
 	}
 
 	    /* continue on a positive answer */
-	if (answer) {
+	if (approved) {
 	    break;
 	}
     }
