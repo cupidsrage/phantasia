@@ -1,0 +1,7 @@
+*.o
+*.class
+phantasia/src/phantasia
+phantasia/src/phantasia.old
+phantasia/src/118_client/build/
+phantasia/src/118_client/*.jar
+phantasia/log/

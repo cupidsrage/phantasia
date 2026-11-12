@@ -5,7 +5,7 @@
 /* testig stuff - should be delete before production */
 
 /* configurables */
-#define PHANTASIA_PORT 9897
+#define PHANTASIA_PORT 43302	/* port the Java client connects to */
 
 /* boolean identifiers */
 typedef char bool;

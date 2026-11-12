@@ -479,86 +479,59 @@ public class statusPne extends Panel implements constants {
         MediaTracker mt = new MediaTracker(this);
 
 	    /* load the images */
-	parent.theImages[0] = parent.getImage(parent.getCodeBase(),
-		"shield.gif");
+	parent.theImages[0] = parent.loadImage("shield.gif");
 
-	parent.theImages[1] = parent.getImage(parent.getCodeBase(),
-		"sword.gif");
+	parent.theImages[1] = parent.loadImage("sword.gif");
 
-	parent.theImages[2] = parent.getImage(parent.getCodeBase(),
-		"quicksilver.gif");
+	parent.theImages[2] = parent.loadImage("quicksilver.gif");
 
-	parent.theImages[3] = parent.getImage(parent.getCodeBase(),
-		"mana.gif");
+	parent.theImages[3] = parent.loadImage("mana.gif");
 
-	parent.theImages[4] = parent.getImage(parent.getCodeBase(),
-		"level.gif");
+	parent.theImages[4] = parent.loadImage("level.gif");
 
-	parent.theImages[5] = parent.getImage(parent.getCodeBase(),
-		"gold.gif");
+	parent.theImages[5] = parent.loadImage("gold.gif");
 
-	parent.theImages[6] = parent.getImage(parent.getCodeBase(),
-		"gems.gif");
+	parent.theImages[6] = parent.loadImage("gems.gif");
 
-	parent.theImages[7] = parent.getImage(parent.getCodeBase(),
-		"cloak.No.gif");
+	parent.theImages[7] = parent.loadImage("cloak.No.gif");
 
-	parent.theImages[8] = parent.getImage(parent.getCodeBase(),
-		"cloak.Yes.gif");
+	parent.theImages[8] = parent.loadImage("cloak.Yes.gif");
 
-	parent.theImages[9] = parent.getImage(parent.getCodeBase(),
-		"blessing.No.gif");
+	parent.theImages[9] = parent.loadImage("blessing.No.gif");
 
-	parent.theImages[10] = parent.getImage(parent.getCodeBase(),
-		"blessing.Yes.gif");
+	parent.theImages[10] = parent.loadImage("blessing.Yes.gif");
 
-	parent.theImages[11] = parent.getImage(parent.getCodeBase(),
-		"crown.No.gif");
+	parent.theImages[11] = parent.loadImage("crown.No.gif");
 
-	parent.theImages[12] = parent.getImage(parent.getCodeBase(),
-		"crown.Yes.gif");
+	parent.theImages[12] = parent.loadImage("crown.Yes.gif");
 
-	parent.theImages[13] = parent.getImage(parent.getCodeBase(),
-		"palantir.No.gif");
+	parent.theImages[13] = parent.loadImage("palantir.No.gif");
 
-	parent.theImages[14] = parent.getImage(parent.getCodeBase(),
-		"palantir.Yes.gif");
+	parent.theImages[14] = parent.loadImage("palantir.Yes.gif");
 
-	parent.theImages[15] = parent.getImage(parent.getCodeBase(),
-		"ring.No.gif");
+	parent.theImages[15] = parent.loadImage("ring.No.gif");
 
-	parent.theImages[16] = parent.getImage(parent.getCodeBase(),
-		"ring.Yes.gif");
+	parent.theImages[16] = parent.loadImage("ring.Yes.gif");
 
-	parent.theImages[17] = parent.getImage(parent.getCodeBase(),
-		"virgin.No.gif");
+	parent.theImages[17] = parent.loadImage("virgin.No.gif");
 
-	parent.theImages[18] = parent.getImage(parent.getCodeBase(),
-		"virgin.Yes.gif");
+	parent.theImages[18] = parent.loadImage("virgin.Yes.gif");
 
-	parent.theImages[19] = parent.getImage(parent.getCodeBase(),
-		"label.1.gif");
+	parent.theImages[19] = parent.loadImage("label.1.gif");
 
-	parent.theImages[20] = parent.getImage(parent.getCodeBase(),
-		"label.2.gif");
+	parent.theImages[20] = parent.loadImage("label.2.gif");
 
-	parent.theImages[21] = parent.getImage(parent.getCodeBase(),
-		"label.3.gif");
+	parent.theImages[21] = parent.loadImage("label.3.gif");
 
-	parent.theImages[22] = parent.getImage(parent.getCodeBase(),
-		"label.4.gif");
+	parent.theImages[22] = parent.loadImage("label.4.gif");
 
-	parent.theImages[23] = parent.getImage(parent.getCodeBase(),
-		"label.5.gif");
+	parent.theImages[23] = parent.loadImage("label.5.gif");
 
-	parent.theImages[24] = parent.getImage(parent.getCodeBase(),
-		"label.6.gif");
+	parent.theImages[24] = parent.loadImage("label.6.gif");
 
-	parent.theImages[25] = parent.getImage(parent.getCodeBase(),
-		"label.7.gif");
+	parent.theImages[25] = parent.loadImage("label.7.gif");
 
-	parent.theImages[26] = parent.getImage(parent.getCodeBase(),
-		"label.8.gif");
+	parent.theImages[26] = parent.loadImage("label.8.gif");
 
 	mt.addImage(parent.theImages[0], 0);
 	mt.addImage(parent.theImages[1], 1);

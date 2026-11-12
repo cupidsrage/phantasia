@@ -188,6 +188,8 @@ void *Do_malloc(size_t the_size)
 	Do_log_error(error_msg);
 	exit(MALLOC_ERROR);
     }
+
+    return void_ptr;
 }
 
 

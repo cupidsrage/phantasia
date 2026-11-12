@@ -223,7 +223,7 @@ Do_it_combat(struct client_t *c, struct event_t *theEvent, int available)
 
 	    theCombat->message = IT_JUST_DIED;
             Do_unlock_mutex(&theCombat->theLock);
-            kill(theCombat->opponent[0].processID ,SIGIO);
+            Do_signal_thread(theCombat->opponent[0].processID, SIGIO);
             Do_lock_mutex(&c->realm->realm_lock);
             c->game->it_combat = NULL;
             Do_unlock_mutex(&c->realm->realm_lock);
@@ -233,7 +233,7 @@ Do_it_combat(struct client_t *c, struct event_t *theEvent, int available)
 
 	    theCombat->message = IT_JUST_LEFT;
             Do_unlock_mutex(&theCombat->theLock);
-            kill(theCombat->opponent[0].processID ,SIGIO);
+            Do_signal_thread(theCombat->opponent[0].processID, SIGIO);
             Do_lock_mutex(&c->realm->realm_lock);
             c->game->it_combat = NULL;
             Do_unlock_mutex(&c->realm->realm_lock);
@@ -273,7 +273,7 @@ Do_it_combat(struct client_t *c, struct event_t *theEvent, int available)
 
     Do_unlock_mutex(&theCombat->theLock);
 
-    kill(theCombat->opponent[0].processID ,SIGIO);
+    Do_signal_thread(theCombat->opponent[0].processID, SIGIO);
 
     Do_send_line(c, string_buffer);
     Do_send_buffer(c);
@@ -451,7 +451,7 @@ Do_it_combat_turns(struct client_t *c, struct it_combat_t *theCombat,
 	    Do_lock_mutex(&theCombat->theLock);
 	    *hisFlag = TRUE;
 	    Do_unlock_mutex(&theCombat->theLock);
-	    kill(c->battle.opponent->processID, SIGIO);
+	    Do_signal_thread(c->battle.opponent->processID, SIGIO);
 
                 /* clear any spells */
             Do_energy(c, c->player.energy, c->player.max_energy,
@@ -953,7 +953,7 @@ Do_log(BATTLE_LOG, error_msg);
             Do_lock_mutex(&theCombat->theLock);
             *hisFlag = TRUE;
             Do_unlock_mutex(&theCombat->theLock);
-	    kill(c->battle.opponent->processID, SIGIO);
+	    Do_signal_thread(c->battle.opponent->processID, SIGIO);
 
             Do_lock_mutex(&c->realm->realm_lock);
             c->game->it_combat = NULL;
@@ -986,7 +986,7 @@ Do_log(BATTLE_LOG, error_msg);
 
 		    /* create a copy of ourselves for the corpse */
 	        theCombat->player_ptr = (struct player_t *)
-			Do_copy_record(&c->player, FALSE);
+			Do_copy_record(&c->player);
 	    }
 
 	    Do_handle_event(c, event_ptr);
@@ -1009,7 +1009,7 @@ Do_log(BATTLE_LOG, error_msg);
 	*hisFlag = TRUE;
 	Do_unlock_mutex(&theCombat->theLock);
 
-	kill(c->battle.opponent->processID, SIGIO);
+	Do_signal_thread(c->battle.opponent->processID, SIGIO);
 
 	if (c->player.poison > 0.0) 
 	    myStats->energy = c->player.energy;

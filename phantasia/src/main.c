@@ -143,6 +143,9 @@ char    *argv[];
         }
     }
 
+	/* a client dropping its connection must not kill the server */
+    signal(SIGPIPE, SIG_IGN);
+
 	/* block SIGINT, SIGTERM, SIGIO, SIGALRM and SIGUSR1 til we're ready */
     sigemptyset(&sigAct.sa_mask);
     sigaddset(&sigAct.sa_mask, SIGINT);
@@ -229,7 +232,7 @@ Do_main_loop(struct server_t *s)
     while (s->run_level != FAST_SHUTDOWN) {
 
 	    /* wait for a signal to do anything */
-	sigwait(&sigMask, &theSignal);
+	theSignal = Do_wait_signal(&sigMask, 0);
 /*
 	sleep(.1);
 	theSignal = SIGIO;
@@ -366,7 +369,7 @@ Do_main_loop(struct server_t *s)
 
 Do_start_thread(struct client_t *c)
 {
-    int error;
+    int error, serverPid;
     char error_msg[SZ_ERROR_MESSAGE], string_buffer[SZ_LINE];
     char *out;
     struct sigaction sigAct;
@@ -374,7 +377,7 @@ Do_start_thread(struct client_t *c)
 
 	/* set the thread's process id */
     Do_lock_mutex(&c->realm->realm_lock);
-    c->game->clientPid = getpid();
+    c->game->clientPid = Do_gettid();
     Do_unlock_mutex(&c->realm->realm_lock);
 
 	/* record this connection */
@@ -386,7 +389,7 @@ Do_start_thread(struct client_t *c)
     Do_log(CONNECTION_LOG, error_msg);
 
 	/* set the socket so I/O notifies this thread */
-    if (fcntl(c->socket, F_SETOWN, c->game->clientPid) < 0) {
+    if (Do_set_socket_owner(c->socket) < 0) {
 
 	sprintf(error_msg,
 		"Thread %d returned an error on fcntl F_SETOWN.\n",
@@ -453,8 +456,9 @@ Do_start_thread(struct client_t *c)
 
 	/* tell the server to clean up */
     c->game->cleanup_thread = TRUE;
+    serverPid = c->realm->serverPid;
     free((void *) c);
-    kill(c->realm->serverPid, SIGUSR1);
+    kill(serverPid, SIGUSR1);
 
         /* leave the game */
     pthread_exit(0);

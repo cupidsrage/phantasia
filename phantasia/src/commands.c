@@ -478,7 +478,7 @@ Do_death(struct client_t *c, struct event_t *the_event)
 	object_ptr->type = CORPSE;
 	object_ptr->x = c->player.x;
 	object_ptr->y = c->player.y;
-	object_ptr->arg1 = (void *) Do_copy_record(&c->player, FALSE);
+	object_ptr->arg1 = (void *) Do_copy_record(&c->player);
 
 	    /* put the new event in the realm object list */
 	Do_lock_mutex(&c->realm->realm_lock);
@@ -2715,7 +2715,7 @@ double manaCost;
 
     if (c->wizard < 3) {
 
-        Do_mana(c, -manaCost);
+        Do_mana(c, -manaCost, 0);
 
 	if (event_ptr->type == SLAP_EVENT) {
 	    Do_sin(c, .25);

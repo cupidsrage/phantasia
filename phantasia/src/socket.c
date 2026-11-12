@@ -42,7 +42,17 @@ int Do_init_server_socket()
 {
     struct sockaddr_in bind_address;
     char error_msg[SZ_ERROR_MESSAGE];
-    int the_socket, error, on=1;
+    int the_socket, error, on=1, port = PHANTASIA_PORT;
+    char *port_env;
+
+	/* allow the port to be overridden (e.g. by a hosting platform) */
+    if ((port_env = getenv("PHANTASIA_PORT")) == NULL || *port_env == '\0') {
+	port_env = getenv("PORT");
+    }
+
+    if (port_env != NULL && atoi(port_env) > 0 && atoi(port_env) < 65536) {
+	port = atoi(port_env);
+    }
 
 	/* create a socket */
     errno = 0;
@@ -70,7 +80,7 @@ int Do_init_server_socket()
 	/* set up the bind address */
     bind_address.sin_family = AF_INET;
     bind_address.sin_addr.s_addr = INADDR_ANY;
-    bind_address.sin_port = PHANTASIA_PORT;
+    bind_address.sin_port = htons(port);
 
 	/* bind to that socket */
     error = bind(the_socket, (struct sockaddr *) &bind_address,
@@ -94,7 +104,7 @@ int Do_init_server_socket()
         exit(SOCKET_LISTEN_ERROR);
     }
 
-    if (error = fcntl(the_socket, F_SETOWN, getpid()) < 0) {
+    if (error = Do_set_socket_owner(the_socket) < 0) {
 
 	sprintf(error_msg, "[0.0.0.0:?] fcntl F_SETOWN failed with error code of %d in Do_init_server_socket.\n", error);
 
@@ -109,6 +119,9 @@ int Do_init_server_socket()
         Do_log_error(error_msg);
 	exit(SOCKET_BIND_ERROR);
     }
+
+    printf("Phantasia server listening on port %d\n", port);
+    fflush(stdout);
 
     return the_socket; /* no problems */
 }
@@ -1109,7 +1122,7 @@ int Do_get_socket_string(struct client_t *c, char *theString, size_t theSize)
 
 	    Do_log(DEBUG_LOG, error_msg);
 #endif
-	    sigwait(&sigMask, &theSignal);
+	    theSignal = Do_wait_signal(&sigMask, c->timeoutAt);
 
 #ifdef SUSPEND_DEBUG
 	    sprintf(error_msg, "[%s] awoken on signal %d.\n",
@@ -1156,7 +1169,6 @@ int Do_get_socket_string(struct client_t *c, char *theString, size_t theSize)
 	        Do_send_buffer(c);
 
 		    /* give the client 15 seconds to respond */
-	        alarm(15);
 		c->timeoutAt = time(NULL) + 15;
 	        break;
 
@@ -1227,7 +1239,6 @@ int Do_get_string(struct client_t *c, char *theString, int maxSize)
     Do_send_buffer(c);
 
     c->timeoutFlag = 0;
-    alarm(c->timeout);
     c->timeoutAt = time(NULL) + c->timeout;
 
     for(;;) {
@@ -1235,7 +1246,6 @@ int Do_get_string(struct client_t *c, char *theString, int maxSize)
 	    /* get the header of the next packet */
 	errno = 0;
         if (Do_get_socket_string(c, packetTmp, SZ_PACKET_TYPE) == S_ERROR) {
-	    alarm(0);
 	    return S_ERROR;
 	}
 
@@ -1249,19 +1259,16 @@ int Do_get_string(struct client_t *c, char *theString, int maxSize)
 
 	        /* read the string */
 	    returnCode = Do_get_socket_string(c, theString, maxSize);
-	    alarm(0);
 	    return returnCode;
 
 	case C_CANCEL_PACKET:
 
-	    alarm(0);
 	    return S_CANCEL;
 
 	case C_PING_PACKET:
 
 	    if (c->timeoutFlag == 1) {
 
-		alarm(0);
 	        return S_TIMEOUT;
 	    }
 	    else {
@@ -1275,7 +1282,6 @@ int Do_get_string(struct client_t *c, char *theString, int maxSize)
 	default:
 
 	    if (Do_packet(c, packetType) == S_ERROR) {
-		alarm(0);
 	        return S_ERROR;
 	    }
 	}
@@ -1687,3 +1693,73 @@ int Do_check_host_address(struct in_addr *hostAddress, struct in_addr *networkAd
     return FALSE;
 }
 
+
+
+/************************************************************************
+/
+/ Thread signalling helpers
+/
+/ The server was written for LinuxThreads, where every thread had its
+/ own process id.  With NPTL (all modern Linux) threads share one pid,
+/ so process-directed signals (kill(), F_SETOWN, alarm()) go to an
+/ arbitrary thread.  These helpers direct signals at specific threads
+/ and replace the per-thread alarm() with the timeoutAt deadlines.
+/
+*************************************************************************/
+
+pid_t Do_gettid(void)
+{
+    return (pid_t) syscall(SYS_gettid);
+}
+
+int Do_signal_thread(pid_t tid, int theSignal)
+{
+    return (int) syscall(SYS_tgkill, getpid(), tid, theSignal);
+}
+
+int Do_set_socket_owner(int the_socket)
+{
+    struct f_owner_ex owner;
+
+	/* deliver this socket's SIGIO to the calling thread only */
+    owner.type = F_OWNER_TID;
+    owner.pid = Do_gettid();
+
+    return fcntl(the_socket, F_SETOWN_EX, &owner);
+}
+
+/*
+ * Wait for a signal in sigMask.  If sigMask contains SIGALRM, SIGALRM is
+ * returned once "deadline" has passed.  To survive a missed signal, SIGIO
+ * is returned every quarter second so callers re-check their state.
+ */
+int Do_wait_signal(sigset_t *sigMask, time_t deadline)
+{
+    struct timespec pollTime;
+    sigset_t waitMask;
+    int theSignal, useAlarm;
+
+    useAlarm = sigismember(sigMask, SIGALRM) && deadline > 0;
+
+    if (useAlarm && time(NULL) > deadline) {
+	return SIGALRM;
+    }
+
+    waitMask = *sigMask;
+    sigdelset(&waitMask, SIGALRM);
+
+    pollTime.tv_sec = 0;
+    pollTime.tv_nsec = 250000000;
+
+    theSignal = sigtimedwait(&waitMask, NULL, &pollTime);
+
+    if (theSignal > 0) {
+	return theSignal;
+    }
+
+    if (useAlarm && time(NULL) > deadline) {
+	return SIGALRM;
+    }
+
+    return SIGIO;
+}

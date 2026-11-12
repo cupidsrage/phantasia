@@ -294,6 +294,14 @@ Do_log(char *filename, char *message)
         /* print the error to the logfile */
     fprintf(log_file, "%s %s", string_buffer, message);
 
+        /* mirror important logs to stdout so container hosts see them */
+    if (!strcmp(filename, SERVER_LOG) || !strcmp(filename, ERROR_LOG) ||
+	    !strcmp(filename, CONNECTION_LOG)) {
+
+	printf("%s %s", string_buffer, message);
+	fflush(stdout);
+    }
+
         /* close the logfile */
     fclose(log_file);
 

@@ -82,7 +82,7 @@ Do_get_account(struct client_t *c)
 	/* show the character the scoreboard */
     case 6:
 
-	Do_scoreboard(c, 0);
+	Do_scoreboard(c, 0, TRUE);
 	break;
 
 	/* exit if requested */
@@ -132,7 +132,7 @@ Do_get_account(struct client_t *c)
 
 Do_account_signup(struct client_t *c)
 {
-    int rc, answer, i;
+    int rc = 0, answer, i, emailConfirm;
     char string_buffer[SZ_LINE];
     struct account_t theAccount;
     struct button_t buttons;
@@ -274,15 +274,27 @@ Do_account_signup(struct client_t *c)
 
     Do_send_clear(c);
 
-	/* create a confirmation code */
-    Do_create_password(&theAccount.confirmation);
+	/* e-mail confirmation is only used when PHANTASIA_EMAIL_CONFIRM=1 */
+    emailConfirm = (getenv("PHANTASIA_EMAIL_CONFIRM") != NULL &&
+	    !strcmp(getenv("PHANTASIA_EMAIL_CONFIRM"), "1"));
 
-	/* call the script to e-mail the confirmation code */
-    sprintf(string_buffer, "%s %s %s %s\n", NEW_ACCOUNT_SCRIPT,
-	    theAccount.name, theAccount.confirmation, theAccount.email);
+    if (!emailConfirm) {
+	theAccount.confirmation[0] = '\0';
+    }
+    else {
+
+	    /* create a confirmation code */
+        Do_create_password(&theAccount.confirmation);
+
+	    /* call the script to e-mail the confirmation code */
+        sprintf(string_buffer, "%s %s %s %s\n", NEW_ACCOUNT_SCRIPT,
+	        theAccount.name, theAccount.confirmation, theAccount.email);
+
+	rc = system(string_buffer);
+    }
 
 	/* if the mail send fails */
-    if (rc = system(string_buffer)) {
+    if (emailConfirm && rc) {
 
 	sprintf(string_buffer,
     "[%s] New account e-mail failed with a code of %d in Do_account_signup.\n",
@@ -317,7 +329,12 @@ Do_account_signup(struct client_t *c)
 
     Do_log(CONNECTION_LOG, string_buffer);
 
-    Do_send_line(c, "Your account has been created and your confirmation code has been e-mailed to the address you provided.  To activate the account, log in with the information you provided, but have the confirmation code handy as you will need it.\n");
+    if (emailConfirm) {
+        Do_send_line(c, "Your account has been created and your confirmation code has been e-mailed to the address you provided.  To activate the account, log in with the information you provided, but have the confirmation code handy as you will need it.\n");
+    }
+    else {
+        Do_send_line(c, "Your account has been created.  You can now log in with the account name and password you chose.\n");
+    }
 
     Do_more(c);
     Do_send_clear(c);
