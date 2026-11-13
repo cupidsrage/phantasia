@@ -487,6 +487,69 @@ int Do_buttons(struct client_t *c, long *answer, struct button_t *button_ptr)
 
 /************************************************************************
 /
+/ FUNCTION NAME: Do_select_dialog
+/
+/ FUNCTION: let the player pick one of count labels
+/
+/ DESCRIPTION:
+/	The browser client shows a drop-down list.  Other clients get the
+/	choices as pages of buttons with More and Cancel.  Returns S_NORM
+/	with *answer set to the chosen index, or S_CANCEL / S_TIMEOUT /
+/	S_ERROR.
+/
+/************************************************************************/
+
+int Do_select_dialog(struct client_t *c, long *answer, char *prompt,
+	const char **labels, int count)
+{
+    struct button_t buttons;
+    char line[SZ_LINE];
+    int i, page = 0, pages, rc;
+
+    if (count < 1) return S_CANCEL;
+
+    if (c->isBrowser) {
+	Do_send_int(c, SELECT_PACKET);
+	snprintf(line, sizeof line, "%s", prompt);
+	if (!strchr(line, '\n')) strcat(line, "\n");
+	Do_send_string(c, line);
+	Do_send_int(c, count);
+	for (i = 0; i < count; i++) {
+	    snprintf(line, sizeof line, "%.200s\n", labels[i]);
+	    Do_send_string(c, line);
+	}
+	rc = Do_get_long(c, answer);
+	if (rc != S_NORM) return rc;
+	if (*answer < 0 || *answer >= count) return S_CANCEL;
+	return S_NORM;
+    }
+
+	/* six choices a page, then More and Cancel */
+    pages = (count + 5) / 6;
+    for (;;) {
+	Do_send_line(c, prompt);
+	Do_clear_buttons(&buttons, 0);
+	for (i = 0; i < 6 && page * 6 + i < count; i++) {
+	    snprintf(buttons.button[i], sizeof buttons.button[i], "%.20s\n",
+		    labels[page * 6 + i]);
+	}
+	if (pages > 1) strcpy(buttons.button[6], "More\n");
+	strcpy(buttons.button[7], "Cancel\n");
+
+	rc = Do_buttons(c, answer, &buttons);
+	Do_send_clear(c);
+	if (rc != S_NORM) return rc;
+	if (*answer == 7) return S_CANCEL;
+	if (*answer == 6 && pages > 1) { page = (page + 1) % pages; continue; }
+	if (*answer < 0 || *answer > 5 || page * 6 + *answer >= count) continue;
+	*answer += page * 6;
+	return S_NORM;
+    }
+}
+
+
+/************************************************************************
+/
 / FUNCTION NAME: Do_clear_buttons(struct button_t *button_ptr, int starting)
 /
 / FUNCTION: reads the next packet type off the socket

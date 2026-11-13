@@ -86,7 +86,7 @@ copy is in the volume at `/app/phantasia/data/wizards`. You can edit it with
 `railway ssh` or seed your own before the first deploy.
 
 
-Level 4 wizards get **Administrate › Realm Tools**:
+Level 4 wizards get **Administrate › Realm Tools**, a drop-down list of:
 
 - **World Event:** start a Blood Moon, Gold Rush, Champion Hunt or random
   event for any number of minutes, or end the current one.
@@ -98,7 +98,19 @@ Level 4 wizards get **Administrate › Realm Tools**:
 - **Give Bag:** any bag size; items already carried are never lost.
 - **Quests:** give a player a new daily quest, or complete theirs.
 - **Champion:** the player's next monster is a champion.
+- **Preview a Ceremony:** play any ceremony (wizard, apprentice, Steward,
+  King, Queen, Valar) on your own screen, or show it to everyone.
 - **Moderate:** the old Moderate menu, which used to have this button.
+
+**Administrate › Send Event** is also a drop-down of things that can happen
+to a player, such as bless, heal, knight, give experience, send a monster
+(picked from a list), trading post, medic, curse, smite or move. The last
+choice is the old build-an-event-by-number screen. Artifacts are picked
+from a list too.
+
+Wizards can type `/ceremony king` (or `wizard`, `apprentice`, `steward`,
+`queen`, `valar`) to preview a ceremony on their own screen. Level 4
+wizards can add `all` to show it to everyone.
 
 Level 3 and 4 wizards can also type `/event start blood|gold|hunt|random
 [minutes]` and `/event stop` in chat. Every wizard action is written to the
