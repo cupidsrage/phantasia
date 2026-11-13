@@ -1210,3 +1210,20 @@ void Do_wizard_tools(struct client_t *c)
 	Do_send_clear(c);
     }
 }
+
+
+	/* tell every game a wizard has arrived (Do_file_event shows browsers) */
+void Do_announce_wizard(struct client_t *c)
+{
+    struct event_t *event_ptr;
+
+    event_ptr = (struct event_t *) Do_create_event();
+    event_ptr->type = WIZARD_ARRIVAL_EVENT;
+    event_ptr->arg1 = (double) c->wizard;
+    event_ptr->arg3 = strlen(c->modifiedName) + 1;
+    event_ptr->arg4 = (void *) Do_malloc(event_ptr->arg3);
+    strcpy(event_ptr->arg4, c->modifiedName);
+    event_ptr->from = c->game;
+
+    Do_broadcast_event(c, event_ptr);
+}

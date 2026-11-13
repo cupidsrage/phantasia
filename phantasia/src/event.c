@@ -386,6 +386,22 @@ Do_file_event(struct client_t *c, struct event_t *the_event)
 
 	break;
 
+	/* a wizard arrived: browser players see it happen */
+    case WIZARD_ARRIVAL_EVENT:
+
+	if (c->isBrowser && the_event->arg4 != NULL) {
+	    sprintf(string_buffer, "%.0lf\n", the_event->arg1);
+	    Do_send_int(c, WIZARD_PACKET);
+	    Do_send_string(c, string_buffer);
+	    Do_send_string(c, (char *) the_event->arg4);
+	    Do_send_string(c, "\n");
+	    Do_send_buffer(c);
+	}
+
+	free(the_event->arg4);
+	free((void *)the_event);
+	break;
+
 	/* chat messages go straight to the player */
     case CHAT_EVENT:
 
