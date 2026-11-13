@@ -364,6 +364,8 @@ double Do_eff_brains(struct client_t *c);
 double Do_eff_magiclvl(struct client_t *c);
 double Do_gear_spell_cost(struct client_t *c, double cost);
 const char *Do_bag_name(int size);
+double Do_bag_gold_factor(int size);
+double Do_gold_capacity(struct client_t *c);
 void Do_gear_chat(struct client_t *c);
 void Do_artifacts_chat(struct client_t *c);
 

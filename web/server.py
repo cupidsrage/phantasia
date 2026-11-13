@@ -256,7 +256,7 @@ EVENT_EFFECTS = {
     1: "monsters roam more often and give double experience",
     2: "treasure is far more common and gold finds are doubled",
     3: "champions stalk the realm in great numbers",
-    4: "a monster army marches on the throne: slay monsters anywhere to push it back",
+    4: "a monster army marches on the throne: slay monsters anywhere to push it back; deadlier, bigger monsters push hardest",
 }
 
 

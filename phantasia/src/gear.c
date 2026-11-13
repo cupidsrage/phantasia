@@ -144,6 +144,25 @@ static int Do_bag_index(int size)
     return best;
 }
 
+	/* how many times more gold each bag lets you carry before it slows
+	   you down (in step with the bags table above) */
+static const double bagGold[] = { 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0, 12.0 };
+
+double Do_bag_gold_factor(int size)
+{
+    int i = Do_bag_index(size);
+
+    return (i >= 0 && i < (int) (sizeof bagGold / sizeof bagGold[0])) ? bagGold[i] : 1.0;
+}
+
+	/* gold (and gems at half) a character can carry without slowing */
+double Do_gold_capacity(struct client_t *c)
+{
+    return (1000.0 + MAX(0.0, c->player.level) *
+	    c->realm->charstats[c->player.type].goldtote) *
+	    Do_bag_gold_factor(c->bagSize);
+}
+
 const char *Do_bag_name(int size)
 {
     return bags[Do_bag_index(size)].name;
@@ -1954,8 +1973,8 @@ void Do_gear_bag_shop(struct client_t *c)
 
 	next = now + 1;
 	bagPrice = floor(bagPrice * Do_world_price_factor(c));
-	sprintf(line, "The bag maker offers a %s, holding %d items, for %.0f gold.\n",
-		bags[next].name, bags[next].size, bagPrice);
+	sprintf(line, "The bag maker offers a %s, holding %d items, for %.0f gold. It lets you carry %g times as much gold as a belt pouch (you now carry %g times).\n",
+		bags[next].name, bags[next].size, bagPrice, bagGold[next], bagGold[now]);
 	Do_send_line(c, line);
 	sprintf(line, "Your items move into the new bag.  You have %.0f gold.\n",
 		c->player.gold);
@@ -1979,6 +1998,7 @@ void Do_gear_bag_shop(struct client_t *c)
 	Do_gold(c, -bagPrice, FALSE);
 	Do_royal_tithe(c, bagPrice);
 	c->bagSize = bags[next].size;
+	Do_check_weight(c);	/* a bigger bag carries more gold */
 
 	sprintf(line, "%s, %s, bought a %s for %.0f\n", c->player.lcname,
 		c->realm->charstats[c->player.type].class_name,
@@ -2202,6 +2222,7 @@ void Do_gear_wizard_bag(struct client_t *c, int size)
 	/* never smaller than what is already in it */
     c->bagSize = MAX(MAX(BACKPACK_SIZE, Do_gear_backpack_count(c)),
 	    MIN(MAX_BAG_SIZE, size));
+    Do_check_weight(c);
     Do_gear_send(c);
     Do_gear_save(c);
 
