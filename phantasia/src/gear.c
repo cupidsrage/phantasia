@@ -743,6 +743,8 @@ void Do_gear_load(struct client_t *c)
 void Do_gear_apply(struct client_t *c, int playerChoice)
 {
     double shield = 0, sword = 0, quick = 0, energy;
+    struct gear_item_t regalia;
+    char name[SZ_LINE];
     int i;
 
     for (i = 0; i < c->numGear; i++) {
@@ -751,6 +753,13 @@ void Do_gear_apply(struct client_t *c, int playerChoice)
 	    sword += c->gear[i].sword;
 	    quick += c->gear[i].quicksilver;
 	}
+    }
+
+	/* a ruler's regalia, worn on top of their gear */
+    if (Do_regalia(c, &regalia, name)) {
+	shield += regalia.shield;
+	sword += regalia.sword;
+	quick += regalia.quicksilver;
     }
 
     energy = c->player.energy;
@@ -784,6 +793,7 @@ double Do_gear_ability(struct client_t *c, int ability)
 	    total += Do_tier_power(g->tier);
 	}
     }
+    total += Do_regalia_ability(c, ability);
 
     return total;
 }
@@ -792,16 +802,27 @@ double Do_gear_ability(struct client_t *c, int ability)
 void Do_gear_send(struct client_t *c)
 {
     char line[SZ_LINE * 4], name[SZ_LINE], stats[SZ_LINE];
-    int i;
+    struct gear_item_t regalia;
+    int i, royal;
 
     if (!c->isBrowser || !c->gearLoaded) {
 	return;
     }
 
+    royal = Do_regalia(c, &regalia, name);
     Do_send_int(c, GEAR_PACKET);
     sprintf(line, "%d\n%s\n%d\n", c->bagSize, Do_bag_name(c->bagSize),
-	    c->numGear);
+	    c->numGear + (royal ? 1 : 0));
     Do_send_string(c, line);
+
+	/* the regalia comes first, as slot "Regalia" (it can't be removed) */
+    if (royal) {
+	Do_gear_stats(&regalia, stats);
+	sprintf(line, "Regalia\n%s\n%s\n1\n%d\n%s\n%s\n", name, stats,
+		TIER_ARTIFACT, abilityNames[regalia.ability],
+		abilityNames[regalia.ability2]);
+	Do_send_string(c, line);
+    }
 
     for (i = 0; i < c->numGear; i++) {
 	struct gear_item_t *g = &c->gear[i];
@@ -1080,8 +1101,9 @@ void Do_gear_monster_drop(struct client_t *c)
 	return;
     }
 
-    if (RND() < GEAR_DROP_CHANCE) {
-	Do_gear_make(&item, -1, c->player.circle, TIER_COMMON);
+	/* rulers find gear more often, and better */
+    if (RND() < GEAR_DROP_CHANCE * Do_reign_gear_factor(c)) {
+	Do_gear_make(&item, -1, c->player.circle, Do_reign_min_tier(c));
 	Do_gear_offer(c, &item);
     }
 }
@@ -1490,6 +1512,21 @@ double Do_gear_poison_factor(struct client_t *c)
 / the gear menu (Info -> Gear) and the armory
 *************************************************************************/
 
+	/* "The King's Crown (regalia): +900 energy, ...; Crushing Blows, Warding" */
+static int Do_regalia_line(struct client_t *c, char *buffer)
+{
+    struct gear_item_t r;
+    char name[SZ_LINE], stats[SZ_LINE];
+
+    if (!Do_regalia(c, &r, name)) {
+	return FALSE;
+    }
+    Do_gear_stats(&r, stats);
+    sprintf(buffer, "%s (regalia): %s; %s, %s\n", name, stats,
+	    abilityNames[r.ability], abilityNames[r.ability2]);
+    return TRUE;
+}
+
 static void Do_gear_list(struct client_t *c)
 {
     char line[SZ_LINE * 2];
@@ -1508,6 +1545,10 @@ static void Do_gear_list(struct client_t *c)
 	    Do_gear_describe(&c->gear[i], line + 2);
 	    strcat(line, "\n");
 	}
+	Do_send_line(c, line);
+    }
+    strcpy(line, "  ");
+    if (Do_regalia_line(c, line + 2)) {
 	Do_send_line(c, line);
     }
 
@@ -1866,6 +1907,7 @@ void Do_gear_armory(struct client_t *c, int slot)
 	}
 
 	Do_gold(c, -price[answer], FALSE);
+	Do_royal_tithe(c, price[answer]);
 	sprintf(line, "%s, %s, purchased gear for %.0f\n", c->player.lcname,
 		c->realm->charstats[c->player.type].class_name, price[answer]);
 	Do_log(PURCHASE_LOG, line);
@@ -1930,6 +1972,7 @@ void Do_gear_bag_shop(struct client_t *c)
 	}
 
 	Do_gold(c, -bags[next].price, FALSE);
+	Do_royal_tithe(c, bags[next].price);
 	c->bagSize = bags[next].size;
 
 	sprintf(line, "%s, %s, bought a %s for %.0f\n", c->player.lcname,
@@ -2167,6 +2210,11 @@ void Do_gear_chat(struct client_t *c)
 {
     char line[SZ_LINE * 2];
     int i;
+
+    strcpy(line, "[royal] ");
+    if (Do_regalia_line(c, line + 8)) {
+	Do_send_chat_self(c, line);
+    }
 
     if (!c->gearLoaded || c->numGear == 0) {
 	Do_send_chat_self(c, "You have no gear.\n");

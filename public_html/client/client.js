@@ -137,8 +137,12 @@
           break;
         }
         case P.REMOVE_PLAYER: {
+          /* the server updates a player by adding the new entry and
+             then removing the old one, so drop only the first match */
           var gone = await next();
-          players = players.filter(function (p) { return p.name !== gone; });
+          for (var pi = 0; pi < players.length; pi++) {
+            if (players[pi].name === gone) { players.splice(pi, 1); break; }
+          }
           renderPlayers();
           break;
         }
@@ -527,6 +531,15 @@
   /* ------------------------------------------------------- gear */
 
   var SLOTS = ["Weapon", "Armor", "Helm", "Boots", "Trinket"];
+  var REGALIA_SHAPES = {
+    crown: '<path d="M44 14 L48 2 L54 10 L60 0 L66 10 L72 2 L76 14 Z"/>' +
+      '<rect x="44" y="12" width="32" height="5" rx="1.5"/>' +
+      '<circle cx="60" cy="14.5" r="1.8" fill="#d01820"/><circle cx="51" cy="14.5" r="1.4" fill="#1d4fd8"/>' +
+      '<circle cx="69" cy="14.5" r="1.4" fill="#10a050"/>',
+    halo: '<ellipse cx="60" cy="5" rx="17" ry="4.5" fill="none" stroke-width="3"/>',
+    seal: '<path class="trim" d="M50 38 Q60 54 70 38"/><circle cx="60" cy="56" r="6.5"/>' +
+      '<path d="M60 51.5 L61.5 55 L65 55 L62.2 57.2 L63.3 60.7 L60 58.6 L56.7 60.7 L57.8 57.2 L55 55 L58.5 55 Z" fill="#7a5212"/>'
+  };
   var TIERS = ["Worn", "Common", "Fine", "Masterwork", "Enchanted", "Artifact"];
 
   var TIER_COLORS = ["#9c9182", "#d8cbb0", "#7fc97a", "#6aa6e8", "#c58cf0", "#f0cd7a"];
@@ -579,13 +592,28 @@
 
   async function readGear() {
     var capacity = await nextInt(), bagName = await next();
-    var n = await nextInt(), items = [];
+    var n = await nextInt(), items = [], regalia = null, idx = 0;
     for (var i = 0; i < n; i++) {
-      items.push({ index: i, slot: await next(), name: await next(), stats: await next(),
+      var g = { slot: await next(), name: await next(), stats: await next(),
         equipped: (await next()) === "1", tier: parseInt(await next(), 10) || 0,
-        ab1: await next(), ab2: await next() });
+        ab1: await next(), ab2: await next() };
+      /* a ruler's regalia is not one of their items: it can't be clicked */
+      if (g.slot === "Regalia") { regalia = g; continue; }
+      g.index = idx++;
+      items.push(g);
     }
     gearItems = items;
+
+    /* the regalia: a crown, halo or seal drawn on the adventurer */
+    var rl = $("d-Regalia");
+    rl.classList.toggle("on", !!regalia);
+    rl.innerHTML = "";
+    if (regalia) {
+      var kind = /Halo/.test(regalia.name) ? "halo" : /Seal/.test(regalia.name) ? "seal" : "crown";
+      rl.setAttribute("class", "gear-layer on regal " + kind);
+      rl.innerHTML = "<title></title>" + REGALIA_SHAPES[kind];
+      rl.querySelector("title").textContent = itemTitle(regalia) + "\nWorn while you hold your title";
+    }
 
     /* the adventurer */
     SLOTS.forEach(function (slot) {
@@ -606,6 +634,14 @@
     /* what is worn, by slot */
     var ul = $("gear");
     ul.innerHTML = "";
+    if (regalia) {
+      var rli = document.createElement("li");
+      rli.className = "regalia";
+      rli.innerHTML = "<span class='slot'>Regalia</span><span class='gname t5'></span>";
+      rli.querySelector(".gname").textContent = regalia.name;
+      rli.title = itemTitle(regalia) + "\nWorn while you hold your title";
+      ul.appendChild(rli);
+    }
     SLOTS.forEach(function (slot) {
       var it = items.filter(function (x) { return x.equipped && x.slot === slot; })[0];
       var li = document.createElement("li");

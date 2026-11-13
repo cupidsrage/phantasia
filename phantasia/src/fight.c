@@ -358,6 +358,9 @@ Do_monster(struct client_t *c, struct event_t *the_event)
 	c->battle.opponent->experience *= 2.0;
     }
 
+	/* rulers (and everyone under the Valar's blessing) learn faster */
+    c->battle.opponent->experience *= Do_reign_xp_factor(c);
+
 	/* rarely, a random monster is a named champion */
     c->championFight = FALSE;
     if (randomMonster && (int) the_event->arg1 != MONSTER_PURGATORY &&

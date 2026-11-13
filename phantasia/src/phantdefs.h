@@ -190,6 +190,7 @@ typedef char bool;
 #define WIZ_QUEST_EVENT		63	/* wizard: new (0) or complete (1) quest */
 #define WIZ_ARTIFACT_EVENT	64	/* wizard gives (+id) or takes (-id) */
 #define WIZ_CHAMPION_EVENT	65	/* wizard sends a champion */
+#define ROYAL_GIFT_EVENT	66	/* a ruler's gift to every player */
 
 	/* normal events */
     /* events after this are destroyed on orphan */

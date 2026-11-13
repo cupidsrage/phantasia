@@ -275,6 +275,9 @@ struct client_t		/* structure for client variables */
     struct player_t player;		/* the main player structure */
     struct battle_t battle;		/* structure used for battles */
     int		championFight;		/* fighting a champion monster */
+    int		reignTitle;		/* SC_ title held at the last check */
+    time_t	reignPaid;		/* last treasury stipend */
+    double	reignLevel;		/* level the regalia were sized for */
     int		forceChampion;		/* next random monster is a champion */
     struct quest_t quest;		/* today's quest */
     bool	questLoaded;		/* quest has been loaded */
@@ -468,6 +471,10 @@ struct realm_t		/* variables for the entire realm */
 	/* world events (in memory only) */
     int		worldEvent;		/* WE_ current world event */
     time_t	worldEventEnds;		/* when the current event ends */
+    time_t	feedReady;		/* Steward can feed the poor again */
+    time_t	royalCallReady;		/* King can call an event again */
+    time_t	valarBlessReady;	/* Valar can bless the realm again */
+    time_t	valarBlessingEnds;	/* realm-wide blessing ends */
     time_t	nextWorldEvent;		/* when the next event may start */
 
 	/* extra monsters from EXTRA_MONSTER_FILE, stored after the
