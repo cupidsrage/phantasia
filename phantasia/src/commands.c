@@ -3109,6 +3109,13 @@ int itemp;
         /* build your own event */
     case 5:
 
+	    /* pick what happens from a list; the last choice is the old
+	       build-it-by-number screen below */
+	if (!Do_wizard_send_event(c)) {
+	    Do_send_clear(c);
+	    return;
+	}
+
 	event_ptr = (struct event_t *) Do_create_event();
 
         if (Do_long_dialog(c, &event_ptr->arg3, "Event number?\n")) {

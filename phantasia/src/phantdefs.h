@@ -305,6 +305,7 @@ typedef char bool;
 #define GEAR_PACKET		60	/* gear list (browser client only) */
 #define WORLD_EVENT_PACKET	61	/* current world event (browser only) */
 #define WIZARD_PACKET		62	/* a ceremony to show (browser only) */
+#define SELECT_PACKET		63	/* pick one from a list (browser only) */
 
 	/* ceremonies shown to browser players (wizard levels are 2-4) */
 #define CEREMONY_STEWARD	101

@@ -157,6 +157,8 @@ int Do_coords_dialog(struct client_t *c, double *x, double *y, char *message);
 int Do_player_dialog(struct client_t *c, char *message, char *thePlayer);
 int Do_wait_flag(struct client_t *c, bool *flag, pthread_mutex_t *the_mutex);
 int Do_buttons(struct client_t *c, long *answer, struct button_t *button_ptr);
+int Do_wizard_send_event(struct client_t *c);
+int Do_select_dialog(struct client_t *c, long *answer, char *prompt, const char **labels, int count);
 int Do_clear_buttons(struct button_t *button_ptr, int starting);
 int Do_more(struct client_t *c);
 int Do_yes_no(struct client_t *c, long *theAnswer);

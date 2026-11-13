@@ -128,18 +128,36 @@ const ease = (t) => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3);
 
 function wizardScene(scene, camera, level, flash) {
   scene.background = new THREE.Color(0x07051a);
-  scene.fog = new THREE.FogExp2(0x0a0820, 0.035);
+  scene.fog = new THREE.FogExp2(0x0a0820, 0.055);
   camera.position.set(0, 1.4, 9.5);
   camera.lookAt(0, 0.4, 0);
 
-  const clouds = cloudTexture([120, 110, 200]);
-  const skyMat = new THREE.MeshStandardMaterial({ map: clouds, emissiveMap: clouds, emissive: 0xb8c4ff,
-    emissiveIntensity: 0.15, roughness: 1, envMapIntensity: 0 });
-  const sky = new THREE.Mesh(new THREE.PlaneGeometry(60, 26), skyMat);
-  sky.position.set(0, 6, -14);
+  /* the sky is a huge backdrop far behind the ground; its lower part fades
+     to the fog colour, and the fog swallows the far ground, so the two
+     meet in a soft misty horizon instead of a hard line */
+  const HORIZON = "rgb(10,8,32)";
+  const fade = (tex, color) => {
+    const g = tex.image.getContext("2d"), h = tex.image.height, w = tex.image.width;
+    const gr = g.createLinearGradient(0, h, 0, h * 0.55);
+    gr.addColorStop(0, color); gr.addColorStop(0.45, color); gr.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    tex.needsUpdate = true;
+    return tex;
+  };
+  const clouds = fade(cloudTexture([150, 135, 235]), HORIZON);
+  const glow = fade(cloudTexture([120, 110, 200]), "rgb(0,0,0)");
+  const skyGeo = new THREE.PlaneGeometry(300, 120);
+  const sky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ map: clouds, fog: false }));
+  sky.position.set(0, 32, -90);
   scene.add(sky);
+  /* the clouds light up with each strike (fades out above the horizon) */
+  const skyMat = new THREE.MeshBasicMaterial({ map: glow, fog: false, transparent: true, opacity: 0,
+    blending: THREE.AdditiveBlending, depthWrite: false, color: new THREE.Color(1.4, 1.5, 2.2) });
+  const skyFlash = new THREE.Mesh(skyGeo, skyMat);
+  skyFlash.position.set(0, 32, -89.9);
+  scene.add(skyFlash);
 
-  const ground = new THREE.Mesh(new THREE.CircleGeometry(30, 64),
+  const ground = new THREE.Mesh(new THREE.CircleGeometry(120, 64),
     new THREE.MeshStandardMaterial({ color: 0x0c0b14, roughness: 0.32, metalness: 0.3, envMapIntensity: 0.05 }));
   ground.rotation.x = -Math.PI / 2; ground.position.y = -2;
   scene.add(ground);
@@ -224,7 +242,7 @@ function wizardScene(scene, camera, level, flash) {
       if (age > 0.5 && s.group) { scene.remove(s.group); s.group = null; }
     }
     strike.intensity = lit * (level >= 4 ? 14 : 10);
-    skyMat.emissiveIntensity = 0.15 + lit * 0.7;
+    skyMat.opacity = lit * 0.8;
     circleMat.color.setRGB(1.6 + lit * 3, 1.8 + lit * 3, 2.6 + lit * 3);
     const p = sparkGeo.attributes.position;
     for (let i = 0; i < N; i++) {

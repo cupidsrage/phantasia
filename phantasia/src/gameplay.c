@@ -798,6 +798,8 @@ void Do_gameplay_login(struct client_t *c)
 *************************************************************************/
 
 	/* returns TRUE if the chat line was a command (and handled) */
+static void Do_ceremony_chat(struct client_t *c, char *args);
+
 int Do_chat_command(struct client_t *c, char *text)
 {
     char message[SZ_LINE];
@@ -851,6 +853,10 @@ int Do_chat_command(struct client_t *c, char *text)
 	Do_announce_ceremony(c, atoi(text + 13));
     }
 #endif
+    else if (strncasecmp(text, "/ceremony", 9) == 0 && text[9] != 't' &&
+	    c->wizard >= 2) {
+	Do_ceremony_chat(c, text + 9);
+    }
     else if (strncasecmp(text, "/gear", 5) == 0) {
 
 	Do_gear_chat(c);
@@ -875,7 +881,8 @@ int Do_chat_command(struct client_t *c, char *text)
 	Do_send_chat_self(c, "/filter - turn the chat filter on or off\n");
 	if (c->wizard >= 3) {
 	    Do_send_chat_self(c, "Wizards: /event start blood|gold|hunt|random [minutes], /event stop\n");
-	    Do_send_chat_self(c, "Wizards: Administrate > Realm Tools for artifacts, gear, bags, quests, champions\n");
+	    Do_send_chat_self(c, "Wizards: Administrate > Realm Tools for artifacts, gear, bags, quests, champions, ceremonies\n");
+	    Do_send_chat_self(c, "Wizards: /ceremony to preview a ceremony on your screen\n");
 	}
     }
     else {
@@ -988,6 +995,127 @@ static void Do_wizard_send(struct client_t *c, int type, double arg1,
     Do_more(c);
 }
 
+	/* Administrate > Send Event: pick what happens from a list instead
+	   of remembering event numbers */
+enum { ASK_NONE, ASK_EXPERIENCE, ASK_MONSTER, ASK_COORDS, ASK_RAW };
+
+static const struct {
+    const char *label;
+    const char *verb;		/* "Who do you want to ...?" */
+    short type;
+    double arg1;
+    int ask;
+    int named;			/* the event carries the wizard's name */
+} wizard_sends[] = {
+    { "Bless",                          "bless",               BLESS_EVENT,      0,          ASK_NONE,       TRUE  },
+    { "Restore (fully heal)",           "restore",             HEAL_EVENT,       P_RESTORE,  ASK_NONE,       TRUE  },
+    { "Cure poison",                    "cure",                HEAL_EVENT,       P_CURE,     ASK_NONE,       TRUE  },
+    { "Knight",                         "knight",              KNIGHT_EVENT,     0,          ASK_NONE,       TRUE  },
+    { "Give experience...",             "give experience to",  EXPERIENCE_EVENT, 0,          ASK_EXPERIENCE, FALSE },
+    { "Send a monster...",              "send the monster to", SUMMON_EVENT,     0,          ASK_MONSTER,    TRUE  },
+    { "Find a treasure trove",          "send a trove to",     TROVE_EVENT,      0,          ASK_NONE,       FALSE },
+    { "Find a trading post",            "send a trading post to", TRADING_EVENT, 0,          ASK_NONE,       FALSE },
+    { "Meet a medic",                   "send a medic to",     MEDIC_EVENT,      0,          ASK_NONE,       FALSE },
+    { "Meet a guru",                    "send a guru to",      GURU_EVENT,       0,          ASK_NONE,       FALSE },
+    { "Find a village",                 "send a village to",   VILLAGE_EVENT,    0,          ASK_NONE,       FALSE },
+    { "Meet the tax collector",         "tax",                 TAX_EVENT,        0,          ASK_NONE,       FALSE },
+    { "Energy void",                    "trap in a void",      ENERGY_VOID_EVENT, 0,         ASK_NONE,       FALSE },
+    { "Plague",                         "infect",              PLAGUE_EVENT,     0,          ASK_NONE,       FALSE },
+    { "Curse",                          "curse",               CURSE_EVENT,      P_CURSE,    ASK_NONE,       TRUE  },
+    { "Execrate (strong curse)",        "execrate",            CURSE_EVENT,      P_EXECRATE, ASK_NONE,       TRUE  },
+    { "Smite",                          "smite",               CURSE_EVENT,      P_SMITE,    ASK_NONE,       TRUE  },
+    { "Slap",                           "slap",                SLAP_EVENT,       0,          ASK_NONE,       TRUE  },
+    { "Blind",                          "blind",               BLIND_EVENT,      0,          ASK_NONE,       TRUE  },
+    { "Degenerate",                     "degenerate",          DEGENERATE_EVENT, 0,          ASK_NONE,       TRUE  },
+    { "Reprimand",                      "reprimand",           REPRIMAND_EVENT,  0,          ASK_NONE,       TRUE  },
+    { "Move to coordinates...",         "move",                RELOCATE_EVENT,   0,          ASK_COORDS,     TRUE  },
+    { "Change gender",                  "change",              SEX_CHANGE_EVENT, 0,          ASK_NONE,       FALSE },
+    { "Make them rest",                 "rest",                REST_EVENT,       0,          ASK_NONE,       FALSE },
+    { "Save their game",                "save",                SAVE_EVENT,       0,          ASK_NONE,       FALSE },
+    { "Advanced: event by number...",   NULL,                  0,                0,          ASK_RAW,        FALSE },
+};
+
+#define NUM_WIZARD_SENDS ((int)(sizeof wizard_sends / sizeof wizard_sends[0]))
+
+	/* returns TRUE if the wizard asked for the old event-by-number
+	   screen, which the caller then shows */
+int Do_wizard_send_event(struct client_t *c)
+{
+    const char *labels[NUM_MONSTERS + MAX_EXTRA_MONSTERS];
+    struct event_t *event_ptr;
+    char name[SZ_LINE], prompt[SZ_LINE], log[SZ_LINE * 2];
+    double arg1, arg2 = 0;
+    long pick, monster = 0;
+    int i, n;
+
+    for (i = 0; i < NUM_WIZARD_SENDS; i++) labels[i] = wizard_sends[i].label;
+    if (Do_select_dialog(c, &pick, "What should happen?\n", labels,
+	    NUM_WIZARD_SENDS) != S_NORM) {
+	return FALSE;
+    }
+    if (wizard_sends[pick].ask == ASK_RAW) return TRUE;
+
+    arg1 = wizard_sends[pick].arg1;
+
+    switch (wizard_sends[pick].ask) {
+    case ASK_EXPERIENCE:
+	if (Do_double_dialog(c, &arg1, "How much experience?\n") || arg1 <= 0) {
+	    return FALSE;
+	}
+	break;
+
+    case ASK_MONSTER:
+	n = NUM_MONSTERS + c->realm->numExtraMonsters;
+	for (i = 0; i < n; i++) labels[i] = c->realm->monster[i].name;
+	if (Do_select_dialog(c, &monster, "Which monster?\n", labels, n)
+		!= S_NORM) {
+	    return FALSE;
+	}
+	arg1 = (double) monster;
+	break;
+
+    case ASK_COORDS:
+	if (Do_coords_dialog(c, &arg1, &arg2, "Move them to where?\n")) {
+	    return FALSE;
+	}
+	break;
+    }
+
+    sprintf(prompt, "Who do you want to %s?\n", wizard_sends[pick].verb);
+    if (Do_player_dialog(c, prompt, name) != S_NORM) {
+	return FALSE;
+    }
+
+    event_ptr = (struct event_t *) Do_create_event();
+    event_ptr->type = wizard_sends[pick].type;
+    event_ptr->arg1 = arg1;
+    event_ptr->arg2 = arg2;
+    event_ptr->from = c->game;
+    if (wizard_sends[pick].named) {
+	event_ptr->arg3 = strlen(c->modifiedName) + 1;
+	event_ptr->arg4 = (void *) Do_malloc(event_ptr->arg3);
+	strcpy(event_ptr->arg4, c->modifiedName);
+    }
+
+    if (!Do_send_character_event(c, event_ptr, name)) {
+	if (event_ptr->arg4) free((void *)event_ptr->arg4);
+	free((void *)event_ptr);
+	Do_send_line(c, "That character just left the game.\n");
+	Do_more(c);
+	return FALSE;
+    }
+
+    if (wizard_sends[pick].ask == ASK_MONSTER) {
+	sprintf(log, "sent the monster %s to %s", c->realm->monster[monster].name, name);
+    } else {
+	sprintf(log, "sent \"%s\" to %s", wizard_sends[pick].label, name);
+    }
+    Do_wizard_log(c, log);
+    Do_send_line(c, "What you ask shall be done, eminence.\n");
+    Do_more(c);
+    return FALSE;
+}
+
 static void Do_wizard_events_menu(struct client_t *c)
 {
     struct button_t buttons;
@@ -1051,9 +1179,21 @@ static void Do_wizard_artifacts_menu(struct client_t *c)
 	return;
     }
 
-    sprintf(line, "Which artifact? (1-%d)\n", NUM_ARTIFACTS);
-    if (Do_long_dialog(c, &id, line) || id < 1 || id > NUM_ARTIFACTS) {
-	return;
+    {
+	const char *labels[NUM_ARTIFACTS];
+	char text[NUM_ARTIFACTS][SZ_LINE];
+
+	for (i = 1; i <= NUM_ARTIFACTS; i++) {
+	    Do_artifact_holder(c, i, holder);
+	    snprintf(text[i - 1], SZ_LINE, "%s (%s)", Do_artifact_name(i),
+		    holder[0] ? holder : "unclaimed");
+	    labels[i - 1] = text[i - 1];
+	}
+	if (Do_select_dialog(c, &id, "Which artifact?\n", labels,
+		NUM_ARTIFACTS) != S_NORM) {
+	    return;
+	}
+	id += 1;
     }
 
     Do_artifact_holder(c, (int) id, holder);
@@ -1170,51 +1310,126 @@ static void Do_wizard_quest_menu(struct client_t *c)
 	    answer ? "complete the quest of" : "give a new quest to");
 }
 
+	/* ceremonies a wizard can preview */
+static const struct { const char *label, *word; int kind; } ceremonies[] = {
+    { "Wizard arrives (full wizard)", "wizard",     4 },
+    { "Wizard arrives (wizard)",      "wizard3",    3 },
+    { "Apprentice arrives",           "apprentice", 2 },
+    { "New Steward",                  "steward",    CEREMONY_STEWARD },
+    { "New King",                     "king",       CEREMONY_KING },
+    { "New Queen",                    "queen",      CEREMONY_QUEEN },
+    { "New Valar",                    "valar",      CEREMONY_VALAR },
+};
+#define NUM_CEREMONIES ((int)(sizeof ceremonies / sizeof ceremonies[0]))
+
+	/* play a ceremony on this player's own screen only */
+static void Do_preview_ceremony(struct client_t *c, int kind)
+{
+    char line[SZ_LINE];
+
+    if (!c->isBrowser) {
+	Do_send_chat_self(c, "Ceremonies are shown in the browser client.\n");
+	return;
+    }
+    sprintf(line, "%d\n", kind);
+    Do_send_int(c, WIZARD_PACKET);
+    Do_send_string(c, line);
+    Do_send_string(c, c->modifiedName);
+    Do_send_string(c, "\n");
+    Do_send_buffer(c);
+}
+
+	/* /ceremony [name] [all] */
+static void Do_ceremony_chat(struct client_t *c, char *args)
+{
+    char word[32] = "", who[8] = "";
+    int i;
+
+    sscanf(args, "%31s %7s", word, who);
+    for (i = 0; i < NUM_CEREMONIES; i++) {
+	if (!strcasecmp(word, ceremonies[i].word)) break;
+    }
+    if (i == NUM_CEREMONIES) {
+	Do_send_chat_self(c, "/ceremony wizard|wizard3|apprentice|steward|king|queen|valar - preview it on your screen\n");
+	if (c->wizard >= 4) {
+	    Do_send_chat_self(c, "Add \"all\" to show it to everyone, e.g. /ceremony king all\n");
+	}
+	return;
+    }
+    if (!strcasecmp(who, "all") && c->wizard >= 4) {
+	Do_announce_ceremony(c, ceremonies[i].kind);
+	Do_wizard_log(c, "showed everyone a ceremony");
+    } else {
+	Do_preview_ceremony(c, ceremonies[i].kind);
+    }
+}
+
+static void Do_wizard_ceremony_menu(struct client_t *c)
+{
+    const char *labels[NUM_CEREMONIES];
+    struct button_t buttons;
+    long pick, answer = 0;
+    int i;
+
+    for (i = 0; i < NUM_CEREMONIES; i++) labels[i] = ceremonies[i].label;
+    if (Do_select_dialog(c, &pick, "Which ceremony?\n", labels,
+	    NUM_CEREMONIES) != S_NORM) {
+	return;
+    }
+
+    if (c->wizard >= 4) {
+	Do_send_line(c, "Show it to whom?\n");
+	Do_clear_buttons(&buttons, 0);
+	strcpy(buttons.button[0], "Just Me\n");
+	strcpy(buttons.button[1], "Everyone\n");
+	strcpy(buttons.button[7], "Back\n");
+	if (Do_buttons(c, &answer, &buttons) != S_NORM || answer < 0 ||
+		answer > 1) {
+	    return;
+	}
+    }
+    Do_send_clear(c);
+
+    if (answer == 1) {
+	Do_announce_ceremony(c, ceremonies[pick].kind);
+	Do_wizard_log(c, "showed everyone a ceremony");
+    } else {
+	Do_preview_ceremony(c, ceremonies[pick].kind);
+    }
+}
+
 	/* one action per visit, so queued results (even gifts to yourself)
 	   take effect as soon as you are back on the main menu */
 void Do_wizard_tools(struct client_t *c)
 {
-    struct button_t buttons;
+    static const char *labels[] = {
+	"World Event", "Artifacts", "Give Gear", "Give Bag", "Quests",
+	"Champion", "Preview a Ceremony", "Moderate",
+    };
     long answer;
 
-    {
+    Do_send_clear(c);
+    if (Do_select_dialog(c, &answer, "Realm Tools: what would you like to do?\n",
+	    labels, 8) != S_NORM) {
 	Do_send_clear(c);
-	Do_send_line(c, "Realm Tools:\n");
-
-	Do_clear_buttons(&buttons, 0);
-	strcpy(buttons.button[0], "World Event\n");
-	strcpy(buttons.button[1], "Artifacts\n");
-	strcpy(buttons.button[2], "Give Gear\n");
-	strcpy(buttons.button[3], "Give Bag\n");
-	strcpy(buttons.button[4], "Quests\n");
-	strcpy(buttons.button[5], "Champion\n");
-	strcpy(buttons.button[6], "Moderate\n");
-	strcpy(buttons.button[7], "Done\n");
-
-	if (Do_buttons(c, &answer, &buttons) != S_NORM || answer == 7 ||
-		answer < 0) {
-	    Do_send_clear(c);
-	    return;
-	}
-
-	Do_send_clear(c);
-
-	switch (answer) {
-	case 0: Do_wizard_events_menu(c); break;
-	case 1: Do_wizard_artifacts_menu(c); break;
-	case 2: Do_wizard_gear_menu(c); break;
-	case 3: Do_wizard_bag_menu(c); break;
-	case 4: Do_wizard_quest_menu(c); break;
-	case 5:
-	    Do_wizard_send(c, WIZ_CHAMPION_EVENT, 0, 0, 0,
-		    "send a champion against");
-	    break;
-	case 6:
-	    Do_moderate(c);
-	    break;
-	}
-	Do_send_clear(c);
+	return;
     }
+    Do_send_clear(c);
+
+    switch (answer) {
+    case 0: Do_wizard_events_menu(c); break;
+    case 1: Do_wizard_artifacts_menu(c); break;
+    case 2: Do_wizard_gear_menu(c); break;
+    case 3: Do_wizard_bag_menu(c); break;
+    case 4: Do_wizard_quest_menu(c); break;
+    case 5:
+	Do_wizard_send(c, WIZ_CHAMPION_EVENT, 0, 0, 0,
+		"send a champion against");
+	break;
+    case 6: Do_wizard_ceremony_menu(c); break;
+    case 7: Do_moderate(c); break;
+    }
+    Do_send_clear(c);
 }
 
 

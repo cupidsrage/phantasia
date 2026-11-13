@@ -20,7 +20,7 @@
     NAME: 40, LOCATION: 41, ENERGY: 42, STRENGTH: 43, SPEED: 44,
     SHIELD: 45, SWORD: 46, QUICKSILVER: 47, MANA: 48, LEVEL: 49,
     GOLD: 50, GEMS: 51, CLOAK: 52, BLESSING: 53, CROWN: 54,
-    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61, WIZARD: 62
+    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61, WIZARD: 62, SELECT: 63
   };
 
   /* ---- client -> server ---- */
@@ -172,6 +172,7 @@
         case P.GEAR: await readGear(); break;
         case P.WORLD_EVENT: await readWorldEvent(); break;
         case P.WIZARD: { var kind = await nextInt(); ceremony(kind, await next()); break; }
+        case P.SELECT: await askSelect(); break;
         default:
           if (type >= P.NAME && type <= P.VIRGIN) await updateStatus(type);
           else console.warn("Unknown packet", type);
@@ -433,6 +434,33 @@
          hideModal();
          respond(v);
        } }]);
+  }
+
+  /* pick one from a list (wizard tools): answers with the index */
+  async function askSelect() {
+    var prompt = await next(), count = await nextInt(), opts = "";
+    for (var i = 0; i < count; i++) {
+      opts += "<option value='" + i + "'>" + esc(await next()) + "</option>";
+    }
+    pending = "dialog";
+    showModal("Phantasia",
+      "<p>" + esc(prompt) + "</p><select id='dlg-select'>" + opts + "</select>",
+      [{ label: "Cancel", cancel: true, action: cancelDialog },
+       { label: "OK", primary: true, action: submitSelect }]);
+    var sel = $("dlg-select");
+    sel.selectedIndex = 0;
+    sel.addEventListener("dblclick", submitSelect);
+    sel.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); submitSelect(); }
+    });
+  }
+
+  function submitSelect() {
+    if (pending !== "dialog") return;
+    pending = null;
+    var v = $("dlg-select").value || "0";
+    hideModal();
+    respond(v);
   }
 
   async function showScoreboard() {
