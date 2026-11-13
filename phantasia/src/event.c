@@ -1030,6 +1030,16 @@ Do_handle_event(struct client_t *c, struct event_t *the_event)
 	Do_holy_grail(c, the_event);
 	break;
 
+	/* wizards' Realm Tools */
+    case WIZ_GEAR_EVENT:
+    case WIZ_BAG_EVENT:
+    case WIZ_QUEST_EVENT:
+    case WIZ_ARTIFACT_EVENT:
+    case WIZ_CHAMPION_EVENT:
+
+	Do_wizard_event(c, the_event);
+	break;
+
     default:
 
         sprintf(error_msg, "[%s] bad event number %hd in Do_handle_event.\n",

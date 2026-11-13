@@ -2000,6 +2000,168 @@ void Do_gear_click(struct client_t *c, char *request)
     Do_send_chat_self(c, line);
 }
 
+/************************************************************************
+/ wizard tools (Administrate > Realm Tools); these run in the target
+/ player's own thread, delivered as events
+*************************************************************************/
+
+const char *Do_artifact_name(int id)
+{
+    return (id >= 1 && id <= NUM_ARTIFACTS) ? artifacts[id].name : "";
+}
+
+	/* who holds an artifact ("" if lost in the realm) */
+void Do_artifact_holder(struct client_t *c, int id, char *holder)
+{
+    holder[0] = '\0';
+    if (id < 1 || id > NUM_ARTIFACTS) {
+	return;
+    }
+
+    Do_lock_mutex(&c->realm->gear_lock);
+    strcpy(holder, c->realm->artifactHolder[id]);
+    Do_unlock_mutex(&c->realm->gear_lock);
+}
+
+	/* return an artifact whose holder is offline to the realm */
+void Do_artifact_release_offline(struct client_t *c, int id)
+{
+    char message[SZ_LINE];
+
+    if (id < 1 || id > NUM_ARTIFACTS) {
+	return;
+    }
+
+    Do_lock_mutex(&c->realm->gear_lock);
+    c->realm->artifactHolder[id][0] = '\0';
+    Do_save_artifacts_locked(c->realm);
+    Do_unlock_mutex(&c->realm->gear_lock);
+
+    sprintf(message, "The Wizards have returned %s to the realm, waiting to be found.\n",
+	    artifacts[id].name);
+    Do_broadcast(c, message);
+}
+
+	/* claim one particular artifact, if it is lost in the realm */
+static int Do_artifact_claim_id(struct client_t *c, int id,
+	struct gear_item_t *item)
+{
+    if (id < 1 || id > NUM_ARTIFACTS) {
+	return FALSE;
+    }
+
+    Do_lock_mutex(&c->realm->gear_lock);
+
+    if (c->realm->artifactHolder[id][0] != '\0') {
+	Do_unlock_mutex(&c->realm->gear_lock);
+	return FALSE;
+    }
+
+    strcpy(c->realm->artifactHolder[id], c->player.lcname);
+    c->realm->artifactSeen[id] = time(NULL);
+    Do_save_artifacts_locked(c->realm);
+
+    Do_unlock_mutex(&c->realm->gear_lock);
+
+    memset(item, 0, sizeof(*item));
+    item->slot = artifacts[id].slot;
+    item->tier = TIER_ARTIFACT;
+    item->artifact = id;
+    item->ability = artifacts[id].ability;
+    item->ability2 = artifacts[id].ability2;
+    Do_gear_roll_stats(item, MAX(c->player.circle, artifacts[id].minCircle),
+	    Do_tier_quality(TIER_ARTIFACT));
+
+    return TRUE;
+}
+
+	/* artifact gift (id > 0) or removal (id < 0) */
+void Do_gear_wizard_artifact(struct client_t *c, int id)
+{
+    struct gear_item_t item;
+    char message[SZ_LINE];
+    int i;
+
+    if (!c->gearLoaded) {
+	return;
+    }
+
+    if (id < 0) {
+	for (i = 0; i < c->numGear; i++) {
+	    if (c->gear[i].artifact == -id) {
+		Do_gear_remove(c, i);
+		Do_gear_apply(c, FALSE);
+		Do_gear_save(c);
+		sprintf(message, "The Wizards have taken back %s.\n",
+			artifacts[-id].name);
+		Do_send_line(c, message);
+		break;
+	    }
+	}
+	Do_artifact_release_offline(c, -id);
+	return;
+    }
+
+    if (!Do_artifact_claim_id(c, id, &item)) {
+	return;
+    }
+
+    sprintf(message, "The Wizards have granted %s to %s!\n",
+	    artifacts[id].name, c->player.name);
+    Do_broadcast(c, message);
+    Do_gear_offer(c, &item);
+}
+
+	/* a gift of gear: slot -1 any, circle 0 means the player's own */
+void Do_gear_wizard_gift(struct client_t *c, int slot, int tier, double circle)
+{
+    struct gear_item_t item;
+
+    if (!c->gearLoaded) {
+	return;
+    }
+
+    tier = MAX(TIER_COMMON, MIN(TIER_ENCHANTED, tier));
+    if (circle < 1) {
+	circle = MAX(1.0, c->player.circle);
+    }
+
+    Do_gear_make(&item, slot >= 0 && slot < NUM_SLOTS ? slot : -1, circle,
+	    tier);
+
+	/* exactly the tier asked for */
+    item.tier = tier;
+    item.ability = Do_gear_roll_ability(tier, item.slot);
+    if (tier >= TIER_MASTERWORK && item.ability == AB_NONE) {
+	item.ability = Do_pick_ability(item.slot, RND(), RND());
+    }
+    Do_gear_roll_stats(&item, circle, Do_tier_quality(tier));
+
+    Do_send_line(c, "The Wizards have sent you a gift!\n");
+    Do_more(c);
+    Do_gear_offer(c, &item);
+}
+
+	/* set the bag size */
+void Do_gear_wizard_bag(struct client_t *c, int size)
+{
+    char message[SZ_LINE];
+
+    if (!c->gearLoaded) {
+	return;
+    }
+
+	/* never smaller than what is already in it */
+    c->bagSize = MAX(MAX(BACKPACK_SIZE, Do_gear_backpack_count(c)),
+	    MIN(MAX_BAG_SIZE, size));
+    Do_gear_send(c);
+    Do_gear_save(c);
+
+    sprintf(message, "The Wizards have given you a %s (%d slots).\n",
+	    Do_bag_name(c->bagSize), c->bagSize);
+    Do_send_line(c, message);
+}
+
 	/* text for /gear in chat */
 void Do_gear_chat(struct client_t *c)
 {

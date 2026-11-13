@@ -85,6 +85,25 @@ The easiest way is the `PHANTASIA_WIZARDS` variable above, for example
 copy is in the volume at `/app/phantasia/data/wizards`. You can edit it with
 `railway ssh` or seed your own before the first deploy.
 
+
+Level 4 wizards get **Administrate › Realm Tools**:
+
+- **World Event:** start a Blood Moon, Gold Rush, Champion Hunt or random
+  event for any number of minutes, or end the current one.
+- **Artifacts:** see who holds each one, return one to the realm (taken
+  straight from the holder if they are online), or give an unclaimed one
+  to a player.
+- **Give Gear:** any slot (or any), tier and circle, offered to the player
+  like a normal find.
+- **Give Bag:** any bag size; items already carried are never lost.
+- **Quests:** give a player a new daily quest, or complete theirs.
+- **Champion:** the player's next monster is a champion.
+- **Moderate:** the old Moderate menu, which used to have this button.
+
+Level 3 and 4 wizards can also type `/event start blood|gold|hunt|random
+[minutes]` and `/event stop` in chat. Every wizard action is written to the
+event log.
+
 ## Playing in the browser
 
 The website's **The Game** page links to the browser client at `/client/`.

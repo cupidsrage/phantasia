@@ -275,6 +275,7 @@ struct client_t		/* structure for client variables */
     struct player_t player;		/* the main player structure */
     struct battle_t battle;		/* structure used for battles */
     int		championFight;		/* fighting a champion monster */
+    int		forceChampion;		/* next random monster is a champion */
     struct quest_t quest;		/* today's quest */
     bool	questLoaded;		/* quest has been loaded */
     struct gear_item_t gear[MAX_GEAR];	/* equipped items and backpack */

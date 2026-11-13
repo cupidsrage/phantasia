@@ -3023,7 +3023,7 @@ int itemp;
     strcpy(theButtons.button[1], "Decree\n");
     strcpy(theButtons.button[2], "Intervene\n");
     strcpy(theButtons.button[3], "Command\n");
-    strcpy(theButtons.button[4], "Moderate\n");
+    strcpy(theButtons.button[4], "Realm Tools\n");
     strcpy(theButtons.button[5], "Send Event\n");
     strcpy(theButtons.button[6], "Shutdown\n");
     strcpy(theButtons.button[7], "Cancel\n");
@@ -3150,7 +3150,9 @@ int itemp;
 
     case 4:
 
-	Do_moderate(c);
+	    /* world events, artifacts, gear, bags, quests, champions and
+	       Moderate */
+	Do_wizard_tools(c);
 	return;
 
     default:
