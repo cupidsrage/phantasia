@@ -578,6 +578,8 @@ body.event-hunt .event-fx::after { right: -60px; animation-delay: 0.7s; }
   display: block; animation: arrival-in 0.5s ease-out;
 }
 .arrival.has3d > :not(.card):not(.ceremony3d):not(.flash) { display: none; }
+.arrival.loading3d { background: rgba(4, 3, 10, 0.88); }
+.arrival.loading3d > :not(.card):not(.ceremony3d) { visibility: hidden; }
 .arrival.has3d .flash { z-index: 1; }
 
 @keyframes arrival-in { from { opacity: 0; } to { opacity: 1; } }
