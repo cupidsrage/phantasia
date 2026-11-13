@@ -316,7 +316,7 @@ Do_monster(struct client_t *c, struct event_t *the_event)
 				c->battle.opponent->max_speed = c->battle.opponent->speed*1.35;
 			}
 
-            c->battle.opponent->brains = c->player.brains * 20;
+            c->battle.opponent->brains = Do_eff_brains(c) * 20;
             c->battle.opponent->flock_percent = 0.0;
 
                 /* Morgoth drops gold to annoy players */
@@ -1022,7 +1022,7 @@ Do_playerhits(struct client_t *c, short *theAttack, double *theArg)
 		((c->battle.opponent->special_type == SM_DARKLORD ||
 		  c->battle.opponent->special_type == SM_SHRIEKER) ||
                     /* can always run from D. L. and shrieker */
-                RND() * (c->player.quickness * 1.1 + 1) * (c->player.brains + 1) *
+                RND() * (c->player.quickness * 1.1 + 1) * (Do_eff_brains(c) + 1) *
 		dtemp > RND() * (c->battle.opponent->speed * 1.1 + 1) *
 		(c->battle.opponent->brains + 1) * wizEvade )) {
 
@@ -1171,7 +1171,7 @@ Do_playerhits(struct client_t *c, short *theAttack, double *theArg)
             else if (c->battle.opponent->special_type == SM_IT_COMBAT) {
 
                     /* use brains for success with a major handicap */
-                if (RND() * c->player.brains < RND() *
+                if (RND() * Do_eff_brains(c) < RND() *
                         c->battle.opponent->brains * 10) {
 
                     sprintf(string_buffer, "You blew it, %s.\n",
@@ -1201,7 +1201,7 @@ Do_playerhits(struct client_t *c, short *theAttack, double *theArg)
             else {
                     /* normal monster; use brains for success */
                 if (c->battle.opponent->special_type == SM_DARKLORD ||
-			RND() * c->player.brains < RND() *
+			RND() * Do_eff_brains(c) < RND() *
                         c->battle.opponent->brains) {
 
                     sprintf(string_buffer, "You blew it, %s.\n",
@@ -2191,22 +2191,22 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 
     Do_clear_buttons(&theButtons, 0);
 
-    if (c->player.magiclvl >= ML_ALLORNOTHING &&
+    if (Do_eff_magiclvl(c) >= ML_ALLORNOTHING &&
             c->battle.opponent->special_type != SM_MORGOTH)
 
 	strcpy(theButtons.button[0], "All or Nothing\n");
 
-    if (c->player.magiclvl >= ML_MAGICBOLT &&
+    if (Do_eff_magiclvl(c) >= ML_MAGICBOLT &&
             c->battle.opponent->special_type != SM_MORGOTH)
 
 	strcpy(theButtons.button[1], "Magic Bolt\n");
 
-    if ((c->player.magiclvl >= ML_FORCEFIELD) &&
+    if ((Do_eff_magiclvl(c) >= ML_FORCEFIELD) &&
 	(c->battle.opponent->special_type != SM_MORGOTH)) {
 	strcpy(theButtons.button[4], "Force Field\n");
     }
 
-    if (c->player.magiclvl >= ML_XFORM &&
+    if (Do_eff_magiclvl(c) >= ML_XFORM &&
 	c->battle.opponent->special_type != SM_MORGOTH) {
 
 	strcpy(theButtons.button[7], "Transform\n");
@@ -2215,22 +2215,22 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 	strcpy(theButtons.button[7], "Cancel\n");
     }
 
-    if (c->player.magiclvl >= ML_INCRMIGHT &&
+    if (Do_eff_magiclvl(c) >= ML_INCRMIGHT &&
 	c->battle.opponent->special_type != SM_MORGOTH) 
 
 	strcpy(theButtons.button[2], "Increase Might\n");
 
-    if (c->player.magiclvl >= ML_HASTE &&
+    if (Do_eff_magiclvl(c) >= ML_HASTE &&
 	c->battle.opponent->special_type != SM_MORGOTH) 
 
 	strcpy(theButtons.button[3], "Haste\n");
 
-    if (c->player.magiclvl >= ML_XPORT &&
+    if (Do_eff_magiclvl(c) >= ML_XPORT &&
             c->battle.opponent->special_type != SM_MORGOTH)
 
 	strcpy(theButtons.button[5], "Transport\n");
 
-    if (c->player.magiclvl >= ML_PARALYZE &&
+    if (Do_eff_magiclvl(c) >= ML_PARALYZE &&
             c->battle.opponent->special_type != SM_MORGOTH)
 
 	strcpy(theButtons.button[6], "Paralyze\n");
@@ -2268,8 +2268,8 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 
 		    /* success is based on ML and monster exp in combat */
 		|| (c->battle.opponent->special_type != SM_IT_COMBAT &&
-		3000 * c->player.magiclvl / (c->battle.opponent->experience +
-		10000 * c->player.magiclvl) > RND())) {
+		3000 * Do_eff_magiclvl(c) / (c->battle.opponent->experience +
+		10000 * Do_eff_magiclvl(c)) > RND())) {
 
 	        /* success */
             inflict = c->battle.opponent->energy +
@@ -2312,7 +2312,7 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
         if (c->player.mana >= MM_ALLORNOTHING) {
 
                 /* take a mana if player has one */
-	    Do_mana(c, -MM_ALLORNOTHING, FALSE);
+	    Do_mana(c, -Do_gear_spell_cost(c, MM_ALLORNOTHING), FALSE);
 	}
 
         Do_hitmonster(c, inflict);
@@ -2327,7 +2327,7 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 
     case 1:   /* magic bolt */
 
-        if (c->player.magiclvl < ML_MAGICBOLT) {
+        if (Do_eff_magiclvl(c) < ML_MAGICBOLT) {
 	    Do_send_line(c, "You can not cast that spell.\n"); 
 	    *theAttack = IT_NO_BOLT;
 	}
@@ -2369,7 +2369,7 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 
                     if (c->battle.opponent->special_type == SM_IT_COMBAT) {
 		        /* magic bolts in IT_COMBAT don't always work */
-                        if (RND() > .05 + (sqrt(c->player.magiclvl) / 50)) {
+                        if (RND() > .05 + (sqrt(Do_eff_magiclvl(c)) / 50)) {
 
                                 /* the magic bolt fails */
                             Do_send_line(c, "You mess up the incantation!\n");
@@ -2383,7 +2383,7 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 			    Do_log(COMBAT_LOG, &string_buffer);
                         } else {
                             inflict = floor(dtemp * (.7 + .6 * RND()) *
-				(pow(c->player.magiclvl, 0.20) + 1));
+				(pow(Do_eff_magiclvl(c), 0.20) + 1));
 
                             Do_send_line(c, "A weak Magic Bolt is fired!\n");
                             Do_hitmonster(c, inflict);
@@ -2405,7 +2405,7 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 				/* Bolt Damage */
 				
                         inflict = floor(dtemp * (.7 + .6 * RND()) *
-				(pow(c->player.magiclvl, 0.40) + 1));
+				(pow(Do_eff_magiclvl(c), 0.40) + 1));
 				
 				
 				/* Low levels dont get special bolts */
@@ -2414,7 +2414,7 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 				
 				/* Dud bolt, normal bolt, or super bolt? */
 				
-                        if ((RND() * (c->player.level + c->player.magiclvl)) < 
+                        if ((RND() * (c->player.level + Do_eff_magiclvl(c))) < 
                             sqrt(c->player.level)) {
 
 							if (RND() > .5){
@@ -2470,7 +2470,7 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 
     case 4:   /* force field */
 
-        if (c->player.magiclvl < ML_FORCEFIELD) {
+        if (Do_eff_magiclvl(c) < ML_FORCEFIELD) {
 
 	    Do_send_line(c, "You can not cast that spell.\n"); 
 
@@ -2492,7 +2492,7 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 	    Do_log(COMBAT_LOG, &string_buffer);
 	    *theAttack = IT_NO_SHIELD;
         }
-        else if (c->player.mana < MM_FORCEFIELD + (c->player.magiclvl / 2)) {
+        else if (c->player.mana < MM_FORCEFIELD + (Do_eff_magiclvl(c) / 2)) {
 
 	    Do_send_line(c, "You run out of mana before you can put up a full-strength field.\n"); 
 
@@ -2510,11 +2510,11 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 	}
         else {
 
-	    Do_mana(c, -(MM_FORCEFIELD + (c->player.magiclvl / 2)), FALSE);
+	    Do_mana(c, -Do_gear_spell_cost(c, (MM_FORCEFIELD + (Do_eff_magiclvl(c) / 2))), FALSE);
 
 	    Do_energy(c, c->player.energy, c->player.max_energy,
 		    c->player.shield, c->battle.force_field + 20 *
-                    c->player.magiclvl, FALSE);
+                    Do_eff_magiclvl(c), FALSE);
 
             Do_send_line(c, "Force Field up.\n");
 
@@ -2530,7 +2530,7 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 
     case 7:   /* transform */
 
-        if (c->player.magiclvl < ML_XFORM || c->battle.opponent->special_type
+        if (Do_eff_magiclvl(c) < ML_XFORM || c->battle.opponent->special_type
 		== SM_MORGOTH) {
 
 	    /* Drop out, this is a cancel */
@@ -2554,7 +2554,7 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 	}
 	else if (c->battle.opponent->special_type == SM_IT_COMBAT) {
 
-            Do_mana(c, -MM_XFORM, FALSE);
+            Do_mana(c, -Do_gear_spell_cost(c, MM_XFORM), FALSE);
 
 		/* spell succeeds against another player */
 	    if (RND() < 0.15) {
@@ -2620,10 +2620,10 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 	}
         else {
 
-	    Do_mana(c, -MM_XFORM, FALSE);
+	    Do_mana(c, -Do_gear_spell_cost(c, MM_XFORM), FALSE);
 
-            if (8000 * c->player.magiclvl / (c->battle.opponent->experience +
-                20000 * c->player.magiclvl) > RND() - .1) {
+            if (8000 * Do_eff_magiclvl(c) / (c->battle.opponent->experience +
+                20000 * Do_eff_magiclvl(c)) > RND() - .1) {
 
 	        event_ptr = (struct event_t *) Do_create_event();
 	        event_ptr->type = MONSTER_EVENT;
@@ -2690,7 +2690,7 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 
     case 2:   /* increase might */
 
-        if (c->player.magiclvl < ML_INCRMIGHT) {
+        if (Do_eff_magiclvl(c) < ML_INCRMIGHT) {
 	    Do_send_line(c, "You can not cast that spell.\n"); 
             *theAttack = IT_NO_MIGHT;
 
@@ -2700,7 +2700,7 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 
 	    Do_log(COMBAT_LOG, &string_buffer);
 	}
-        else if (c->player.mana < MM_INCRMIGHT + (c->player.magiclvl / 2)) {
+        else if (c->player.mana < MM_INCRMIGHT + (Do_eff_magiclvl(c) / 2)) {
 	    Do_send_line(c, "You do not have enough mana.\n"); 
             *theAttack = IT_NO_MIGHT;
 
@@ -2712,11 +2712,11 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 	}
         else {
 
-	    Do_mana(c, -(MM_INCRMIGHT + (c->player.magiclvl / 2)), FALSE);
+	    Do_mana(c, -Do_gear_spell_cost(c, (MM_INCRMIGHT + (Do_eff_magiclvl(c) / 2))), FALSE);
 
 	    Do_strength(c, c->player.max_strength, c->player.sword,
 		    c->battle.strengthSpell + c->player.max_strength *
-		    (1 - 10 / (sqrt(c->player.magiclvl) + 10)), FALSE);
+		    (1 - 10 / (sqrt(Do_eff_magiclvl(c)) + 10)), FALSE);
 
             *theAttack = IT_MIGHT;
 
@@ -2731,7 +2731,7 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 
     case 3:   /* haste */
 
-        if (c->player.magiclvl < ML_HASTE) {
+        if (Do_eff_magiclvl(c) < ML_HASTE) {
 	    Do_send_line(c, "You can not cast that spell.\n"); 
             *theAttack = IT_NO_HASTE;
 
@@ -2741,7 +2741,7 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 
 	    Do_log(COMBAT_LOG, &string_buffer);
 	}
-        else if (c->player.mana < MM_HASTE + (c->player.magiclvl / 2)) {
+        else if (c->player.mana < MM_HASTE + (Do_eff_magiclvl(c) / 2)) {
 	    Do_send_line(c, "You do not have enough mana.\n"); 
             *theAttack = IT_NO_HASTE;
 
@@ -2753,11 +2753,11 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 	}
         else {
 
-	    Do_mana(c, -(MM_HASTE + (c->player.magiclvl / 2)), FALSE);
+	    Do_mana(c, -Do_gear_spell_cost(c, (MM_HASTE + (Do_eff_magiclvl(c) / 2))), FALSE);
 
 	    Do_speed(c, c->player.max_quickness, c->player.quicksilver,
 		    c->battle.speedSpell + c->player.max_quickness / 2 *
-		    (1 - 10 / (sqrt(c->player.magiclvl) + 10)), FALSE);
+		    (1 - 10 / (sqrt(Do_eff_magiclvl(c)) + 10)), FALSE);
 
             *theAttack = IT_HASTE;
 
@@ -2772,7 +2772,7 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 
     case 5:   /* transport */
 
-        if (c->player.magiclvl < ML_XPORT) {
+        if (Do_eff_magiclvl(c) < ML_XPORT) {
 	    Do_send_line(c, "You can not cast that spell.\n"); 
             *theAttack = IT_NO_TRANSPORT;
 
@@ -2794,7 +2794,7 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 	}
         else {
 
-	    Do_mana(c, -MM_XPORT, FALSE);
+	    Do_mana(c, -Do_gear_spell_cost(c, MM_XPORT), FALSE);
 
 	    if (c->battle.opponent->special_type == SM_IT_COMBAT) {
 
@@ -2825,9 +2825,9 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 	     	    Do_log(COMBAT_LOG, &string_buffer);
 		}
 	    }
-            else if (1000 * c->player.magiclvl /
+            else if (1000 * Do_eff_magiclvl(c) /
 		    (c->battle.opponent->experience + 1000 *
-		    c->player.magiclvl) > RND()) {
+		    Do_eff_magiclvl(c)) > RND()) {
 
                 sprintf(string_buffer, "%s is transported.\n",
 			c->battle.opponent->name);
@@ -2888,7 +2888,7 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 
     case 6:   /* paralyze */
 
-        if (c->player.magiclvl < ML_PARALYZE) {
+        if (Do_eff_magiclvl(c) < ML_PARALYZE) {
 	    Do_send_line(c, "You can not cast that spell.\n"); 
 	    *theAttack = IT_NO_PARALYZE;
 
@@ -2910,7 +2910,7 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 	}
         else {
 
-	    Do_mana(c, -MM_PARALYZE, FALSE);
+	    Do_mana(c, -Do_gear_spell_cost(c, MM_PARALYZE), FALSE);
 
 	    if (c->battle.opponent->special_type == SM_IT_COMBAT) {
 
@@ -2945,9 +2945,9 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 		}
 	    }
 
-            else if (4000 * c->player.magiclvl /
+            else if (4000 * Do_eff_magiclvl(c) /
 		    (c->battle.opponent->experience + 6000 *
-		    c->player.magiclvl) > RND() - .1) {
+		    Do_eff_magiclvl(c)) > RND() - .1) {
 
                 sprintf(string_buffer, "%s is held.\n",
 		        c->battle.opponent->name);
@@ -2987,7 +2987,7 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 	    Do_send_line(c, "You do not have enough mana.\n"); 
         else {
 
-	    Do_mana(c, -MM_SPECIFY, FALSE);
+	    Do_mana(c, -Do_gear_spell_cost(c, MM_SPECIFY), FALSE);
 	    event_ptr = (struct event_t *) Do_create_event();
 	    event_ptr->type = MONSTER_EVENT;
 	    event_ptr->arg1 = MONSTER_SPECIFY;

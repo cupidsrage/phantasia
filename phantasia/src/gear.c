@@ -55,13 +55,14 @@ static const char *tierNames[] = {
 static const char *abilityNames[NUM_ABILITIES] = {
     "", "Evasion", "Lifesteal", "Swiftness", "Crushing Blows", "Thorns",
     "Fortune", "Warding", "Mending", "Prospecting", "Phoenix",
-    "Seafarer", "Dragonbane"
+    "Seafarer", "Dragonbane", "Insight", "Arcana", "Wellspring", "Focus"
 };
 
 static const char *abilitySuffix[NUM_ABILITIES] = {
     "", "of Evasion", "of the Leech", "of Swiftness", "of Crushing",
     "of Thorns", "of Fortune", "of Warding", "of Mending",
-    "of Prospecting", "", "", ""
+    "of Prospecting", "", "", "", "of Insight", "of Arcana",
+    "of the Wellspring", "of Focus"
 };
 
 static const char *abilityHelp[NUM_ABILITIES] = {
@@ -77,7 +78,11 @@ static const char *abilityHelp[NUM_ABILITIES] = {
     "find treasure more often",
     "saves you from death once, then flies away",
     "the creatures of the water will not fight you",
-    "double damage against dragons and wyrms"
+    "double damage against dragons and wyrms",
+    "sharpens your wits (more brains)",
+    "deepens your magic (higher magic level)",
+    "regain mana as you travel",
+    "your spells cost less mana"
 };
 
 struct artifact_def {
@@ -100,7 +105,8 @@ static const struct artifact_def artifacts[NUM_ARTIFACTS + 1] = {
     { "Wyrmslayer", SLOT_WEAPON, AB_DRAGONBANE, AB_SWIFTNESS, 25 },
     { "The Mantle of Shadows", SLOT_ARMOR, AB_EVASION, AB_THORNS, 12 },
     { "The Helm of Ages", SLOT_HELM, AB_MENDING, AB_WARDING, 6 },
-    { "The Wind-lord's Boots", SLOT_BOOTS, AB_EVASION, AB_MENDING, 18 }
+    { "The Wind-lord's Boots", SLOT_BOOTS, AB_EVASION, AB_MENDING, 18 },
+    { "The Archmage's Circlet", SLOT_HELM, AB_ARCANA, AB_WELLSPRING, 10 }
 };
 
 
@@ -318,7 +324,27 @@ static int Do_gear_roll_tier(double circle, int minTier)
     return MAX(tier, minTier);
 }
 
-static int Do_gear_roll_ability(int tier)
+static const int combatAbilities[] = {
+    AB_EVASION, AB_LEECH, AB_SWIFTNESS, AB_CRUSHING, AB_THORNS,
+    AB_FORTUNE, AB_WARDING, AB_MENDING, AB_PROSPECTING
+};
+static const int magicAbilities[] = {
+    AB_INSIGHT, AB_ARCANA, AB_WELLSPRING, AB_FOCUS
+};
+
+	/* an ability for a slot; r1 and r2 are random numbers in [0, 1) */
+static int Do_pick_ability(int slot, double r1, double r2)
+{
+	/* helms and trinkets carry magic half the time */
+    if ((slot == SLOT_HELM || slot == SLOT_TRINKET) && r1 < 0.5) {
+	return magicAbilities[(int) (r2 * 4) % 4];
+    }
+
+    return combatAbilities[(int) (r2 * NUM_COMMON_ABILITIES) %
+	    NUM_COMMON_ABILITIES];
+}
+
+static int Do_gear_roll_ability(int tier, int slot)
 {
     if (tier == TIER_COMMON || tier == TIER_WORN) {
 	return AB_NONE;
@@ -327,7 +353,7 @@ static int Do_gear_roll_ability(int tier)
 	return AB_NONE;
     }
 
-    return 1 + (int) (RND() * NUM_COMMON_ABILITIES) % NUM_COMMON_ABILITIES;
+    return Do_pick_ability(slot, RND(), RND());
 }
 
 	/* a random item; slot < 0 means any slot */
@@ -338,7 +364,7 @@ void Do_gear_make(struct gear_item_t *item, int slot, double circle,
 
     item->slot = slot >= 0 ? slot : (int) (RND() * NUM_SLOTS) % NUM_SLOTS;
     item->tier = Do_gear_roll_tier(circle, minTier);
-    item->ability = Do_gear_roll_ability(item->tier);
+    item->ability = Do_gear_roll_ability(item->tier, item->slot);
     Do_gear_roll_stats(item, circle, Do_tier_quality(item->tier));
 }
 
@@ -1002,8 +1028,7 @@ void Do_gear_quest_reward(struct client_t *c)
     Do_gear_make(&item, -1, c->player.circle + 1,
 	    RND() < 0.3 ? TIER_MASTERWORK : TIER_FINE);
     if (item.ability == AB_NONE) {
-	item.ability = 1 + (int) (RND() * NUM_COMMON_ABILITIES) %
-		NUM_COMMON_ABILITIES;
+	item.ability = Do_pick_ability(item.slot, RND(), RND());
     }
 
     Do_send_line(c, "Your reward includes a piece of gear!\n");
@@ -1301,6 +1326,34 @@ void Do_gear_turn(struct client_t *c)
 	Do_energy(c, c->player.energy + heal, c->player.max_energy,
 		c->player.shield, c->battle.force_field, FALSE);
     }
+
+	/* Wellspring: a share of your mana limit (Do_mana caps it) */
+    if ((p = Do_gear_ability(c, AB_WELLSPRING)) > 0) {
+	Do_mana(c, ceil((1000.0 + c->player.level *
+		c->realm->charstats[c->player.type].max_mana) * 0.005 * p), FALSE);
+    }
+}
+
+	/* brains and magic level with gear: the saved values never include it */
+double Do_eff_brains(struct client_t *c)
+{
+    double p = Do_gear_ability(c, AB_INSIGHT);
+
+    return c->player.brains + (p > 0 ? p * (2.0 + 0.10 * c->player.brains) : 0);
+}
+
+double Do_eff_magiclvl(struct client_t *c)
+{
+    double p = Do_gear_ability(c, AB_ARCANA);
+
+    return c->player.magiclvl +
+	    (p > 0 ? p * (2.0 + 0.08 * c->player.magiclvl) : 0);
+}
+
+	/* what a spell really costs with Focus gear */
+double Do_gear_spell_cost(struct client_t *c, double cost)
+{
+    return ceil(cost * MAX(0.5, 1.0 - 0.1 * Do_gear_ability(c, AB_FOCUS)));
 }
 
 double Do_gear_gold_factor(struct client_t *c)
@@ -1613,7 +1666,8 @@ void Do_gear_armory(struct client_t *c, int slot)
 	    stock[n].tier = t;
 	    stock[n].ability = (t >= TIER_FINE && rand_r(&state) % 3 == 0) ||
 		    t == TIER_MASTERWORK ?
-		    1 + rand_r(&state) % NUM_COMMON_ABILITIES : AB_NONE;
+		    Do_pick_ability(s, (rand_r(&state) % 1000) / 1000.0,
+		    (rand_r(&state) % 1000) / 1000.0) : AB_NONE;
 	    {
 		double q = Do_tier_quality(t) * (0.9 + (rand_r(&state) % 20) / 100.0);
 		double cc = MAX(1.0, c->player.circle);

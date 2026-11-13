@@ -926,7 +926,7 @@ Do_cloak(struct client_t *c, int state, int force)
 
             else {
                 c->player.cloaked = TRUE;
-                c->player.mana -= MM_CLOAK;
+                c->player.mana -= Do_gear_spell_cost(c, MM_CLOAK);
             }
   
             Do_lock_mutex(&c->realm->realm_lock);

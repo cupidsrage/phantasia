@@ -707,15 +707,15 @@ do nothing
     if (c->player.cloaked) {
         strcpy(buttons.button[4], "Uncloak\n");
     }
-    else if (c->player.level >= MEL_CLOAK && c->player.magiclvl >= ML_CLOAK) {
+    else if (c->player.level >= MEL_CLOAK && Do_eff_magiclvl(c) >= ML_CLOAK) {
         strcpy(buttons.button[4], "Cloak\n");
     }
 
 /*
-    if (c->player.level >= MEL_TELEPORT && c->player.magiclvl >= ML_TELEPORT &&
+    if (c->player.level >= MEL_TELEPORT && Do_eff_magiclvl(c) >= ML_TELEPORT &&
 	    c->player.special_type != SC_VALAR) {
 */
-    if (c->player.level >= MEL_TELEPORT && c->player.magiclvl >= ML_TELEPORT &&
+    if (c->player.level >= MEL_TELEPORT && Do_eff_magiclvl(c) >= ML_TELEPORT &&
 	    !c->player.cloaked) {
 
         strcpy(buttons.button[5], "Teleport\n");
@@ -868,7 +868,7 @@ do nothing
     case 4:               /* cloak */
 
         if (c->player.cloaked || (c->player.level >= MEL_CLOAK &&
-		c->player.magiclvl >= ML_CLOAK)) {
+		Do_eff_magiclvl(c) >= ML_CLOAK)) {
 
 	    event_ptr->type = CLOAK_EVENT;
 	}

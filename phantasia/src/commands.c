@@ -4054,7 +4054,7 @@ Do_trading_post(struct client_t *c)
 
 	Do_send_line(c, string_buffer);
 
-        sprintf(string_buffer, "Brains: %9.0f  Mana:  %9.0f", c->player.brains,
+        sprintf(string_buffer, "Brains: %9.0f  Mana:  %9.0f", Do_eff_brains(c),
 		c->player.mana);
 
 	Do_send_line(c, string_buffer);
@@ -4470,7 +4470,7 @@ Do_teleport(struct client_t *c, struct event_t *the_event)
 	Do_distance(c->player.x, event_ptr->arg1, c->player.y,
 		event_ptr->arg2, &distance);
 
-	mana = ceil(distance * distance / (30 * c->player.magiclvl));
+	mana = ceil(distance * distance / (30 * Do_eff_magiclvl(c)));
 
 	    /* make sure player has enough mana */
 	if (mana > c->player.mana) {
@@ -4501,7 +4501,7 @@ Do_teleport(struct client_t *c, struct event_t *the_event)
             }
 	}
 
-	Do_mana(c, -mana, FALSE);
+	Do_mana(c, -Do_gear_spell_cost(c, mana), FALSE);
 	event_ptr->arg3 = A_TELEPORT;
     }
 
