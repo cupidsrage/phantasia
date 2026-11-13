@@ -501,6 +501,29 @@ body.event-hunt .event-fx::before { left: -60px; }
 body.event-hunt .event-fx::after { right: -60px; animation-delay: 0.7s; }
 @keyframes torch { from { opacity: 0.55; transform: scaleY(0.96); } to { opacity: 1; transform: scaleY(1.04); } }
 
+/* the 3D event scene behind the game: the flat effects step aside and
+   the panels turn slightly glassy so it glows through */
+.event-fx .event3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; animation: arrival-in 1.2s ease-out; }
+body.event-3d .event-fx::before, body.event-3d .event-fx::after, body.event-3d .coin { display: none; }
+body.event-3d { background: #000; }
+body.event-3d .panel {
+  background: linear-gradient(180deg, rgba(30, 24, 18, 0.80), rgba(16, 12, 9, 0.84));
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+}
+
+/* event announcements: the card in the event's colours */
+.arrival.event-blood { background: #0a0204;
+  --c-rank: #ffb0a0; --c-glow: rgba(230, 40, 30, 0.75); --c-metal: #e0645a;
+  --c-name: linear-gradient(180deg, #fff1ec 0%, #ffb3a3 38%, #d2372a 62%, #ffd2c8 78%, #7a120c 100%); }
+.arrival.event-blood .flash { background: #ff3020; }
+.arrival.event-gold { background: #0e0904; --c-glow: rgba(255, 200, 80, 0.75); }
+.arrival.event-gold .flash { background: #fff0c0; }
+.arrival.event-hunt { background: #07040a;
+  --c-rank: #f0c8ff; --c-glow: rgba(200, 110, 240, 0.7); --c-metal: #c88ae0;
+  --c-name: linear-gradient(180deg, #fff6ff 0%, #f0c8ff 38%, #a85bd0 62%, #ffe8ff 78%, #5a2378 100%); }
+.arrival.event-hunt .flash { background: #ffd8a0; }
+.arrival.event-gold .card, .arrival.event-hunt .card { margin-top: 150px; }
+
 @media (prefers-reduced-motion: reduce) {
   .event-fx *, .event-fx::before, .event-fx::after, .event-banner { animation: none !important; }
   .coin { display: none; }
