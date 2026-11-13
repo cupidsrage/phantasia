@@ -155,7 +155,8 @@ through a WebSocket bridge in `web/server.py`, the same small Python server
 that serves the website. Nothing needs installing, and it works on phones.
 
 Players can rearrange the eight action buttons (Arrange buttons, above
-them). The layout is kept per label in the browser's local storage, and
+them). The layout is kept per character and per label in the browser's
+local storage (`phantasia-button-layout:<character>`), and
 the client still answers the server with the original button number, so
 the server needs no changes.
 

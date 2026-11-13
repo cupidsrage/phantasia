@@ -190,6 +190,7 @@
     switch (type) {
       case P.NAME:
         name = await next();
+        setLayoutOwner(name);
         if (!name) { $("title-head").textContent = "Welcome to Phantasia Reimagined!"; $("title-tail").textContent = ""; }
         document.title = name ? name + " — Phantasia Reimagined" : "Phantasia Reimagined";
         break;
@@ -299,18 +300,45 @@
   /* ---- the player's own button layout ----
      The server sends 8 labelled buttons and expects the number of the
      one pressed.  Players can put any button in any position: the layout
-     is remembered by label (so "Melee" can always sit in the same place),
-     kept in this browser, and the server is still told the original
-     number. */
+     is remembered by label (so "Melee" can always sit in the same place)
+     and kept in this browser, one layout per character (a fighter and a
+     mage play differently); the screens before a character is chosen
+     have their own.  The server is still told the original number. */
   var LAYOUT_KEY = "phantasia-button-layout";
-  var layoutPrefs = {}, serverLabels = ["", "", "", "", "", "", "", ""];
+  var layoutOwner = "", layoutPrefs = {}, serverLabels = ["", "", "", "", "", "", "", ""];
   var slotServer = [0, 1, 2, 3, 4, 5, 6, 7], buttonsLive = false;
   var arranging = false, arrangePick = -1, compassLive = false;
-  try { layoutPrefs = JSON.parse(localStorage.getItem(LAYOUT_KEY) || "{}") || {}; } catch (e) { layoutPrefs = {}; }
+
+  function layoutKey() { return layoutOwner ? LAYOUT_KEY + ":" + layoutOwner.toLowerCase() : LAYOUT_KEY; }
+
+  function loadLayout() {
+    try { layoutPrefs = JSON.parse(localStorage.getItem(layoutKey()) || "{}") || {}; } catch (e) { layoutPrefs = {}; }
+  }
 
   function saveLayout() {
-    try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(layoutPrefs)); } catch (e) {}
+    try {
+      if (Object.keys(layoutPrefs).length) localStorage.setItem(layoutKey(), JSON.stringify(layoutPrefs));
+      else localStorage.removeItem(layoutKey());
+    } catch (e) {}
   }
+
+  /* a character entered (or left) the realm: use their layout */
+  function setLayoutOwner(who) {
+    who = who || "";
+    if (who === layoutOwner) return;
+    layoutOwner = who;
+    loadLayout();
+    arrangePick = -1;
+    placeButtons();
+    drawButtons();
+    updateArrangeHint();
+  }
+
+  function updateArrangeHint() {
+    $("arrange-hint").textContent = (layoutOwner ? "Arranging " + layoutOwner + "'s buttons. " : "") +
+      "Tap a button, then tap the place it should go.";
+  }
+  loadLayout();
 
   /* which server button goes in each of the 8 places */
   function placeButtons() {
@@ -394,6 +422,7 @@
     $("arrange").textContent = on ? "Done" : "Arrange buttons";
     $("arrange").classList.toggle("on", on);
     $("arrange-hint").hidden = !on;
+    updateArrangeHint();
     $("arrange-reset").hidden = !on;
     if (!on) {
       placeButtons();
