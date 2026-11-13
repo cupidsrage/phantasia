@@ -569,6 +569,55 @@ static void Do_gear_drop_lost_artifacts(struct client_t *c)
     c->numGear = j;
 }
 
+/*
+ * Upgrade an item saved before gear scaled with monster strength (an
+ * 11-column line).  Its circle is worked out from its bonus under the old
+ * formula and its tier, then its bonuses are scaled to the new formula at
+ * that circle, keeping its luck of the roll.  Worn gear (the original
+ * shield/sword/quicksilver) and boots are unchanged, and nothing goes down.
+ * Returns TRUE if the item changed.
+ */
+static int Do_gear_upgrade_old(struct gear_item_t *g)
+{
+    double q, circle, threat, before = g->shield + g->sword;
+
+    if (g->tier == TIER_WORN || g->slot == SLOT_BOOTS) {
+	return FALSE;
+    }
+
+    q = Do_tier_quality(g->tier);
+
+	/* old formulas: weapon 1.6C, armor 40C, helm 15C, trinket 6C / 0.3C */
+    switch (g->slot) {
+    case SLOT_WEAPON:  circle = g->sword / (1.6 * q); break;
+    case SLOT_ARMOR:   circle = g->shield / (40.0 * q); break;
+    case SLOT_HELM:    circle = g->shield / (15.0 * q); break;
+    default:           circle = g->shield >= 1 ? g->shield / (6.0 * q) :
+			       g->sword / (0.3 * q);
+    }
+
+    circle = MAX(1.0, floor(circle + 0.5));
+    threat = Do_gear_threat(circle);
+    g->circle = (short) MIN(30000.0, circle);
+
+    switch (g->slot) {
+    case SLOT_WEAPON:
+	g->sword = floor(g->sword * MAX(1.0, 0.4 * threat / (1.6 * circle)));
+	break;
+    case SLOT_ARMOR:
+	g->shield = floor(g->shield * MAX(1.0, 5.5 * threat / (40.0 * circle)));
+	break;
+    case SLOT_HELM:
+	g->shield = floor(g->shield * MAX(1.0, 2.0 * threat / (15.0 * circle)));
+	break;
+    default:
+	g->shield = floor(g->shield * MAX(1.0, 0.8 * threat / (6.0 * circle)));
+	g->sword = floor(g->sword * MAX(1.0, 0.08 * threat / (0.3 * circle)));
+    }
+
+    return g->shield + g->sword > before;
+}
+
 	/* load (or create) this character's gear when entering the realm */
 void Do_gear_load(struct client_t *c)
 {
@@ -576,7 +625,7 @@ void Do_gear_load(struct client_t *c)
     char line[SZ_LINE], name[SZ_NAME + 1];
     struct gear_item_t g;
     int slot, equipped, tier, base, ab, ab2, art, found = FALSE, id, fields;
-    int circle;
+    int circle, upgraded = 0;
     double shield, sword, quick;
 
     c->numGear = 0;
@@ -622,6 +671,12 @@ void Do_gear_load(struct client_t *c)
 	    g.artifact = (art >= 0 && art <= NUM_ARTIFACTS) ? art : 0;
 	    g.shield = shield; g.sword = sword; g.quicksilver = quick;
 	    g.circle = (short) MIN(30000, circle);
+
+		/* saved before the rebalance: bring it up to date once */
+	    if (fields == 11 && Do_gear_upgrade_old(&g)) {
+		++upgraded;
+	    }
+
 	    c->gear[c->numGear++] = g;
 	}
 	fclose(the_file);
@@ -670,6 +725,10 @@ void Do_gear_load(struct client_t *c)
     Do_gear_save_locked(c);
 
     Do_unlock_mutex(&c->realm->gear_lock);
+
+    if (upgraded) {
+	Do_send_chat_self(c, "The realm's smiths have reforged your gear to match the dangers of the deeper circles.  Check it with /gear.\n");
+    }
 }
 
 
