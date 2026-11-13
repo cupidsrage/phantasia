@@ -1,8 +1,10 @@
-# Phantasia 4
+# Phantasia Reimagined
 
-The Phantasia 4 multiplayer fantasy game server (Brian Kelly's 1999
-client/server rewrite of Edward Estes' Phantasia), updated to build and run
-on modern 64-bit Linux and to deploy on [Railway](https://railway.com).
+A revival of the Phantasia 4 multiplayer fantasy game (Brian Kelly's 1999
+client/server rewrite of Edward Estes' Phantasia): updated to build and run
+on modern 64-bit Linux, deployed on [Railway](https://railway.com), and
+grown with a browser client, gear and artifacts, quests, champions, world
+events, royal regalia and decrees, and 3D ceremonies.
 
 ```
 phantasia/src/          C server source (make)
@@ -34,8 +36,8 @@ Dockerfile, railway.json, docker-entrypoint.sh   deployment
 4. **Give the website a domain.** In *Settings → Networking*, click
    *Generate Domain*. If Railway asks for a port, enter the one shown in the
    log line `Website listening on port ...` (8080 unless Railway sets `PORT`).
-   The site is the old phantasia4.com pages from `public_html/`. Its
-   "The Game" page (`play.html`) offers the client download and shows the TCP
+   The site lives in `public_html/` (styles in `site.css`). Its
+   "Play" page (`play.html`) offers the client download and shows the TCP
    proxy address, which is filled in from Railway's `RAILWAY_TCP_PROXY_DOMAIN`
    and `RAILWAY_TCP_PROXY_PORT` variables.
 5. Deploy. The logs show `Phantasia server listening on port 43302`, along with

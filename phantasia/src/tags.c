@@ -878,7 +878,7 @@ Do_implement_tag(struct client_t *c, struct tag_t *theTag)
 
 	    /* send a message to the user */
         Do_send_error(c, 
-		"This location is no longer permitted to play Phantasia.\n");
+		"This location is no longer permitted to play Phantasia Reimagined.\n");
 
         if (c->characterLoaded == TRUE) {
             c->run_level = SAVE_AND_EXIT;

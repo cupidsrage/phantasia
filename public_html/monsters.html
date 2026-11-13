@@ -1,27 +1,26 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
-<HTML>
-<HEAD>
-	<TITLE>Phantasia Monsters</TITLE>
-	<META NAME="generator" CONTENT="BBEdit 5.0">
-</HEAD>
-<BODY BACKGROUND="graphics/mis6b.jpg" TEXT="#BBBB66" LINK="#996699" ALINK="#BB3333" VLINK="#BB3333">
-
-<TABLE WIDTH="100%" CELLPADDING="0">
-	<TR>
-		<TD WIDTH=90></TD>
-		<TD>
-
-<CENTER>
-
-</CENTER>
-
-			<CENTER>
-			<IMG SRC="graphics/monsters.jpeg" ALT="" WIDTH="155" HEIGHT="22">
-			</CENTER>
-
-			<BR>
-
-   <P>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monsters · Phantasia Reimagined</title>
+<meta name="description" content="Phantasia Reimagined: Monsters">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+</head>
+<body class="page-monsters">
+<header class="site-head">
+  <a class="logo" href="index.html">Phantasia<span>Reimagined</span></a>
+  <nav class="site-nav" aria-label="Site"><a href="whatsnew.html">What's New</a><a href="intro.html" class="here">Guide</a><a href="legends.html">Legends</a><a href="info.html">About</a><a class="play" href="play.html">Play</a></nav>
+</header>
+<main class="wrap with-side">
+<aside class="side panel"><details open><summary>Guide</summary><div class="side-inner"><h3>Getting started</h3><ul><li><a href="intro.html">Introduction</a></li><li><a href="characters.html">Characters</a></li><li><a href="stats.html">Statistics</a></li><li><a href="interface.html">The Game Screen</a></li><li><a href="commands.html">Commands</a></li><li><a href="tips.html">Tips</a></li></ul><h3>Adventuring</h3><ul><li><a href="realm.html">The Realm</a></li><li><a href="combat.html">Combat</a></li><li><a href="itcombat.html">Player Combat</a></li><li><a href="spells.html">Spells</a></li><li><a href="monsters.html" class="here">Monsters</a></li><li><a href="treasure.html">Treasure</a></li></ul><h3>Gear</h3><ul><li><a href="gear.html">Gear and Artifacts</a></li><li><a href="equipment.html">Equipment</a></li></ul><h3>Rulers</h3><ul><li><a href="steward.html">The Steward</a></li><li><a href="king.html">The King or Queen</a></li><li><a href="valar.html">The Valar</a></li><li><a href="council.html">The Council of the Wise</a></li></ul></div></details></aside><script>if (window.innerWidth < 860) document.querySelector(".side details").removeAttribute("open");</script>
+<article class="content">
+<h1>Monsters</h1><div class="rule"></div>
+<P>
 Monsters get bigger as one moves farther from the origin (0,0).  A monster's
 size is equal to the <A HREF="realm.html#circle">circle</A> it was encountered in.  A monster's
 <A HREF="stats.html#experience">experience</A>, <A HREF="stats.html#energy">energy level</A>, and <A HREF="stats.html#brains">brains</A> are multiplied by the size.
@@ -38,7 +37,7 @@ designated as flock% in the <A HREF="monsters.html#list">monster listing</A>.
 their treasure type.  Bigger monsters increase the chances of <A HREF="treasure.html">treasure</A>.
    </P>
 			
-			<A NAME="list"></A><TABLE>
+			<A NAME="list"></A><div class="table-scroll"><TABLE>
 				<TR align=center>
 					<TH>#</TH> <TH>Name</TH> <TH>Strength</TH> <TH>Brains</TH> <TH>Speed</TH> <TH>Energy</TH> <TH>Experience</TH> <TH>Treasure Type</TH> <TH>Flock %</TH>
 				</TR>
@@ -342,8 +341,8 @@ their treasure type.  Bigger monsters increase the chances of <A HREF="treasure.
 				<TR align=center>
 					<A NAME="lord"><TH>99</TH> <TH>The Dark Lord</TH> <TD>9999</TD> <TD>9999</TD> <TD>31</TD> <TD>19999</TD> <TD>40005</TD> <TD>14</TD> <TD>0</TD></A>
 				</TR>
-			</TABLE>
-			</CENTER>
+			</TABLE></div>
+			</div>
 
 			<HR>
 
@@ -361,8 +360,8 @@ Any ordinary monster might also turn out to be a
 <A HREF="whatsnew.html#champions">champion</A>.
    </P>
 
-			<CENTER>
-			<TABLE>
+			<div class="center">
+			<div class="table-scroll"><TABLE>
 				<TR align=center>
 					<TH>#</TH> <TH>Name</TH> <TH>Strength</TH> <TH>Brains</TH> <TH>Speed</TH> <TH>Energy</TH> <TH>Experience</TH> <TH>Treasure Type</TH> <TH>Flock %</TH> <TH>Circles</TH>
 				</TR>
@@ -402,8 +401,8 @@ Any ordinary monster might also turn out to be a
 				<TR align=center>
 					<TH>111</TH> <TH>A Shadow Dragon</TH> <TD>350</TD> <TD>200</TD> <TD>28</TD> <TD>1800</TD> <TD>16000</TD> <TD>9</TD> <TD>0</TD> <TD>36+</TD>
 				</TR>
-			</TABLE>
-			</CENTER>
+			</TABLE></div>
+			</div>
 			
 			<HR>
 
@@ -411,7 +410,7 @@ Any ordinary monster might also turn out to be a
 			Certain monsters have special abilities; they are as follows:
 			</H4></P>
 			<P>
-			Unicorn can only be subdued if the player is in possession of a <A HREF="treasure.html#virgin">virgin</A>.
+			Unicorn can only be subdued if the player is in possession of a <A HREF="treasure.html">virgin</A>.
 			</P>
 			<P>
 			Modnar has random <A HREF="stats.html">characteristics</A>, including <A HREF="treasure.html">treasure</A> type.
@@ -420,13 +419,13 @@ Any ordinary monster might also turn out to be a
 			Mimic will take the form of another monster in order to confuse.
 			</P>
 			<P>
-			Dark Lord is very nasty.  Does not like to be hit (especially <A HREF="combat.html#nick">nicked</A>), and many <A HREF="spells.html#nick">spells</A> do not work well (or at all) against him. One can always <A HREF="combat.html#evade">evade</A> from the Dark Lord.
+			Dark Lord is very nasty.  Does not like to be hit (especially <A HREF="combat.html">nicked</A>), and many <A HREF="spells.html">spells</A> do not work well (or at all) against him. One can always <A HREF="combat.html">evade</A> from the Dark Lord.
 			</P>
 			<P>
 			Leanan-Sidhe is also very nasty.  She will permanently sap <A HREF="stats.html#strength">strength</A> from someone.
 			</P>
 			<P>
-			Saruman wanders around with Wormtongue, who can steal a <A HREF="treasure.html#palantir">palantir</A>. Also, Saruman may turn a player's <A HREF="treasure.html#gems">gems</A> into <A HREF="treasure.html#gold">gold</A>, charms into amulets, or scramble her/his <A HREF="stats.html">stats</A>.
+			Saruman wanders around with Wormtongue, who can steal a <A HREF="treasure.html">palantir</A>. Also, Saruman may turn a player's <A HREF="equipment.html#gems">gems</A> into <A HREF="equipment.html#gold">gold</A>, charms into amulets, or scramble her/his <A HREF="stats.html">stats</A>.
 			</P>
 			<P>
 			Thaumaturgist can <A HREF="spells.html#transport">transport</A> a player.
@@ -435,22 +434,22 @@ Any ordinary monster might also turn out to be a
 			Balrog may inflict damage by taking away <A HREF="stats.html#experience">experience</A> instead of <A HREF="stats.html#energy">energy</A>.
 			</P>
 			<P>
-			Vortex may take some <A HREF="equipment.html#mana">mana</A>.
+			Vortex may take some <A HREF="equipment.html">mana</A>.
 			</P>
 			<P>
-			Nazgul may demand a <A HREF="treasure.html#ring">ring</A> or neutralize a player's blessing.  They get angrier if refused.
+			Nazgul may demand a <A HREF="treasure.html">ring</A> or neutralize a player's blessing.  They get angrier if refused.
 			</P>
 			<P>
-			Tiamat may take half a player's <A HREF="treasure.html#gold">gold</A> and <A HREF="treasure.html#gems">gems</A> and escape.
+			Tiamat may take half a player's <A HREF="equipment.html#gold">gold</A> and <A HREF="equipment.html#gems">gems</A> and escape.
 			</P>
 			<P>
-			Kobold may get nasty and steal one <A HREF="treasure.html#gold">gold</A> coin and run away.
+			Kobold may get nasty and steal one <A HREF="equipment.html#gold">gold</A> coin and run away.
 			</P>
 			<P>
 			Shelob may bite, inflicting some <A HREF="stats.html#poison">poison</A>.
 			</P>
 			<P>
-			<A NAME="faeries"></A>Assorted Faeries are killed if attacking someone carrying enough <A HREF="equipment.html#holy">holy water</A>. These are Cluricaun, Fir Darrig, Fachan, Ghille Dhu, Bogle, Killmoulis, and Bwca.
+			<A NAME="faeries"></A>Assorted Faeries are killed if attacking someone carrying enough <A HREF="equipment.html">holy water</A>. These are Cluricaun, Fir Darrig, Fachan, Ghille Dhu, Bogle, Killmoulis, and Bwca.
 			</P>
 			<P>
 			Lampreys and Spiders may bite, inflicting a little <A HREF="stats.html#poison">poison</A>.
@@ -462,10 +461,10 @@ Any ordinary monster might also turn out to be a
 			Bonnacon will become bored with battle, fart, and run off.
 			</P>
 			<P>
-			Smeagol will try to steal a <A HREF="treasure.html#ring">ring</A> from a player, if given the chance.
+			Smeagol will try to steal a <A HREF="treasure.html">ring</A> from a player, if given the chance.
 			</P>
 			<P>
-			Titans inflict damage through a <A HREF="spells.html#force">force field</A> directly to a player's <A HREF="stats.html#energy">energy level</A>. Beware!
+			Titans inflict damage through a <A HREF="spells.html">force field</A> directly to a player's <A HREF="stats.html#energy">energy level</A>. Beware!
 			</P>
 			<P>
 			Succubus or Incubus may cause part of one's <A HREF="stats.html#brains">brains</A> to cease functioning.
@@ -480,7 +479,7 @@ Any ordinary monster might also turn out to be a
 			Jabberwock can destroy some quicksilver.  It may also tire of battle, and leave after calling one of his friends (<A HREF="monsters.html#jubjub">Jubjub Bird</A> or <A HREF="monsters.html#bandersnatch">Bandersnatch</A>).
 			</P>
 			<P>
-			Morgoth actually Modnar, but reserved for <A HREF="council.html">council of the wise</A>, <A HREF="valar.html">valar</A>, and <A HREF="valar.html#exvalar">ex-valar</A>. His <A HREF="stats.html">characteristics</A> are calculated based upon the player's.  The player is given the chance to ally with him.  Only one force field at a time will work when battling Morgoth, and no other spells.
+			Morgoth actually Modnar, but reserved for <A HREF="council.html">council of the wise</A>, <A HREF="valar.html">valar</A>, and <A HREF="valar.html">ex-valar</A>. His <A HREF="stats.html">characteristics</A> are calculated based upon the player's.  The player is given the chance to ally with him.  Only one force field at a time will work when battling Morgoth, and no other spells.
 			</P>
 			<P>
 			Troll may regenerate its <A HREF="stats.html#energy">energy</A> and <A HREF="stats.html#strength">strength</A> while in battle. 
@@ -498,29 +497,22 @@ Any ordinary monster might also turn out to be a
 			Morons may whine.
 			</P>
 
-   <CENTER>
-   <P>
-   <A HREF="combat.html"><IMG SRC="graphics/previous.jpeg" ALT="" WIDTH="109" HEIGHT="18"></A>
-   <A HREF="itcombat.html"><IMG SRC="graphics/next.jpeg" ALT="" WIDTH="73" HEIGHT="18"></A>
-   </P>
+   <div class="center">
+   
 
                                                                                 
    <HR>
 
-   <P>
-   <A HREF="index.html">Home</A>
- |
-   <A HREF="play.html">The Game</A>
- |
-   <A HREF="intro.html">The Rules</A>
- |
-   <A HREF="info.html">Game Info</A>
-   </P>
-   </CENTER>
-
-		</TD>
-	</TR>
-</TABLE>
-
-</BODY>
-</HTML>
+   
+   </div>
+<nav class="pager" aria-label="Guide pages"><a class="prev" href="spells.html"><small>Previous</small>&lsaquo; Spells</a><a class="next" href="treasure.html"><small>Next</small>Treasure &rsaquo;</a></nav>
+</article>
+</main>
+<footer class="site-foot">
+  <a class="logo" href="index.html">Phantasia<span>Reimagined</span></a>
+  <nav aria-label="Footer"><a href="play.html">Play</a><a href="whatsnew.html">What's New</a><a href="intro.html">Guide</a><a href="legends.html">Legends</a><a href="info.html">About</a><a href="credits.html">Credits</a></nav>
+  <div>Built on <i>Phantasia</i> by Edward Estes and <i>Phantasia 4</i> by Brian Kelly.</div>
+</footer>
+<script src="event-banner.js"></script>
+</body>
+</html>

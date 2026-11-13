@@ -78,7 +78,7 @@ h2 small { color: var(--muted); letter-spacing: 0; }
   text-shadow: 0 0 18px rgba(214, 168, 74, 0.35);
   white-space: nowrap;
 }
-.brand span { color: var(--red); }
+.brand span { color: var(--red); font-size: 0.72em; letter-spacing: 0.04em; }
 
 .whereabouts { flex: 1; min-width: 0; }
 #title-head {

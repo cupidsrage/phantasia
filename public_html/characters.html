@@ -1,28 +1,29 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
-<HTML>
-<HEAD>
- <TITLE>Phantasia Characters</TITLE>
- <META NAME="generator" CONTENT="BBEdit 5.0">
-</HEAD>
-<BODY BACKGROUND="graphics/mis6b.jpg" TEXT="#BBBB66" LINK="#996699" ALINK="#BB3333" VLINK="#BB3333">
-
-<TABLE WIDTH="100%" CELLPADDING="0">
- <TR>
-  <TD WIDTH=90></TD>
-  <TD>
-
-<CENTER>
-
-</CENTER>
-  
-<CENTER>
-<IMG SRC="graphics/character.jpeg" ALT="" WIDTH="219" HEIGHT="22">
-</CENTER>
-
-   <P>
-Phantasia characters have only one chance in life.  Although your
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Characters · Phantasia Reimagined</title>
+<meta name="description" content="Phantasia Reimagined: Characters">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+</head>
+<body class="page-characters">
+<header class="site-head">
+  <a class="logo" href="index.html">Phantasia<span>Reimagined</span></a>
+  <nav class="site-nav" aria-label="Site"><a href="whatsnew.html">What's New</a><a href="intro.html" class="here">Guide</a><a href="legends.html">Legends</a><a href="info.html">About</a><a class="play" href="play.html">Play</a></nav>
+</header>
+<main class="wrap with-side">
+<aside class="side panel"><details open><summary>Guide</summary><div class="side-inner"><h3>Getting started</h3><ul><li><a href="intro.html">Introduction</a></li><li><a href="characters.html" class="here">Characters</a></li><li><a href="stats.html">Statistics</a></li><li><a href="interface.html">The Game Screen</a></li><li><a href="commands.html">Commands</a></li><li><a href="tips.html">Tips</a></li></ul><h3>Adventuring</h3><ul><li><a href="realm.html">The Realm</a></li><li><a href="combat.html">Combat</a></li><li><a href="itcombat.html">Player Combat</a></li><li><a href="spells.html">Spells</a></li><li><a href="monsters.html">Monsters</a></li><li><a href="treasure.html">Treasure</a></li></ul><h3>Gear</h3><ul><li><a href="gear.html">Gear and Artifacts</a></li><li><a href="equipment.html">Equipment</a></li></ul><h3>Rulers</h3><ul><li><a href="steward.html">The Steward</a></li><li><a href="king.html">The King or Queen</a></li><li><a href="valar.html">The Valar</a></li><li><a href="council.html">The Council of the Wise</a></li></ul></div></details></aside><script>if (window.innerWidth < 860) document.querySelector(".side details").removeAttribute("open");</script>
+<article class="content">
+<h1>Characters</h1><div class="rule"></div>
+<P>
+Phantasia Reimagined characters have only one chance in life.  Although your
 character is saved in a common file when you leave the game via
-the <A HREF="interface.html#quit">quit button</A>, it is removed when restored 
+the <A HREF="interface.html">quit button</A>, it is removed when restored 
 with the proper password, and can not be re-restored if the character dies.  
 In addition, the save file is frequently purged of inactive characters.
    </P>
@@ -38,7 +39,7 @@ battle or dead.</P>
    <P>
 All phantasia characters have a distinctive class.  In
 addition to <A HREF="stats.html">attributes</A>, this character class also determines how
-much <A HREF="treasure.html#gold">gold</A> a player may carry, how long until <A HREF="treasure.html#ring">rings</A> can overcome
+much <A HREF="equipment.html#gold">gold</A> a player may carry, how long until <A HREF="treasure.html">rings</A> can overcome
 the player, and how much mana the character can have.  The
 current classes are:
    </P>
@@ -85,7 +86,7 @@ Each character class starts off with base statistics.  These
 attributes are rolled randomly from the following list:
   </P>
 
-   <TABLE>
+   <div class="table-scroll"><TABLE>
     <TR>
      <TH>Type</TH>
      <TH>Strength</TH>
@@ -149,7 +150,7 @@ attributes are rolled randomly from the following list:
      <TD>40</TD>
      <TD>4</TD>
     </TR>
-   </TABLE>
+   </TABLE></div>
 
    <P>
 Not only are the starting characteristics different for the
@@ -160,7 +161,7 @@ as one of the other class types. The progression as characters increase
 in level is summarized in the following table.
    </P>
 
-   <TABLE>
+   <div class="table-scroll"><TABLE>
     <TR>
      <TH>Type</TH>
      <TH>Strength</TH>
@@ -209,29 +210,23 @@ in level is summarized in the following table.
      <TD>6</TD>
      <TD>1</TD>
     </TR>
-   </TABLE>
+   </TABLE></div>
 
-   <CENTER>
-   <P>
-   <A HREF="stats.html"><IMG SRC="graphics/previous.jpeg" ALT="" WIDTH="109" HEIGHT="18"></A>
-   <A HREF="interface.html"><IMG SRC="graphics/next.jpeg" ALT="" WIDTH="73" HEIGHT="18"></A>
-   </P>
+   <div class="center">
+   
 
    <HR>
 
-   <P>
-   <A HREF="index.html">Home</A>
- |
-   <A HREF="play.html">The Game</A>
- |
-   <A HREF="intro.html">The Rules</A>
- |
-   <A HREF="info.html">Game Info</A>
-   </P>
-   </CENTER>
-
-   </TD>
-   </TR>
-  </TABLE>
- </BODY>
-</HTML>
+   
+   </div>
+<nav class="pager" aria-label="Guide pages"><a class="prev" href="intro.html"><small>Previous</small>&lsaquo; Introduction</a><a class="next" href="stats.html"><small>Next</small>Statistics &rsaquo;</a></nav>
+</article>
+</main>
+<footer class="site-foot">
+  <a class="logo" href="index.html">Phantasia<span>Reimagined</span></a>
+  <nav aria-label="Footer"><a href="play.html">Play</a><a href="whatsnew.html">What's New</a><a href="intro.html">Guide</a><a href="legends.html">Legends</a><a href="info.html">About</a><a href="credits.html">Credits</a></nav>
+  <div>Built on <i>Phantasia</i> by Edward Estes and <i>Phantasia 4</i> by Brian Kelly.</div>
+</footer>
+<script src="event-banner.js"></script>
+</body>
+</html>

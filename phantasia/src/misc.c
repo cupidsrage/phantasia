@@ -2723,7 +2723,7 @@ int	error;
 
 	/* print a header */
     Do_send_line(c,
-	    "W e l c o m e   t o   P h a n t a s i a (vers. 4.03)!\n");
+	    "Welcome to Phantasia Reimagined!\n");
 
 	/* lock the realm */
     Do_lock_mutex(&c->realm->realm_lock);

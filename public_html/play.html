@@ -1,93 +1,70 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
-<HTML>
-<HEAD>
-	<TITLE>Phantasia 4 - The Game</TITLE>
-	<META NAME="viewport" CONTENT="width=device-width, initial-scale=1">
-	<STYLE>
-		code, .address-small { background: #222211; color: #EEEE99; padding: 2px 6px; }
-		td { max-width: 760px; }
-		.play-now { display: inline-block; margin-top: 10px; padding: 14px 28px;
-			font-size: 1.4em; font-weight: bold; text-decoration: none;
-			color: #1a1208; background: linear-gradient(#f0cd7a, #c8952f);
-			border: 1px solid #f0cd7a; border-radius: 10px;
-			box-shadow: 0 0 18px rgba(214, 168, 74, 0.45); }
-		.play-now:hover { background: linear-gradient(#ffe09a, #d6a84a); color: #000; }
-	</STYLE>
-</HEAD>
-<BODY BACKGROUND="graphics/mis6b.jpg" TEXT="#BBBB66" LINK="#996699" ALINK="#BB3333" VLINK="#BB3333">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Play · Phantasia Reimagined</title>
+<meta name="description" content="Phantasia Reimagined: Play">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+</head>
+<body class="page-play">
+<header class="site-head">
+  <a class="logo" href="index.html">Phantasia<span>Reimagined</span></a>
+  <nav class="site-nav" aria-label="Site"><a href="whatsnew.html">What's New</a><a href="intro.html">Guide</a><a href="legends.html">Legends</a><a href="info.html">About</a><a class="play" href="play.html">Play</a></nav>
+</header>
+<main class="wrap">
+<article class="content">
+<h1>Play</h1><div class="rule"></div>
+<div class="play-box">
+  <p class="lead">Play straight in your browser. Nothing to install, and it works on Windows,
+  Mac, Linux, phones and tablets.</p>
+  <p><a class="button big" href="client/">&#9876;&nbsp; Play in your browser &nbsp;&#9876;</a></p>
+</div>
 
-<TABLE WIDTH="100%" CELLPADDING="0">
- <TR>
-  <TD WIDTH=90></TD>
-  <TD>
+<h2>New here?</h2>
+<p>Click <b>Sign Up</b> to create an account, then <b>Log In</b> and make a new character.
+The number keys 1 to 8 press the buttons along the bottom, and the numeric keypad moves you
+around the realm. Read the <a href="intro.html">guide</a> to learn the ropes, and
+<a href="whatsnew.html">New in the Realm</a> for gear, artifacts, daily quests, champions and
+world events.</p>
 
-   <CENTER>
-   <IMG SRC="graphics/clients.jpeg" ALT="The Game" WIDTH="196" HEIGHT="22">
-   </CENTER>
+<h2>Prefer a download?</h2>
+<p>The classic desktop client still works and connects to this realm by itself.</p>
+<div class="download">
+  <div class="panel">
+    <h3>Windows</h3>
+    <p><a class="button" href="Phantasia-Windows.zip">Download for Windows</a><br>
+    <small>About 45 MB. Java is included.</small></p>
+    <ol>
+      <li>Open the downloaded zip and click <b>Extract all</b>.</li>
+      <li>In the extracted folder, double-click <b>Play Phantasia</b>.</li>
+    </ol>
+    <p><small>If Windows shows "Windows protected your PC", click <b>More info</b> and
+    then <b>Run anyway</b>.</small></p>
+  </div>
+  <div class="panel">
+    <h3>Mac and Linux</h3>
+    <p><a class="button" href="phantasia-client.jar">Download the client</a><br>
+    <small>Needs Java 8 or newer.</small></p>
+    <p>Install Java from <a href="https://adoptium.net/temurin/releases/?package=jre">adoptium.net</a>
+    if you don't have it, then double-click <b>phantasia-client.jar</b>. If that doesn't work,
+    run <code>java -jar phantasia-client.jar</code> in a terminal.</p>
+  </div>
+</div>
+<p><small>The game server address is <span class="address">@@GAME_ADDRESS@@</span>
+(the downloads already know it).</small></p>
 
-   <CENTER>
-   <P><A HREF="client/" CLASS="play-now">&#9876;&nbsp; Play in your browser &nbsp;&#9876;</A></P>
-   <P><SMALL>Nothing to install. Works on Windows, Mac, Linux, phones and tablets.</SMALL></P>
-   </CENTER>
-
-   <HR>
-   <P>Prefer a program on your computer?  The classic downloadable client
-   still works:</P>
-
-   <H4>Windows</H4>
-   <CENTER>
-   <P><A HREF="Phantasia-Windows.zip"><B>Download Phantasia for Windows</B></A><BR>
-   <SMALL>(about 45 MB, Java is included)</SMALL></P>
-   </CENTER>
-   <OL>
-    <LI>Open the downloaded zip and click <B>Extract all</B>.</LI>
-    <LI>In the extracted <B>Phantasia</B> folder, double-click <B>Play Phantasia</B>.</LI>
-   </OL>
-   <P>
-That's it: the game connects to this server by itself.  If Windows shows
-"Windows protected your PC", click <B>More info</B> and then <B>Run anyway</B>.
-   </P>
-
-   <H4>Mac and Linux</H4>
-   <P>
-Install Java from <A HREF="https://adoptium.net/temurin/releases/?package=jre">adoptium.net</A>
-if you don't already have it, then
-<A HREF="phantasia-client.jar"><B>download phantasia-client.jar</B></A> and
-double-click it.  If double-clicking doesn't work, run
-<CODE>java -jar phantasia-client.jar</CODE> in a terminal.
-   </P>
-
-   <P><SMALL>The game server address is <SPAN CLASS="address-small">@@GAME_ADDRESS@@</SPAN>
-(the downloads already know it).</SMALL></P>
-
-   <H4>Playing</H4>
-   <P>New here or coming back?  See <A HREF="whatsnew.html">New in the Realm</A>
-   for gear, artifacts, daily quests, champions and world events.</P>
-   <P>
-Click <B>Sign Up</B> to create an account, then <B>Log In</B> and make a new
-character.  The number keys 1-8 press the buttons along the bottom and the
-numeric keypad moves you around the realm.  New to Phantasia?  Read
-<A HREF="intro.html">The Rules</A> first.
-   </P>
-
-   <HR>
-   <BR>
-
-   <CENTER>
-   <P>
-   <A HREF="index.html">Home</A>
- |
-   The Game
- |
-   <A HREF="intro.html">The Rules</A>
- |
-   <A HREF="info.html">Game Info</A>
-   </P>
-   </CENTER>
-
-  </TD>
- </TR>
-</TABLE>
-<SCRIPT SRC="event-banner.js"></SCRIPT>
-</BODY>
-</HTML>
+</article>
+</main>
+<footer class="site-foot">
+  <a class="logo" href="index.html">Phantasia<span>Reimagined</span></a>
+  <nav aria-label="Footer"><a href="play.html">Play</a><a href="whatsnew.html">What's New</a><a href="intro.html">Guide</a><a href="legends.html">Legends</a><a href="info.html">About</a><a href="credits.html">Credits</a></nav>
+  <div>Built on <i>Phantasia</i> by Edward Estes and <i>Phantasia 4</i> by Brian Kelly.</div>
+</footer>
+<script src="event-banner.js"></script>
+</body>
+</html>

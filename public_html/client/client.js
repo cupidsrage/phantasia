@@ -1,5 +1,5 @@
 /*
- * Phantasia IV browser client.
+ * Phantasia Reimagined browser client.
  *
  * Talks to the game through the website's WebSocket bridge (/ws), which
  * forwards the original Phantasia client/server protocol unchanged: the
@@ -167,7 +167,7 @@
         case P.COORD_DIALOG: askCoords(await next()); break;
         case P.PLAYER_DIALOG: askPlayer(await next()); break;
         case P.SCOREBOARD_DIALOG: await showScoreboard(); break;
-        case P.DIALOG: showInfo("Phantasia", await next()); break;
+        case P.DIALOG: showInfo("Phantasia Reimagined", await next()); break;
         case P.CHAT: addChat(await next()); break;
         case P.ACTIVATE_CHAT: setChat(true); break;
         case P.DEACTIVATE_CHAT: setChat(false); break;
@@ -190,8 +190,8 @@
     switch (type) {
       case P.NAME:
         name = await next();
-        if (!name) { $("title-head").textContent = "Welcome to Phantasia!"; $("title-tail").textContent = ""; }
-        document.title = name ? name + " — Phantasia IV" : "Phantasia IV";
+        if (!name) { $("title-head").textContent = "Welcome to Phantasia Reimagined!"; $("title-tail").textContent = ""; }
+        document.title = name ? name + " — Phantasia Reimagined" : "Phantasia Reimagined";
         break;
       case P.LOCATION: {
         var x = await next(), y = await next(), place = await next();
@@ -379,7 +379,7 @@
 
   function askString(prompt, secret) {
     pending = "dialog";
-    showModal("Phantasia",
+    showModal("Phantasia Reimagined",
       "<p>" + esc(prompt) + "</p><form id='dlg-form'><input id='dlg-input' type='" +
       (secret ? "password" : "text") + "' maxlength='200' autocomplete='" +
       (secret ? "current-password" : "off") + "'></form>",
@@ -405,7 +405,7 @@
 
   function askCoords(prompt) {
     pending = "dialog";
-    showModal("Phantasia",
+    showModal("Phantasia Reimagined",
       "<p>" + esc(prompt) + "</p><form id='dlg-form'>" +
       "<label for='dlg-x'>X coordinate</label><input id='dlg-x' type='text' inputmode='decimal'>" +
       "<label for='dlg-y'>Y coordinate</label><input id='dlg-y' type='text' inputmode='decimal'>" +
@@ -428,7 +428,7 @@
     var opts = players.map(function (p) {
       return "<option>" + esc(p.name) + "</option>";
     }).join("");
-    showModal("Phantasia",
+    showModal("Phantasia Reimagined",
       "<p>" + esc(prompt) + "</p><select id='dlg-player'>" + opts + "</select>",
       [{ label: "Cancel", cancel: true, action: cancelDialog },
        { label: "OK", primary: true, action: function () {
@@ -447,7 +447,7 @@
       opts += "<option value='" + i + "'>" + esc(await next()) + "</option>";
     }
     pending = "dialog";
-    showModal("Phantasia",
+    showModal("Phantasia Reimagined",
       "<p>" + esc(prompt) + "</p><select id='dlg-select'>" + opts + "</select>",
       [{ label: "Cancel", cancel: true, action: cancelDialog },
        { label: "OK", primary: true, action: submitSelect }]);

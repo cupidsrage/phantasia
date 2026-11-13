@@ -1,5 +1,5 @@
-Phantasia 4
-===========
+Phantasia Reimagined
+====================
 
 Double-click "Play Phantasia" to start the game.
 

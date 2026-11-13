@@ -21,7 +21,7 @@ public class statusPne extends Panel implements constants {
     GridBagLayout quicknessLayout = new GridBagLayout();
 
     private Panel titlePane = new Panel();
-    private headPne titleCanvas = new headPne("Welcome to Phantasia!");
+    private headPne titleCanvas = new headPne("Welcome to Phantasia Reimagined!");
 
     private Panel statsPane = new Panel();
 
@@ -387,7 +387,7 @@ public class statusPne extends Panel implements constants {
 	case NAME_PACKET:
 	    name = parent.readString();
 	    if (name == null || name.length() == 0) {
-		titleCanvas.changeHead("Welcome to Phantasia!");
+		titleCanvas.changeHead("Welcome to Phantasia Reimagined!");
 		titleCanvas.changeTail("");
 	    }
 	    break;
