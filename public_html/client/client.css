@@ -24,23 +24,45 @@ html, body {
   font-size: 17px;
 }
 
+/* wide screens: the story, travel and gear, and a full-height column for
+   the other adventurers and chat */
 #app {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) 300px minmax(320px, 400px);
   grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   grid-template-areas:
-    "top top"
-    "event event"
-    "stats side"
-    "story side"
-    "hint hint";
+    "top top top"
+    "event event event"
+    "stats side social"
+    "story side social"
+    "hint hint hint";
   position: relative;
   z-index: 1;
   gap: 12px;
   height: 100vh;
-  max-width: 1280px;
+  max-width: 1760px;
   margin: 0 auto;
   padding: 12px 16px;
+}
+
+/* the adventurers and the chat; the chat takes all the room it can */
+.social { grid-area: social; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.social .panel { padding: 12px; }
+
+/* middle widths: chat sits under travel and gear, beside the story */
+@media (max-width: 1299px) and (min-width: 861px) {
+  #app {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-rows: auto auto auto minmax(0, 1fr) minmax(340px, 52vh) auto;
+    grid-template-areas:
+      "top top"
+      "event event"
+      "stats side"
+      "story side"
+      "story social"
+      "hint hint";
+  }
+  .social .players-panel { max-height: 26%; }
 }
 
 .panel {
@@ -302,7 +324,7 @@ button {
 .compass button:hover:not(:disabled) { border-color: var(--gold); }
 .compass button:disabled { opacity: 0.28; cursor: default; }
 
-.players-panel { flex: 1; min-height: 120px; display: flex; flex-direction: column; }
+.players-panel { flex: 0 1 auto; min-height: 90px; max-height: 32%; display: flex; flex-direction: column; }
 .players {
   list-style: none; margin: 0; padding: 0;
   overflow-y: auto; flex: 1; min-height: 0;
@@ -318,10 +340,10 @@ button {
 .players li b { font-weight: 600; }
 .players li span { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.chat-panel { display: flex; flex-direction: column; height: 260px; }
+.chat-panel { display: flex; flex-direction: column; flex: 1; min-height: 220px; }
 .chat-log {
   flex: 1; min-height: 0; overflow-y: auto;
-  font-size: 15px; line-height: 1.35;
+  font-size: 16px; line-height: 1.4;
   padding-right: 4px;
   white-space: pre-wrap; word-wrap: break-word;
 }
@@ -756,7 +778,7 @@ body.event-3d .panel {
   #app {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto;
-    grid-template-areas: "top" "event" "stats" "story" "side" "hint";
+    grid-template-areas: "top" "event" "stats" "story" "side" "social" "hint";
     height: auto;
     min-height: 100vh;
   }
@@ -765,6 +787,7 @@ body.event-3d .panel {
   .actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .brand { font-size: 20px; }
   .players-panel { max-height: 240px; }
+  .chat-panel { height: 60vh; flex: none; }
   .hint { display: none; }
   .stats { padding: 10px 12px; gap: 8px; }
   .chip { padding: 2px 8px 2px 6px; font-size: 13px; }
