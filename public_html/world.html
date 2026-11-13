@@ -21,11 +21,13 @@
 <h1>The Realm Today</h1><div class="rule"></div>
 <p class="lead" id="now">Reading the realm&hellip;</p>
 <div id="siege" class="siege-box" hidden></div>
+<div id="call" class="call-box" hidden></div>
 
 <h2>The regions</h2>
-<p>Shadow creeps over every region unless adventurers fight there. Under heavy Shadow a
-region is <b class="st-blighted">Blighted</b>: its monsters are stronger and richer, and
-when it is total its town falls. Push it back and the region is
+<p>Shadow creeps over every region unless adventurers fight there. The darker a region, the
+richer every kill: experience and gold rise by 1% for every 2% of Shadow past 25%, up to +37%
+under total Shadow. Over 75% a region is <b class="st-blighted">Blighted</b> and its monsters are
+stronger too, and when the Shadow is total its town falls. Push it back and the region is
 <b class="st-liberated">Liberated</b>: safer roads and cheaper shops. <a href="living.html">How the living realm works &rsaquo;</a></p>
 <div class="world-map">
   <svg id="map" viewBox="-210 -210 420 420" role="img" aria-label="Map of the realm's eight regions"></svg>
@@ -63,6 +65,9 @@ someone brings them down.</p>
 .siege-box { margin: 0 0 18px; padding: 14px 18px; border-radius: 10px; border: 1px solid #c0602a;
   background: linear-gradient(90deg, rgba(110, 40, 20, 0.55), rgba(40, 20, 14, 0.6)); box-shadow: 0 0 18px rgba(220, 110, 40, 0.35); }
 .siege-box b { color: #ffc890; font-family: "Cinzel", serif; }
+.call-box { margin: 0 0 18px; padding: 12px 18px; border-radius: 10px; border: 1px solid #8a5a1a;
+  background: linear-gradient(90deg, rgba(140, 80, 20, 0.35), rgba(40, 24, 10, 0.5)); }
+.call-box b { color: #ffd59a; font-family: "Cinzel", serif; }
 .bar { height: 12px; border-radius: 6px; background: #0b0907; border: 1px solid var(--line); overflow: hidden; margin: 4px 0 10px; }
 .bar i { display: block; height: 100%; background: linear-gradient(90deg, #c8952f, #f6d98c); }
 .bar.red i { background: linear-gradient(90deg, #8a1c14, #e0645a); }
@@ -166,6 +171,12 @@ someone brings them down.</p>
         '<div class="bar red"><i style="width:' + Math.max(0, Math.min(100, 100 * s.army / s.armyMax)) + '%"></i></div>';
     } else box.hidden = true;
 
+    var ca = el("call");
+    if (d.callToArms) {
+      ca.hidden = false;
+      ca.innerHTML = "⚔️ <b>Call to Arms: " + esc(d.callToArms.region) + "</b> lies deepest in Shadow (" + d.callToArms.shadow +
+        "%). Every monster slain there earns <b>Valor</b>, bonus gold on top of the region's Shadow rewards, and counts toward the <a href=\"deeds.html\">Shadowbreaker</a> deed.";
+    } else ca.hidden = true;
     drawMap(d);
     drawPosts(d);
     var t = el("regions");

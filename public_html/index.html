@@ -140,6 +140,7 @@
     if (!w || !w.regions) return;
     var blighted = w.regions.filter(function (r) { return r.state === "Blighted"; }).length;
     if (w.siege && w.siege.active) parts.unshift('<a href="world.html"><b>The throne is under siege!</b></a>');
+    if (w.callToArms) parts.push('⚔️ <a href="world.html">Call to Arms: <b>' + w.callToArms.region.replace(/^The /, "") + "</b></a>");
     parts.push((w.night ? "🌙 Night" : "☀️ Day") + " in the season of <b>" + w.season + "</b>");
     if (blighted) parts.push('<a href="world.html"><b>' + blighted + "</b> region" + (blighted === 1 ? "" : "s") + " under Shadow</a>");
     show();

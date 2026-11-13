@@ -73,6 +73,8 @@ struct news_t { time_t when; char text[160]; };
 
 static struct {
     time_t lastTick, nextSiege, overrunUntil, lastRoam;
+    int callRegion;			/* the Call to Arms, or -1 */
+    time_t callUntil;
     long siegeId, lastSiegeId;
     int lastSiegeWon;
     double army, armyMax;
@@ -218,6 +220,12 @@ static int Do_player_region(struct client_t *c)
     return Do_region_at(c->player.x, c->player.y, c->player.circle);
 }
 
+	/* experience and gold: +1% for every 2% of Shadow past 25% */
+static double Do_shadow_reward(double shadow)
+{
+    return 1.0 + MAX(0.0, shadow - LIBERATED) / 200.0;
+}
+
 static const char *Do_region_state(int r)
 {
     if (r == HEARTLANDS) return time(NULL) < W.overrunUntil ? "Overrun" : "Safe";
@@ -250,6 +258,7 @@ static void Do_world_defaults_locked(void)
     int i;
 
     memset(&W, 0, sizeof W);
+    W.callRegion = -1;
     for (i = 0; i < NUM_REGIONS; i++) {
 	W.region[i].shadow = 35 + RND() * 35;
 	W.region[i].prosperity = 30 + RND() * 30;
@@ -273,7 +282,12 @@ static void Do_world_load_locked(void)
 	if (sscanf(line, "%31s%n", word, &n) != 1) continue;
 	char *rest = line + n;
 
-	if (!strcmp(word, "state")) {
+	if (!strcmp(word, "call")) {
+	    long until;
+	    if (sscanf(rest, "%d %ld", &W.callRegion, &until) == 2) W.callUntil = until;
+	    if (W.callRegion < -1 || W.callRegion >= NUM_REGIONS) W.callRegion = -1;
+	}
+	else if (!strcmp(word, "state")) {
 	    long a, b, c2, d, e;
 	    sscanf(rest, "%ld %ld %ld %ld %ld %ld %ld %d %lf %lf %d %lf %ld",
 		    &a, &b, &c2, &d, &e, &W.siegeId, &W.lastSiegeId, &W.lastSiegeWon,
@@ -343,6 +357,7 @@ static void Do_world_save_locked(void)
 		(long) W.lastTick, (long) W.nextSiege, (long) W.overrunUntil,
 		(long) W.lastRoam, W.siegeId, W.lastSiegeId, W.lastSiegeWon,
 		W.army, W.armyMax, W.project, W.projectGold, W.projectKills);
+	fprintf(f, "call %d %ld\n", W.callRegion, (long) W.callUntil);
 	for (i = 0; i < NUM_REGIONS; i++) {
 	    fprintf(f, "region %d %.3f %.3f %d\n", i, W.region[i].shadow,
 		    W.region[i].prosperity, W.region[i].fallen);
@@ -390,7 +405,15 @@ static void Do_world_save_locked(void)
 	Do_json_str(f, Do_town_tier(i));
 	fprintf(f, "}");
     }
-    fprintf(f, "],\"siege\":{\"active\":%s,\"army\":%.0f,\"armyMax\":%.0f,\"lastWon\":%s,\"fought\":%s},",
+    fprintf(f, "],\"callToArms\":");
+    if (W.callRegion >= 0) {
+	char cap2[64];
+	fprintf(f, "{\"region\":");
+	Do_json_str(f, Cap(regionNames[W.callRegion], cap2));
+	fprintf(f, ",\"shadow\":%.0f,\"until\":%ld}", W.region[W.callRegion].shadow, (long) W.callUntil);
+    }
+    else fprintf(f, "null");
+    fprintf(f, ",\"siege\":{\"active\":%s,\"army\":%.0f,\"armyMax\":%.0f,\"lastWon\":%s,\"fought\":%s},",
 	    W.siegeId > W.lastSiegeId ? "true" : "false", W.army, W.armyMax,
 	    W.lastSiegeWon ? "true" : "false", W.lastSiegeId > 0 ? "true" : "false");
     fprintf(f, "\"project\":{\"index\":%d,\"total\":%d", W.project, NUM_PROJECTS);
@@ -517,6 +540,23 @@ static void Do_world_minutes_locked(double minutes)
 	    W.abundance[i] = MIN(1.0, W.abundance[i] + ABUNDANCE_REGROWTH * minutes);
 	    (void) before;
 	}
+    }
+
+	/* the Call to Arms: every hour, the region deepest in Shadow (at
+	   least Contested) is named, and kills there earn Valor */
+    if (time(NULL) >= W.callUntil) {
+	int worst = -1;
+	for (j = 0; j < NUM_REGIONS; j++) {
+	    if (W.region[j].shadow >= LIBERATED &&
+		    (worst < 0 || W.region[j].shadow > W.region[worst].shadow)) worst = j;
+	}
+	W.callUntil = time(NULL) + 3600;
+	if (worst != W.callRegion && worst >= 0) {
+	    sprintf(msg, "Call to Arms! %s lies deepest in Shadow (%.0f%%). Every monster slain there this hour earns Valor.",
+		    Cap(regionNames[worst], cap), W.region[worst].shadow);
+	    Do_world_news_locked(msg, TRUE);
+	}
+	W.callRegion = worst;
     }
 
 	/* nemeses roam once an hour */
@@ -708,13 +748,15 @@ void Do_world_turn(struct client_t *c)
 	Do_send_line(c, Cap(line, line));
     }
     if (r == HEARTLANDS) {
-	sprintf(line, "The Heartlands\n%s\n0\n\n\n%d\n%s\n", Do_region_state(r), night,
-		seasonNames[season]);
+	sprintf(line, "The Heartlands\n%s\n0\n\n\n%d\n%s\n%s\n", Do_region_state(r), night,
+		seasonNames[season], W.callRegion >= 0 ? Cap(regionNames[W.callRegion], cap) : "");
     }
     else {
-	sprintf(line, "%s\n%s\n%.0f\n%s\n%s\n%d\n%s\n", Cap(regionNames[r], cap),
+	char call[64] = "";
+	if (W.callRegion >= 0) Cap(regionNames[W.callRegion], call);
+	sprintf(line, "%s\n%s\n%.0f\n%s\n%s\n%d\n%s\n%s\n", Cap(regionNames[r], cap),
 		Do_region_state(r), W.region[r].shadow, townNames[r], Do_town_tier(r),
-		night, seasonNames[season]);
+		night, seasonNames[season], call);
     }
     pthread_mutex_unlock(&world_lock);
 
@@ -732,7 +774,7 @@ void Do_world_kill(struct client_t *c)
     struct opponent_t *o = c->battle.opponent;
     char msg[SZ_LINE], name[SZ_LINE], cap[64];
     int r = Do_player_region(c), finished = FALSE, nem = c->nemesisFight, i;
-    double weight = c->championFight ? 5 : 1, bounty = 0, before;
+    double weight = c->championFight ? 5 : 1, bounty = 0, before, valor = 0;
     struct gear_item_t item;
 
     if (nem >= 0) weight = 20;
@@ -756,6 +798,11 @@ void Do_world_kill(struct client_t *c)
 	    sprintf(msg, "%s has been retaken from the Shadow, thanks to %s!", townNames[r], c->modifiedName);
 	    Do_world_news_locked(msg, TRUE);
 	}
+    }
+
+	/* answering the Call to Arms */
+    if (r != HEARTLANDS && r == W.callRegion) {
+	valor = floor(25.0 + 12.0 * MAX(1.0, c->player.circle)) * weight;
     }
 
 	/* the species thins out */
@@ -813,6 +860,13 @@ void Do_world_kill(struct client_t *c)
     Do_world_save_locked();
     pthread_mutex_unlock(&world_lock);
 
+    if (valor > 0) {
+	c->player.gold += valor;
+	Do_gold(c, 0, TRUE);
+	sprintf(msg, "Valor! For answering the Call to Arms you earn %.0f gold.\n", valor);
+	Do_send_line(c, msg);
+	Do_deeds_valor(c);
+    }
     if (bounty > 0) {
 	c->player.gold += bounty;
 	Do_gold(c, 0, TRUE);
@@ -1000,7 +1054,11 @@ int Do_world_shape_monster(struct client_t *c)
     if (r == HEARTLANDS) {
 	if (time(NULL) < W.overrunUntil) { str *= 1.3; xp *= 1.3; }
     }
-    else if (W.region[r].shadow >= BLIGHTED) { str *= 1.2; xp *= 1.25; }
+    else {
+	    /* the darker the region, the richer every kill */
+	xp *= Do_shadow_reward(W.region[r].shadow);
+	if (W.region[r].shadow >= BLIGHTED) str *= 1.2;
+    }
     if (Do_world_is_night()) { str *= 1.15; xp *= 1.15; }
     if (season == 3) str *= 1.1;
     if (season == 2) xp *= 1.1;
@@ -1070,7 +1128,7 @@ double Do_world_gold_factor(struct client_t *c)
     int r = Do_player_region(c);
     double f = Do_world_season() == 1 ? 1.1 : 1.0;
 
-    if (r != HEARTLANDS && W.region[r].shadow >= BLIGHTED) f *= 1.25;
+    if (r != HEARTLANDS) f *= Do_shadow_reward(W.region[r].shadow);
     return f;
 }
 
@@ -1228,6 +1286,11 @@ void Do_world_chat(struct client_t *c)
 		townNames[Do_player_region(c)], px, py);
 	Do_send_chat_self(c, line);
     }
+    if (W.callRegion >= 0) {
+	sprintf(line, "Call to Arms: %s (%.0f%% Shadow). Kills there earn Valor (bonus gold).\n",
+		regionNames[W.callRegion], W.region[W.callRegion].shadow);
+	Do_send_chat_self(c, Cap(line, line));
+    }
     if (time(NULL) < W.overrunUntil) Do_send_chat_self(c, "The Lord's Chamber is overrun by monsters!\n");
     if (W.project < NUM_PROJECTS) {
 	sprintf(line, "Realm project: %s - gold %.0f/%.0f, monsters %ld/%ld (then %s).\n",
@@ -1266,7 +1329,7 @@ void Do_world_test(struct client_t *c, char *what)
 	int i;
 	for (i = 0; i < MAX_NEMESES; i++) if (W.nemesis[i].active) W.nemesis[i].region = r == HEARTLANDS ? 0 : r;
     }
-    else if (!strncmp(what, "tick", 4)) W.lastTick -= 3600;
+    else if (!strncmp(what, "tick", 4)) { W.lastTick -= 3600; W.callUntil = 0; }
     Do_world_save_locked();
     pthread_mutex_unlock(&world_lock);
     if (!strncmp(what, "meet", 4)) forceNemesis = TRUE;

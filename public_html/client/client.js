@@ -876,7 +876,7 @@
   async function readWorld() {
     var region = await next(), state = await next(), shadow = await nextInt();
     var town = await next(), townState = await next(), night = (await next()) === "1";
-    var season = await next();
+    var season = await next(), call = await next();
     var box = $("world-status");
     var SEASON_ICON = { "Bloom": "🌸", "Harvest": "🌾", "Hunter's Moon": "🍂", "Deep Frost": "❄️" };
     box.hidden = false;
@@ -895,6 +895,12 @@
     chip(where, state === "Blighted" ? "Monsters here are stronger and richer" :
       state === "Liberated" ? "Safer roads and cheaper shops" : "", "region");
     if (town) chip("🏘 " + town + " · " + townState, "The local town (its shops and inn)", "town");
+    if (call) {
+      var here = call === region;
+      chip("⚔️ Call to Arms: " + call.replace(/^The /, "") + (here ? " · Valor!" : ""),
+        here ? "You are answering the Call to Arms: every kill here earns bonus gold (Valor)"
+             : "The region deepest in Shadow. Kills there earn bonus gold (Valor)", "call" + (here ? " here" : ""));
+    }
   }
 
   function stopEventScene() {

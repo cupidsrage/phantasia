@@ -87,9 +87,13 @@ and published as `data/world.json` (served at `/api/world`, shown on the
 website's Realm Today page and in `/realm` in chat):
 
 - **Shadow:** eight regions (one per compass direction around the
-  Heartlands) slowly fill with Shadow; kills there push it back. Blighted
-  regions (75%+) have stronger, richer monsters; liberated ones (under 25%)
+  Heartlands) slowly fill with Shadow; kills there push it back. Experience
+  and gold rise with a region's Shadow (+1% per 2% past 25%); blighted
+  regions (75%+) also have stronger monsters; liberated ones (under 25%)
   are safer with cheaper shops.
+- **Call to Arms:** every hour the region deepest in Shadow is called;
+  kills there earn Valor (bonus gold) and count toward the Shadowbreaker
+  deed.
 - **Towns:** each region's town prospers with spending and kills (cheaper
   shops, a healing inn) and falls when its Shadow reaches 95% (its trading
   posts are closed until the Shadow is pushed under 50%).
@@ -115,8 +119,9 @@ Lifetime achievements of an account give every character on it a small
 permanent bonus: Monster Slayer (kills), Champion's Bane, Stormrider (kills
 during world events), Dutiful (daily quests), Relic Hunter (artifacts held),
 Seasoned (highest level), Served as Steward, Wore the Crown, Ascended to the
-Valar and Dark Lord's Doom. Each tier adds +1% experience, +1% gold or +5% gear
-finds (up to +13% / +9% / +30% in all). Progress is kept per account in
+Valar, Dark Lord's Doom and Shadowbreaker (kills answering a Call to Arms).
+Each tier adds +1% experience, +1% gold or +5% gear finds (up to +16% / +12% /
++30% in all). Progress is kept per account in
 `data/deeds`; players type `/deeds` to see theirs. The tiers and bonuses are
 the `deeds[]` table at the top of the file.
 
