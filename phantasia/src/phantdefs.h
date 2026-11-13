@@ -307,6 +307,7 @@ typedef char bool;
 #define C_EXAMINE_PACKET	5	/* examine a player */
 #define C_ERROR_PACKET		6	/* client is lost */
 #define C_SCOREBOARD_PACKET	7	/* show the scoreboard */
+#define C_GEAR_PACKET		8	/* equip/unequip (browser client) */
 
 /* locations within the realm */
 #define PL_REALM		0	/* normal coordinates */

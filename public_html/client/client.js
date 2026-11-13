@@ -25,7 +25,7 @@
 
   /* ---- client -> server ---- */
   var C = { RESPONSE: "1\0", CANCEL: "2\0", PING: "3\0", CHAT: "4\0",
-            EXAMINE: "5\0", SCOREBOARD: "7\0" };
+            EXAMINE: "5\0", SCOREBOARD: "7\0", GEAR: "8\0" };
 
   var COMPASS = ["NW", "N", "NE", "W", "Rest", "E", "SW", "S", "SE"];
   var MAX_LOG = 600, MAX_CHAT = 300;
@@ -523,6 +523,24 @@
     return WEAPONS.blade;
   }
 
+  var gearItems = [];
+
+  /* equip ("e") or take off ("u") straight from the gear panel */
+  function gearClick(action, it) {
+    send(C.GEAR + action + " " + it.index + " " + SLOTS.indexOf(it.slot) + " " +
+      (it.equipped ? 1 : 0) + "\0");
+  }
+
+  /* clicking a piece on the adventurer takes it off */
+  SLOTS.forEach(function (slot) {
+    var layer = document.getElementById("d-" + slot);
+    if (!layer) return;
+    layer.addEventListener("click", function () {
+      var it = gearItems.filter(function (x) { return x.equipped && x.slot === slot; })[0];
+      if (it) gearClick("u", it);
+    });
+  });
+
   function itemTitle(it) {
     return it.name + " (" + TIERS[it.tier] + " " + it.slot.toLowerCase() + ")\n" + it.stats +
       (it.ab1 ? "\nAbility: " + it.ab1 + (it.ab2 ? ", " + it.ab2 : "") : "") +
@@ -533,10 +551,11 @@
     var capacity = await nextInt(), bagName = await next();
     var n = await nextInt(), items = [];
     for (var i = 0; i < n; i++) {
-      items.push({ slot: await next(), name: await next(), stats: await next(),
+      items.push({ index: i, slot: await next(), name: await next(), stats: await next(),
         equipped: (await next()) === "1", tier: parseInt(await next(), 10) || 0,
         ab1: await next(), ab2: await next() });
     }
+    gearItems = items;
 
     /* the adventurer */
     SLOTS.forEach(function (slot) {
@@ -549,7 +568,7 @@
         layer.setAttribute("fill", TIER_COLORS[it.tier]);
         layer.innerHTML = layer.innerHTML.replace(/<title>.*?<\/title>/, "");
         var t = document.createElementNS("http://www.w3.org/2000/svg", "title");
-        t.textContent = itemTitle(it);
+        t.textContent = itemTitle(it) + "\nClick to take it off";
         layer.insertBefore(t, layer.firstChild);
       }
     });
@@ -566,7 +585,9 @@
       if (it) {
         span.textContent = it.name;
         span.className = "gname t" + it.tier;
-        li.title = itemTitle(it);
+        li.title = itemTitle(it) + "\nClick to take it off";
+        li.className = "worn";
+        li.addEventListener("click", gearClick.bind(null, "u", it));
       } else {
         span.textContent = "\u2014";
         span.className = "gname t0";
@@ -586,7 +607,8 @@
       var it2 = packed[k];
       if (it2) {
         cell.className = "cell full c" + it2.tier;
-        cell.title = itemTitle(it2);
+        cell.title = itemTitle(it2) + "\nClick to wear it";
+        cell.addEventListener("click", gearClick.bind(null, "e", it2));
         cell.innerHTML = '<svg viewBox="0 0 18 18" fill="' + TIER_COLORS[it2.tier] +
           '" stroke="' + TIER_COLORS[it2.tier] + '">' + (ICONS[it2.slot] || "") + "</svg>";
       }
