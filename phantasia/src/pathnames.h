@@ -69,6 +69,7 @@
 #define EXTRA_MONSTER_FILE	PHANTASIA_DIR "/data/extramonsters"
 #define GEAR_FILE		PHANTASIA_DIR "/data/gear"
 #define TEMP_GEAR_FILE		PHANTASIA_DIR "/data/gear.tmp"
+#define WORLD_EVENT_FILE	PHANTASIA_DIR "/data/worldevent"
 #define ARTIFACT_FILE		PHANTASIA_DIR "/data/artifacts"
 #define TEMP_ARTIFACT_FILE	PHANTASIA_DIR "/data/artifacts.tmp"
 

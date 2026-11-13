@@ -981,6 +981,7 @@ Do_random_events(struct client_t *c)
 
 	/* world events and "reach a circle" quests */
     Do_world_event_tick(c);
+    Do_world_event_sync(c);
     Do_quest_check_location(c);
 
 	/* Mending gear heals as you travel */

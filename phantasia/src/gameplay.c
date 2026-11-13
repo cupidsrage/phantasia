@@ -196,6 +196,10 @@ void Do_world_event_tick(struct client_t *c)
 
     Do_unlock_mutex(&c->realm->realm_lock);
 
+    if (started != WE_NONE || ended != WE_NONE) {
+	Do_world_event_publish(started, started != WE_NONE ? now + length : 0);
+    }
+
     if (started != WE_NONE) {
 
 	sprintf(message, "*** %s! For the next %d minute%s %s. ***\n",
@@ -213,6 +217,56 @@ void Do_world_event_tick(struct client_t *c)
 
 	Do_broadcast(c, message);
     }
+}
+
+/*
+ * Tell a browser player which world event is on (so the page can change
+ * its look), whenever it differs from what they were last told.
+ */
+void Do_world_event_sync(struct client_t *c)
+{
+    int theEvent;
+    time_t ends;
+    char line[SZ_LINE];
+
+    if (!c->isBrowser) {
+	return;
+    }
+
+    Do_lock_mutex(&c->realm->realm_lock);
+    theEvent = c->realm->worldEvent;
+    ends = c->realm->worldEventEnds;
+    Do_unlock_mutex(&c->realm->realm_lock);
+
+    if (theEvent == c->shownEvent && (theEvent == WE_NONE ||
+	    ends == c->shownEventEnds)) {
+	return;
+    }
+
+    c->shownEvent = theEvent;
+    c->shownEventEnds = ends;
+
+    Do_send_int(c, WORLD_EVENT_PACKET);
+    sprintf(line, "%d\n%s\n%ld\n%s\n", theEvent,
+	    theEvent == WE_NONE ? "" : Do_world_event_name(theEvent),
+	    theEvent == WE_NONE ? 0L : (long) MAX(0, ends - time(NULL)),
+	    theEvent == WE_NONE ? "" : Do_world_event_effect(theEvent));
+    Do_send_string(c, line);
+    Do_send_buffer(c);
+}
+
+	/* the event, for the website: "<event> <ends> <name>" (0 if none) */
+void Do_world_event_publish(int theEvent, time_t ends)
+{
+    FILE *the_file;
+
+    if ((the_file = fopen(WORLD_EVENT_FILE, "w")) == NULL) {
+	return;
+    }
+
+    fprintf(the_file, "%d %ld %s\n", theEvent, (long) ends,
+	    theEvent == WE_NONE ? "-" : Do_world_event_name(theEvent));
+    fclose(the_file);
 }
 
 	/* chance of a random monster encounter per turn */
@@ -690,6 +744,10 @@ void Do_gameplay_login(struct client_t *c)
     Do_gear_load(c);
     Do_gear_apply(c, FALSE);
 
+	/* the browser shows any world event under way */
+    c->shownEvent = -1;
+    Do_world_event_sync(c);
+
     if (c->questLoaded) {
 	Do_quest_describe(&c->quest, message);
 	Do_send_chat_self(c, message);
@@ -727,6 +785,18 @@ int Do_chat_command(struct client_t *c, char *text)
 	    Do_send_chat_self(c, message);
 	}
     }
+#ifdef GEAR_TEST
+	/* test builds only: /eventtest N starts world event N for 5 minutes */
+    else if (strncasecmp(text, "/eventtest", 10) == 0) {
+	int n = atoi(text + 10);
+	Do_lock_mutex(&c->realm->realm_lock);
+	c->realm->worldEvent = (n >= WE_NONE && n <= WE_COUNT) ? n : WE_NONE;
+	c->realm->worldEventEnds = time(NULL) + 300;
+	Do_unlock_mutex(&c->realm->realm_lock);
+	Do_world_event_publish(c->realm->worldEvent, c->realm->worldEventEnds);
+	Do_broadcast(c, "*** (test) world event changed ***\n");
+    }
+#endif
     else if (strncasecmp(text, "/event", 6) == 0) {
 
 	Do_world_event_status(c, message);

@@ -11,6 +11,8 @@
 </head>
 <body>
 
+<div id="event-fx" class="event-fx" aria-hidden="true"></div>
+
 <div id="app">
 
   <header class="topbar">
@@ -21,6 +23,12 @@
     </div>
     <div id="conn" class="conn connecting" title="Connection status"><i></i><span>Connecting</span></div>
   </header>
+
+  <div id="event-banner" class="event-banner" role="status" hidden>
+    <span class="event-icon" id="event-icon"></span>
+    <span class="event-text"><b id="event-name"></b> <span id="event-effect"></span></span>
+    <span class="event-time" id="event-time"></span>
+  </div>
 
   <section class="stats panel" aria-label="Character statistics">
     <div class="bars">

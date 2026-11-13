@@ -20,7 +20,7 @@
     NAME: 40, LOCATION: 41, ENERGY: 42, STRENGTH: 43, SPEED: 44,
     SHIELD: 45, SWORD: 46, QUICKSILVER: 47, MANA: 48, LEVEL: 49,
     GOLD: 50, GEMS: 51, CLOAK: 52, BLESSING: 53, CROWN: 54,
-    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60
+    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61
   };
 
   /* ---- client -> server ---- */
@@ -170,6 +170,7 @@
         case P.PLAYER_INFO: await showExamine(); break;
         case P.CONNECTION_DETAIL: await showDetail(); break;
         case P.GEAR: await readGear(); break;
+        case P.WORLD_EVENT: await readWorldEvent(); break;
         default:
           if (type >= P.NAME && type <= P.VIRGIN) await updateStatus(type);
           else console.warn("Unknown packet", type);
@@ -614,6 +615,62 @@
       }
       bag.appendChild(cell);
     }
+  }
+
+  /* ------------------------------------------------------- world events */
+
+  var EVENTS = {
+    1: { cls: "event-blood", icon: "🌕" },
+    2: { cls: "event-gold", icon: "🪙" },
+    3: { cls: "event-hunt", icon: "⚔️" }
+  };
+  var eventEnds = 0, eventTimer = null;
+
+  async function readWorldEvent() {
+    var id = await nextInt(), name = await next(), left = await nextInt(), effect = await next();
+    showWorldEvent(id, name, left, effect);
+  }
+
+  function showWorldEvent(id, name, left, effect) {
+    var body = document.body, fx = $("event-fx"), banner = $("event-banner");
+    Object.keys(EVENTS).forEach(function (k) { body.classList.remove(EVENTS[k].cls); });
+    body.classList.remove("event-on");
+    fx.innerHTML = "";
+    clearInterval(eventTimer);
+
+    var ev = EVENTS[id];
+    if (!ev || left <= 0) {
+      banner.hidden = true;
+      return;
+    }
+
+    body.classList.add("event-on", ev.cls);
+    $("event-icon").textContent = ev.icon;
+    $("event-name").textContent = name + "!";
+    $("event-effect").textContent = effect.charAt(0).toUpperCase() + effect.slice(1) + ".";
+    banner.hidden = false;
+
+    if (id === 2) {          /* Gold Rush: drifting coins */
+      for (var i = 0; i < 22; i++) {
+        var coin = document.createElement("span");
+        coin.className = "coin";
+        coin.style.left = (Math.random() * 100) + "%";
+        coin.style.animationDuration = (7 + Math.random() * 8) + "s";
+        coin.style.animationDelay = (-Math.random() * 15) + "s";
+        var size = 9 + Math.random() * 9;
+        coin.style.width = coin.style.height = size + "px";
+        fx.appendChild(coin);
+      }
+    }
+
+    eventEnds = Date.now() + left * 1000;
+    var tick = function () {
+      var s = Math.max(0, Math.round((eventEnds - Date.now()) / 1000));
+      $("event-time").textContent = Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2) + " left";
+      if (s <= 0) showWorldEvent(0, "", 0, "");
+    };
+    tick();
+    eventTimer = setInterval(tick, 1000);
   }
 
   /* ------------------------------------------------------- players */

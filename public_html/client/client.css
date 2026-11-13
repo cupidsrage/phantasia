@@ -27,12 +27,15 @@ html, body {
 #app {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   grid-template-areas:
     "top top"
+    "event event"
     "stats side"
     "story side"
     "hint hint";
+  position: relative;
+  z-index: 1;
   gap: 12px;
   height: 100vh;
   max-width: 1280px;
@@ -408,13 +411,108 @@ kbd {
 .facts .gap { grid-column: 1 / -1; height: 6px; }
 .modal-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 
+/* ---------- world events ---------- */
+
+.event-banner {
+  grid-area: event;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--event-edge);
+  background: var(--event-bg);
+  box-shadow: 0 0 24px var(--event-glow), inset 0 0 18px var(--event-glow);
+  animation: banner-in 0.6s ease-out;
+}
+.event-banner[hidden] { display: none; }
+.event-icon { font-size: 26px; line-height: 1; filter: drop-shadow(0 0 6px var(--event-glow)); }
+.event-text { flex: 1; min-width: 0; }
+.event-text b { font-family: "Cinzel", serif; font-size: 17px; color: var(--event-title); letter-spacing: 0.04em; margin-right: 6px; }
+.event-text span { color: var(--text); }
+.event-time { font-family: "Cinzel", serif; font-weight: 700; color: var(--event-title); white-space: nowrap; font-variant-numeric: tabular-nums; }
+@keyframes banner-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+
+.event-fx { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; display: none; }
+body.event-on .event-fx { display: block; }
+
+/* Blood Moon: a red sky, a rising moon, a pulsing red edge */
+body.event-blood {
+  --gold: #e0645a; --gold-2: #ff9a8a; --line: #4a2220;
+  --event-bg: linear-gradient(90deg, rgba(120, 18, 18, 0.55), rgba(40, 8, 8, 0.6));
+  --event-edge: #a32a22; --event-glow: rgba(200, 30, 30, 0.45); --event-title: #ff8f80;
+  background: radial-gradient(ellipse at top, #3a0d0b 0%, #120505 65%) fixed, #120505;
+}
+body.event-blood .panel { border-color: #4a2220; box-shadow: 0 6px 24px rgba(0,0,0,.4), 0 0 18px rgba(160, 20, 20, 0.15); }
+body.event-blood .event-fx::before {
+  content: ""; position: absolute; top: 4%; right: 6%; width: 150px; height: 150px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #ff7a5c 0%, #c21f12 45%, #5a0705 100%);
+  box-shadow: 0 0 60px 20px rgba(200, 30, 20, 0.45), 0 0 140px 60px rgba(150, 10, 10, 0.25);
+  opacity: 0.55; animation: moon-rise 2.5s ease-out;
+}
+body.event-blood .event-fx::after {
+  content: ""; position: absolute; inset: 0;
+  box-shadow: inset 0 0 160px 40px rgba(150, 0, 0, 0.45);
+  animation: blood-pulse 4s ease-in-out infinite;
+}
+@keyframes moon-rise { from { transform: translateY(80px); opacity: 0; } to { transform: none; opacity: 0.55; } }
+@keyframes blood-pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+
+/* Gold Rush: golden light and drifting coins */
+body.event-gold {
+  --gold: #f2c14e; --gold-2: #ffe08a; --line: #5a4718;
+  --event-bg: linear-gradient(90deg, rgba(120, 90, 10, 0.5), rgba(50, 36, 6, 0.55));
+  --event-edge: #d4a72c; --event-glow: rgba(240, 190, 60, 0.4); --event-title: #ffd866;
+  background: radial-gradient(ellipse at top, #33280b 0%, #0f0c05 65%) fixed, #0f0c05;
+}
+body.event-gold .panel { border-color: #5a4718; box-shadow: 0 6px 24px rgba(0,0,0,.4), 0 0 18px rgba(240, 190, 60, 0.12); }
+body.event-gold .event-fx::after {
+  content: ""; position: absolute; inset: -50%;
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 215, 100, 0.07) 50%, transparent 60%);
+  animation: shimmer 6s linear infinite;
+}
+.coin {
+  position: absolute; top: -30px; width: 14px; height: 14px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff3b0, #f2c14e 45%, #a5761a);
+  box-shadow: 0 0 8px rgba(255, 210, 80, 0.6);
+  animation: coin-fall linear infinite;
+  opacity: 0.75;
+}
+@keyframes coin-fall {
+  from { transform: translateY(0) rotateY(0deg); }
+  to { transform: translateY(110vh) rotateY(720deg); }
+}
+@keyframes shimmer { from { transform: translateX(-30%); } to { transform: translateX(30%); } }
+
+/* Champion Hunt: heraldic crimson and violet, torchlight at the edges */
+body.event-hunt {
+  --gold: #d07be8; --gold-2: #f0b2ff; --line: #3e2347;
+  --event-bg: linear-gradient(90deg, rgba(90, 20, 60, 0.55), rgba(40, 14, 60, 0.6));
+  --event-edge: #9b3fb5; --event-glow: rgba(170, 60, 200, 0.4); --event-title: #f0b2ff;
+  background: radial-gradient(ellipse at top, #241034 0%, #0c0710 65%) fixed, #0c0710;
+}
+body.event-hunt .panel { border-color: #3e2347; }
+body.event-hunt .event-fx::before, body.event-hunt .event-fx::after {
+  content: ""; position: absolute; bottom: 0; width: 260px; height: 70vh;
+  background: radial-gradient(ellipse at bottom, rgba(255, 140, 40, 0.28), transparent 70%);
+  animation: torch 1.8s ease-in-out infinite alternate;
+}
+body.event-hunt .event-fx::before { left: -60px; }
+body.event-hunt .event-fx::after { right: -60px; animation-delay: 0.7s; }
+@keyframes torch { from { opacity: 0.55; transform: scaleY(0.96); } to { opacity: 1; transform: scaleY(1.04); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .event-fx *, .event-fx::before, .event-fx::after, .event-banner { animation: none !important; }
+  .coin { display: none; }
+}
+
 /* ---------- small screens ---------- */
 
 @media (max-width: 860px) {
   #app {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto;
-    grid-template-areas: "top" "stats" "story" "side" "hint";
+    grid-template-areas: "top" "event" "stats" "story" "side" "hint";
     height: auto;
     min-height: 100vh;
   }

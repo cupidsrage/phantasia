@@ -125,6 +125,9 @@ Init_server(struct server_t *s)
     Do_load_extra_monsters(&s->realm);
     Do_load_artifacts(&s->realm);
 
+	/* no world event survives a restart; tell the website */
+    Do_world_event_publish(WE_NONE, 0);
+
 	/* load the charstats into the realm array */
     Do_load_charstats_file(&s->realm);
 	

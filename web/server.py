@@ -8,7 +8,8 @@ server's TCP port.  Uses only the Python standard library.
     server.py --port 8080 --dir /app/public_html --game-port 43302
 
 /api/artifacts returns who holds each one-of-a-kind artifact, for the
-website's Legends page.
+website's Legends page; /api/event the world event under way, for the
+event banner on the website.
 
 The bridge performs the game's connection handshake itself, sending the
 player's real address (from X-Forwarded-For, set by Railway's proxy) so
@@ -251,6 +252,30 @@ def artifact_holders(data_dir):
     return [{"id": n, "holder": h} for n, h in sorted(holders.items())]
 
 
+EVENT_EFFECTS = {
+    1: "monsters roam more often and give double experience",
+    2: "treasure is far more common and gold finds are doubled",
+    3: "champions stalk the realm in great numbers",
+}
+
+
+def world_event(data_dir):
+    """The world event under way, from the game's worldevent file."""
+    none = {"event": 0}
+    try:
+        with open(os.path.join(data_dir, "worldevent"), encoding="latin-1") as f:
+            parts = f.read().split(None, 2)
+        event, ends = int(parts[0]), int(parts[1])
+        name = parts[2].strip() if len(parts) > 2 else ""
+    except (OSError, ValueError, IndexError):
+        return none
+    left = ends - int(time.time())
+    if event <= 0 or left <= 0:
+        return none
+    return {"event": event, "name": name, "secondsLeft": left,
+            "effect": EVENT_EFFECTS.get(event, "")}
+
+
 async def send_json(writer, data):
     body = json.dumps(data).encode()
     writer.write(response_head(200, "OK", [
@@ -272,6 +297,8 @@ async def handle(reader, writer, args):
             await bridge(reader, writer, headers, args.game_port)
         elif path == "/api/artifacts":
             await send_json(writer, artifact_holders(args.data_dir))
+        elif path == "/api/event":
+            await send_json(writer, world_event(args.data_dir))
         elif method in ("GET", "HEAD"):
             await serve_file(writer, method, target, args.dir)
         else:

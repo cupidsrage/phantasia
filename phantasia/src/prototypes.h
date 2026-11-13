@@ -294,6 +294,8 @@ const char *Do_world_event_name(int theEvent);
 int Do_current_world_event(struct client_t *c);
 int Do_world_event_status(struct client_t *c, char *buffer);
 void Do_world_event_tick(struct client_t *c);
+void Do_world_event_sync(struct client_t *c);
+void Do_world_event_publish(int theEvent, time_t ends);
 double Do_monster_chance(struct client_t *c);
 double Do_treasure_chance_factor(struct client_t *c);
 double Do_gold_find_factor(struct client_t *c);

@@ -297,6 +297,7 @@ typedef char bool;
 #define RING_PACKET		56	/* refresh the player's ring */
 #define VIRGIN_PACKET		57	/* refresh the player's virgin */
 #define GEAR_PACKET		60	/* gear list (browser client only) */
+#define WORLD_EVENT_PACKET	61	/* current world event (browser only) */
 
 
 /* player->client packet headers */

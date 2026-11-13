@@ -236,6 +236,8 @@ int Do_accept_connections(struct server_t *s)
 	client_ptr->bagSize = BACKPACK_SIZE;
 	client_ptr->isBrowser = FALSE;
 	client_ptr->inCombat = 0;
+	client_ptr->shownEvent = -1;
+	client_ptr->shownEventEnds = 0;
 	client_ptr->wizaccount[0] = '\0';
 	client_ptr->wizIP[0] = '\0';
 
