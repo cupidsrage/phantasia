@@ -539,21 +539,372 @@ function valarScene(scene, camera) {
   };
 }
 
+/* ------------------------------------------------------------ world events
+ * Each scene has an `intro` form (the full-screen announcement when the
+ * event starts) and a calm form that loops behind the game while the
+ * event lasts.
+ */
+
+/* a cloud with soft alpha edges, for mist and drifting cloud banks */
+function mistTexture(rgb) {
+  const noise = cloudTexture([255, 255, 255]).image;
+  return canvasTexture(512, 256, (g, w, h) => {
+    g.drawImage(noise, 0, 0, w, h);
+    const img = g.getImageData(0, 0, w, h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      const ex = Math.min(x, w - x) / (w * 0.25), ey = Math.min(y, h - y) / (h * 0.3);
+      const edge = Math.min(1, ex) * Math.min(1, ey);
+      img.data[i + 3] = Math.min(255, img.data[i] * 1.5 * edge * edge);
+      img.data[i] = rgb[0]; img.data[i + 1] = rgb[1]; img.data[i + 2] = rgb[2];
+    }
+    g.putImageData(img, 0, 0);
+  });
+}
+
+/* a jagged line of hills, as a flat black silhouette */
+function hills(width, height, rough, seed) {
+  const sh = new THREE.Shape();
+  sh.moveTo(-width / 2, -height);
+  let y = 0;
+  for (let x = -width / 2; x <= width / 2; x += width / 90) {
+    y = Math.max(0, Math.min(height, y + (Math.sin(x * 0.37 + seed) + Math.sin(x * 1.3 + seed * 2)) * rough * 0.5 +
+      (Math.random() - 0.5) * rough));
+    sh.lineTo(x, y);
+  }
+  sh.lineTo(width / 2, -height);
+  return new THREE.ShapeGeometry(sh);
+}
+
+function bloodScene(scene, camera, ctx) {
+  const intro = ctx.intro;
+  scene.background = new THREE.Color(0x0a0204);
+  scene.fog = new THREE.Fog(0x1c0507, 20, 60);
+  camera.position.set(0, 0, 10);
+  camera.lookAt(0, 1.2, -10);
+
+  /* the moon: a cratered red disc that glows */
+  const moonTex = canvasTexture(512, 512, (g, w) => {
+    const n = cloudTexture([255, 255, 255]).image;
+    g.fillStyle = "#c8c8c8"; g.fillRect(0, 0, w, w);
+    g.globalAlpha = 0.5; g.drawImage(n, 0, 0, w * 2, w);
+    g.globalAlpha = 1;
+    for (let k = 0; k < 26; k++) {                       /* craters */
+      const x = Math.random() * w, y = Math.random() * w, r = 6 + Math.random() * 34;
+      const gr = g.createRadialGradient(x - r * 0.2, y - r * 0.2, r * 0.2, x, y, r);
+      gr.addColorStop(0, "rgba(90,90,90,0.55)"); gr.addColorStop(0.8, "rgba(140,140,140,0.25)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+      g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+    }
+  });
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(intro ? 4.6 : 3.6, 64, 32),
+    new THREE.MeshBasicMaterial({ map: moonTex, color: new THREE.Color(1.9, 0.2, 0.12), fog: false }));
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: softDot("#ff3020"), color: new THREE.Color(1.2, 0.25, 0.2),
+    transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.55, fog: false }));
+  halo.scale.setScalar(intro ? 30 : 24);
+  const moonHome = intro ? new THREE.Vector3(0, 6.4, -30) : new THREE.Vector3(11, 6.5, -30);
+  moon.position.copy(moonHome); halo.position.copy(moonHome);
+  scene.add(halo, moon);
+
+  /* cloud banks drifting across the moon */
+  const mist = mistTexture([110, 18, 20]);
+  const clouds = [];
+  for (let k = 0; k < 6; k++) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(26, 9), new THREE.MeshBasicMaterial({ map: mist,
+      transparent: true, depthWrite: false, opacity: 0.55 + Math.random() * 0.3, fog: false }));
+    m.position.set((Math.random() - 0.5) * 40, 2 + Math.random() * 7, -24 + k * 0.5);
+    clouds.push({ m, v: 0.4 + Math.random() * 0.6 });
+    scene.add(m);
+  }
+
+  /* two ranges of hills, the far one touched by the red fog */
+  const far = new THREE.Mesh(hills(90, 7, 1.2, 1), new THREE.MeshBasicMaterial({ color: 0x1a0507 }));
+  far.position.set(0, -2.2, -22); scene.add(far);
+  const near = new THREE.Mesh(hills(60, 5, 0.9, 4), new THREE.MeshBasicMaterial({ color: 0x030001, fog: false }));
+  near.position.set(0, -4.4, -9); scene.add(near);
+
+  /* bats */
+  const wingShape = new THREE.Shape();
+  wingShape.moveTo(0, 0); wingShape.lineTo(0.55, 0.22); wingShape.lineTo(0.75, 0.05);
+  wingShape.lineTo(0.6, -0.04); wingShape.lineTo(0.45, 0.02); wingShape.lineTo(0.3, -0.08); wingShape.lineTo(0.12, -0.05);
+  const wingGeo = new THREE.ShapeGeometry(wingShape);
+  const batMat = new THREE.MeshBasicMaterial({ color: 0x050102, side: THREE.DoubleSide, fog: false });
+  const bats = [];
+  for (let k = 0; k < (intro ? 16 : 6); k++) {
+    const b = new THREE.Group();
+    const L = new THREE.Mesh(wingGeo, batMat), R = new THREE.Mesh(wingGeo, batMat);
+    R.scale.x = -1;
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), batMat); body.scale.set(0.8, 1.4, 0.8);
+    b.add(L, R, body);
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    b.userData = { L, R, dir, speed: 2 + Math.random() * 2.5, phase: Math.random() * 6, y: 1 + Math.random() * 6,
+      z: -8 - Math.random() * 14, x: (Math.random() - 0.5) * 40, s: 0.6 + Math.random() * 0.8 };
+    b.scale.setScalar(b.userData.s);
+    scene.add(b); bats.push(b);
+  }
+
+  /* embers drifting up */
+  const N = intro ? 260 : 140, pos = new Float32Array(N * 3), sp = [];
+  for (let k = 0; k < N; k++) { pos.set([(Math.random() - 0.5) * 30, -5 + Math.random() * 14, -2 - Math.random() * 16], k * 3); sp.push(0.2 + Math.random() * 0.6); }
+  const eg = new THREE.BufferGeometry(); eg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  scene.add(new THREE.Points(eg, new THREE.PointsMaterial({ size: 0.1, map: softDot("#ff6040"), transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false, color: new THREE.Color(1.6, 0.4, 0.3), fog: false })));
+
+  return (t, dt) => {
+    if (intro) {
+      const k = ease(t / 2.6);
+      moon.position.y = halo.position.y = -6 + (moonHome.y + 6) * k;
+      if (t > 2.4 && t - dt <= 2.4) ctx.flash();
+    }
+    const pulse = 0.8 + 0.2 * Math.sin(t * 1.6);
+    moon.material.color.setRGB(1.9 * pulse, 0.2 * pulse, 0.12 * pulse);
+    halo.material.opacity = 0.45 + 0.15 * Math.sin(t * 1.6);
+    moon.rotation.y = t * 0.03;
+    for (const c of clouds) { c.m.position.x += c.v * dt; if (c.m.position.x > 26) c.m.position.x = -26; }
+    for (const b of bats) {
+      const u = b.userData;
+      u.x += u.dir * u.speed * dt;
+      if (u.x > 22) u.x = -22; if (u.x < -22) u.x = 22;
+      b.position.set(u.x, u.y + Math.sin(t * 2 + u.phase) * 0.4, u.z);
+      b.rotation.y = u.dir > 0 ? 0 : Math.PI;
+      const flap = Math.sin(t * 14 + u.phase) * 0.9;
+      u.L.rotation.y = flap; u.R.rotation.y = -flap;
+    }
+    const p = eg.attributes.position;
+    for (let k = 0; k < N; k++) { let y = p.getY(k) + sp[k] * dt; if (y > 9) y = -5; p.setY(k, y); }
+    p.needsUpdate = true;
+  };
+}
+
+/* a gold coin: rim plus embossed faces */
+function coinParts() {
+  const face = canvasTexture(256, 256, (g, w) => {
+    const c = w / 2;
+    g.fillStyle = "#c9962e"; g.fillRect(0, 0, w, w);
+    const gr = g.createRadialGradient(c * 0.7, c * 0.7, 10, c, c, c);
+    gr.addColorStop(0, "#ffe9a0"); gr.addColorStop(1, "#b07a1c");
+    g.fillStyle = gr; g.beginPath(); g.arc(c, c, c - 2, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = "#7a5212"; g.lineWidth = 8; g.beginPath(); g.arc(c, c, c - 14, 0, Math.PI * 2); g.stroke();
+    for (let k = 0; k < 36; k++) {                       /* beaded edge */
+      const a = (k / 36) * Math.PI * 2;
+      g.fillStyle = "#fff0b8"; g.beginPath(); g.arc(c + Math.cos(a) * (c - 26), c + Math.sin(a) * (c - 26), 4, 0, Math.PI * 2); g.fill();
+    }
+    g.translate(c, c); g.fillStyle = "#fff4c4"; g.strokeStyle = "#7a5212"; g.lineWidth = 3;
+    g.beginPath();                                       /* a sun */
+    for (let k = 0; k < 24; k++) {
+      const a = (k / 24) * Math.PI * 2, r = k % 2 ? 40 : 78;
+      k ? g.lineTo(Math.cos(a) * r, Math.sin(a) * r) : g.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = "#c9962e"; g.beginPath(); g.arc(0, 0, 30, 0, Math.PI * 2); g.fill(); g.stroke();
+  });
+  const rim = new THREE.MeshStandardMaterial({ color: 0xf2c14e, metalness: 1, roughness: 0.28 });
+  const faces = new THREE.MeshStandardMaterial({ color: 0xffd36a, map: face, bumpMap: face, bumpScale: 3,
+    metalness: 1, roughness: 0.3 });
+  return { rim, faces, materials: [rim, faces, faces] };
+}
+
+function goldScene(scene, camera, ctx) {
+  const intro = ctx.intro;
+  scene.background = new THREE.Color(0x0e0904);
+  camera.position.set(0, 0, 10); camera.lookAt(0, 0, 0);
+
+  const key = new THREE.DirectionalLight(0xfff0c8, 2.2); key.position.set(3, 6, 6); scene.add(key);
+  const glint = new THREE.PointLight(0xffe0a0, 3, 0, 0); scene.add(glint);
+  scene.add(new THREE.AmbientLight(0x5a3a10, 0.5));
+
+  /* soft golden shafts behind */
+  const rayTex = canvasTexture(64, 512, (c, w, h) => {
+    const gr = c.createLinearGradient(0, 0, 0, h);
+    gr.addColorStop(0, "rgba(255,210,120,0.8)"); gr.addColorStop(1, "rgba(255,210,120,0)");
+    c.fillStyle = gr; c.fillRect(0, 0, w, h);
+    const side = c.createLinearGradient(0, 0, w, 0);     /* soft edges, no seams */
+    side.addColorStop(0, "rgba(0,0,0,1)"); side.addColorStop(0.5, "rgba(0,0,0,0)"); side.addColorStop(1, "rgba(0,0,0,1)");
+    c.globalCompositeOperation = "destination-out"; c.fillStyle = side; c.fillRect(0, 0, w, h);
+  });
+  for (let k = 0; k < 7; k++) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(1.5 + Math.random() * 2.5, 30), new THREE.MeshBasicMaterial({ map: rayTex,
+      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.05 + Math.random() * 0.06 }));
+    m.position.set((Math.random() - 0.5) * 24, 4, -14); m.rotation.z = (Math.random() - 0.5) * 0.5;
+    scene.add(m);
+  }
+
+  const parts = coinParts();
+  const N = intro ? 420 : 90;
+  const coins = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.22, 0.22, 0.035, 32), parts.materials, N);
+  const st = [];
+  for (let k = 0; k < N; k++) {
+    st.push({ p: new THREE.Vector3((Math.random() - 0.5) * 22, intro ? 7 + Math.random() * 14 : (Math.random() - 0.5) * 16,
+      (Math.random() - 0.5) * 10 - 2), v: intro ? 3 + Math.random() * 4 : 0.5 + Math.random() * 0.8,
+      r: new THREE.Euler(Math.random() * 6, Math.random() * 6, Math.random() * 6),
+      w: new THREE.Vector3((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 3) });
+  }
+  scene.add(coins);
+
+  /* the big coin of the Gold Rush, spinning above the title */
+  let big = null;
+  if (intro) {
+    big = new THREE.Mesh(new THREE.CylinderGeometry(1.25, 1.25, 0.16, 96), parts.materials);
+    big.rotation.order = "YXZ";
+    scene.add(big);
+  }
+
+  /* glitter */
+  const G = 220, gp = new Float32Array(G * 3);
+  for (let k = 0; k < G; k++) gp.set([(Math.random() - 0.5) * 24, (Math.random() - 0.5) * 14, (Math.random() - 0.5) * 8 - 2], k * 3);
+  const gg = new THREE.BufferGeometry(); gg.setAttribute("position", new THREE.BufferAttribute(gp, 3));
+  const glitter = new THREE.Points(gg, new THREE.PointsMaterial({ size: 0.06, map: softDot("#fff2c0"), transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false, color: new THREE.Color(1.1, 0.95, 0.6) }));
+  scene.add(glitter);
+
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1);
+  return (t, dt) => {
+    glint.position.set(Math.sin(t * 0.7) * 8, Math.cos(t * 0.5) * 4, 4);
+    for (let k = 0; k < N; k++) {
+      const c = st[k];
+      c.p.y -= c.v * dt;
+      if (c.p.y < -9) { c.p.y = 9; c.p.x = (Math.random() - 0.5) * 22; if (intro) c.v *= 0.5; }
+      c.r.x += c.w.x * dt; c.r.y += c.w.y * dt; c.r.z += c.w.z * dt;
+      q.setFromEuler(c.r); m4.compose(c.p, q, one); coins.setMatrixAt(k, m4);
+    }
+    coins.instanceMatrix.needsUpdate = true;
+    if (big) {
+      const k = ease(t / 1.4);
+      big.position.set(0, 2.25 + (1 - k) * 6, 0);
+      big.rotation.set(Math.PI / 2, (1 - k) * 14 + Math.sin(t * 1.3) * 0.35, 0);
+    }
+    glitter.material.opacity = 0.6 + 0.4 * Math.sin(t * 3);
+    glitter.rotation.y = t * 0.05;
+  };
+}
+
+/* a sword, point up, crossguard at the origin */
+function sword() {
+  const steel = new THREE.MeshStandardMaterial({ color: 0xc9d2dc, metalness: 1, roughness: 0.26, envMapIntensity: 0.35 });
+  const brass = gold(0.3);
+  const leather = new THREE.MeshStandardMaterial({ color: 0x3a1f12, roughness: 0.8 });
+  const g = new THREE.Group();
+  const sh = new THREE.Shape();
+  sh.moveTo(-0.1, 0); sh.lineTo(0.1, 0); sh.lineTo(0.07, 2.35); sh.lineTo(0, 2.65); sh.lineTo(-0.07, 2.35); sh.closePath();
+  const blade = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: 0.02, bevelEnabled: true, bevelThickness: 0.018,
+    bevelSize: 0.03, bevelSegments: 2 }), steel);
+  blade.position.z = -0.01; g.add(blade);
+  const guard = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.09, 0.13), brass); g.add(guard);
+  for (const e of [-1, 1]) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.075, 16, 12), brass); b.position.x = e * 0.42; g.add(b); }
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.5, 16), leather); grip.position.y = -0.3; g.add(grip);
+  const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.09, 20, 14), brass); pommel.position.y = -0.6; g.add(pommel);
+  return g;
+}
+
+function stoneTexture() {
+  return canvasTexture(512, 512, (g, w) => {
+    g.fillStyle = "#2a2430"; g.fillRect(0, 0, w, w);
+    const n = cloudTexture([255, 255, 255]).image;
+    for (let row = 0; row < 8; row++) for (let col = -1; col < 5; col++) {
+      const x = col * 128 + (row % 2) * 64, y = row * 64;
+      const l = 30 + Math.random() * 18;
+      g.fillStyle = `hsl(275, 8%, ${l}%)`; g.fillRect(x + 3, y + 3, 122, 58);
+    }
+    g.globalAlpha = 0.35; g.globalCompositeOperation = "multiply"; g.drawImage(n, 0, 0, w, w);
+  });
+}
+
+function huntScene(scene, camera, ctx) {
+  const intro = ctx.intro;
+  scene.background = new THREE.Color(0x07040a);
+  camera.position.set(0, 0, 10); camera.lookAt(0, 0.4, 0);
+
+  /* a castle wall lit by torches */
+  const stone = stoneTexture(); stone.wrapS = stone.wrapT = THREE.RepeatWrapping; stone.repeat.set(5, 3);
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(40, 22), new THREE.MeshStandardMaterial({ map: stone,
+    bumpMap: stone, bumpScale: 2, roughness: 0.95, color: 0x8a7a96, envMapIntensity: 0.05 }));
+  wall.position.z = -5; scene.add(wall);
+  scene.add(new THREE.AmbientLight(0x3a2050, 0.45));
+
+  const fireTex = softDot("#ffffff");
+  const torches = [];
+  for (const side of [-1, 1]) {
+    const x = side * (intro ? 5.2 : 7.6), y = intro ? -0.6 : 0.6;
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.04, 1.4, 12),
+      new THREE.MeshStandardMaterial({ color: 0x3b2414, roughness: 0.9 }));
+    handle.position.set(x, y - 0.7, -4.4); handle.rotation.z = -side * 0.15; scene.add(handle);
+    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.1, 0.3, 16, 1, true), gold(0.45));
+    cup.material.side = THREE.DoubleSide; cup.position.set(x + side * 0.1, y, -4.4); scene.add(cup);
+    const light = new THREE.PointLight(0xff8a30, 22, 20, 1.2); light.position.set(x, y + 0.6, -3.8); scene.add(light);
+    const flames = [];
+    for (let k = 0; k < 46; k++) {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: fireTex, transparent: true, blending: THREE.AdditiveBlending,
+        depthWrite: false, color: new THREE.Color(1.3, 0.6, 0.2) }));
+      sp.userData.life = Math.random(); scene.add(sp); flames.push(sp);
+    }
+    torches.push({ x: x + side * 0.1, y: y + 0.12, light, flames });
+  }
+
+  /* swords crossing above the title */
+  let s1 = null, s2 = null, burst = null, burstV = [];
+  if (intro) {
+    s1 = sword(); s2 = sword(); scene.add(s1, s2);
+    const B = 160, bp = new Float32Array(B * 3);
+    for (let k = 0; k < B; k++) {
+      const v = new THREE.Vector3().randomDirection().multiplyScalar(2 + Math.random() * 5); v.y = Math.abs(v.y) * 0.8 + 1;
+      burstV.push(v);
+    }
+    const bg = new THREE.BufferGeometry(); bg.setAttribute("position", new THREE.BufferAttribute(bp, 3));
+    burst = new THREE.Points(bg, new THREE.PointsMaterial({ size: 0.09, map: softDot("#ffd080"), transparent: true,
+      blending: THREE.AdditiveBlending, depthWrite: false, color: new THREE.Color(3, 2, 0.8) }));
+    burst.visible = false; scene.add(burst);
+  }
+
+  /* embers */
+  const N = intro ? 200 : 120, pos = new Float32Array(N * 3), spd = [];
+  for (let k = 0; k < N; k++) { pos.set([(Math.random() - 0.5) * 22, -6 + Math.random() * 14, -4 + Math.random() * 6], k * 3); spd.push(0.3 + Math.random() * 0.8); }
+  const eg = new THREE.BufferGeometry(); eg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  scene.add(new THREE.Points(eg, new THREE.PointsMaterial({ size: 0.07, map: softDot("#ffb060"), transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false, color: new THREE.Color(2.2, 1.1, 0.4) })));
+
+  const CROSS = 0.75;
+  return (t, dt) => {
+    for (const tc of torches) {
+      tc.light.intensity = 20 + Math.sin(t * 17 + tc.x) * 3 + Math.sin(t * 7.3) * 4 + Math.random() * 2;
+      for (const f of tc.flames) {
+        const u = f.userData; u.life += dt * (1.4 + Math.random() * 0.6);
+        if (u.life > 1) { u.life -= 1; u.dx = (Math.random() - 0.5) * 0.25; }
+        const l = u.life;
+        f.position.set(tc.x + (u.dx || 0) * (1 + l * 2) + Math.sin(t * 9 + l * 6) * 0.04, tc.y + l * 1.0, -4.3);
+        f.scale.setScalar(0.55 * (1 - l) + 0.08);
+        f.material.color.setRGB(1.4, 0.75 * (1 - l) + 0.2, 0.25 * (1 - l));
+        f.material.opacity = (1 - l) * 0.6;
+      }
+    }
+    if (s1) {
+      const k = ease(t / CROSS);
+      s1.position.set(-3.8 * (1 - k), 1.15, 0); s1.rotation.z = -0.62 - (1 - k) * 1.2;
+      s2.position.set(3.8 * (1 - k), 1.15, 0); s2.rotation.z = 0.62 + (1 - k) * 1.2;
+      s1.rotation.y = s2.rotation.y = Math.sin(t * 0.8) * 0.15;
+      if (t >= CROSS && t - dt < CROSS) { ctx.flash(); burst.visible = true; }
+      if (burst.visible) {
+        const a = t - CROSS, p = burst.geometry.attributes.position;
+        for (let k2 = 0; k2 < burstV.length; k2++) {
+          const v = burstV[k2];
+          p.setXYZ(k2, v.x * a, 2.25 + v.y * a - 4.9 * a * a, v.z * a);
+        }
+        p.needsUpdate = true;
+        burst.material.opacity = Math.max(0, 1 - a / 1.4);
+      }
+    }
+    const p = eg.attributes.position;
+    for (let k = 0; k < N; k++) {
+      let y = p.getY(k) + spd[k] * dt; if (y > 8) y = -6; p.setY(k, y);
+      p.setX(k, p.getX(k) + Math.sin(t + k) * 0.003);
+    }
+    p.needsUpdate = true;
+  };
+}
+
 /* ------------------------------------------------------------ runner */
 
-export function play(kind, host, opts = {}) {
-  const canvas = document.createElement("canvas");
-  canvas.className = "ceremony3d";
-  host.insertBefore(canvas, host.firstChild);
-
-  let renderer;
-  try {
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
-  } catch (e) {
-    canvas.remove();
-    throw e;
-  }
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+function stage(canvas, opts) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !opts.lite, powerPreference: opts.lite ? "low-power" : "high-performance" });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, opts.lite ? 1 : 1.5));
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
@@ -562,24 +913,18 @@ export function play(kind, host, opts = {}) {
   const scene = new THREE.Scene();
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
-
   const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 200);
+  return { renderer, scene, camera, pmrem };
+}
 
-  const flashEl = host.querySelector(".flash");
-  const flash = () => { if (flashEl) { flashEl.style.animation = "none"; void flashEl.offsetWidth; flashEl.style.animation = ""; } };
-
-  let update, bloom = 0.9, threshold = 0.72, radius = 0.5;
-  if (kind === 101) { update = stewardScene(scene, camera); bloom = 0.45; threshold = 0.85; }
-  else if (kind === 102 || kind === 103) { update = crownScene(scene, camera, renderer); bloom = 0.6; threshold = 0.8; }
-  else if (kind === 104) { update = valarScene(scene, camera); bloom = 1.25; }
-  else if (kind >= 3) { update = wizardScene(scene, camera, kind, flash); bloom = 0.85; threshold = 0.9; radius = 0.25; }
-  else { update = apprenticeScene(scene, camera); bloom = 0.3; }
-
+function run(canvas, st, update, look, opts) {
+  const { renderer, scene, camera, pmrem } = st;
   const composer = new EffectComposer(renderer);
-  composer.setPixelRatio(renderer.getPixelRatio());
+  composer.setPixelRatio(renderer.getPixelRatio() * (opts.lite ? 0.75 : 1));
   composer.setSize(window.innerWidth, window.innerHeight);
   composer.addPass(new RenderPass(scene, camera));
-  if (!opts.nobloom) composer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), bloom, radius, threshold));
+  if (!opts.nobloom) composer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight),
+    look.bloom, look.radius, look.threshold));
   composer.addPass(new OutputPass());
 
   const onResize = () => {
@@ -589,39 +934,99 @@ export function play(kind, host, opts = {}) {
   };
   window.addEventListener("resize", onResize);
 
+  const dispose = () => {
+    alive = false;
+    cancelAnimationFrame(raf);
+    window.removeEventListener("resize", onResize);
+    scene.traverse((o) => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) [].concat(o.material).forEach((m) => {
+        for (const k of ["map", "bumpMap", "emissiveMap"]) if (m[k]) m[k].dispose();
+        m.dispose();
+      });
+    });
+    if (scene.environment) scene.environment.dispose();
+    pmrem.dispose();
+    composer.dispose && composer.dispose();
+    renderer.dispose();
+    renderer.forceContextLoss();
+    canvas.remove();
+  };
+
+  let raf = 0, alive = true;
   if (opts.at != null) {                  /* testing: jump to a moment */
     for (let t = 0; t < opts.at; t += 1 / 60) update(t, 1 / 60);
     composer.render();
-    return { dispose() {} };
+    return { dispose };
   }
 
-  const start = performance.now();
-  let last = start, raf = 0, alive = true;
+  const start = performance.now(), step = opts.fps ? 1000 / opts.fps : 0;
+  let last = start, drawn = 0;
   const frame = (now) => {
     if (!alive) return;
+    raf = requestAnimationFrame(frame);
+    if (step && now - drawn < step - 1) return;        /* frame cap */
+    if (opts.paused && opts.paused()) { last = now; return; }
+    drawn = now;
     const t = (now - start) / 1000, dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     update(t, dt);
     composer.render();
-    raf = requestAnimationFrame(frame);
   };
   raf = requestAnimationFrame(frame);
+  return { dispose };
+}
 
-  return {
-    dispose() {
-      alive = false;
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", onResize);
-      scene.traverse((o) => {
-        if (o.geometry) o.geometry.dispose();
-        if (o.material) [].concat(o.material).forEach((m) => { if (m.map) m.map.dispose(); m.dispose(); });
-      });
-      if (scene.environment) scene.environment.dispose();
-      pmrem.dispose();
-      composer.dispose && composer.dispose();
-      renderer.dispose();
-      renderer.forceContextLoss();
-      canvas.remove();
-    },
-  };
+function newCanvas(cls, host, first) {
+  const canvas = document.createElement("canvas");
+  canvas.className = cls;
+  if (first) host.insertBefore(canvas, host.firstChild); else host.appendChild(canvas);
+  return canvas;
+}
+
+function makeStage(canvas, opts) {
+  try { return stage(canvas, opts); } catch (e) { canvas.remove(); throw e; }
+}
+
+const EVENT_SCENES = { 1: bloodScene, 2: goldScene, 3: huntScene };
+const EVENT_LOOK = {
+  1: { bloom: 0.9, threshold: 0.7, radius: 0.5 },
+  2: { bloom: 0.55, threshold: 0.88, radius: 0.35 },
+  3: { bloom: 0.5, threshold: 0.95, radius: 0.35 },
+};
+
+/* a ceremony or world-event announcement, full screen behind the card */
+export function play(kind, host, opts = {}) {
+  const canvas = newCanvas("ceremony3d", host, true);
+  const st = makeStage(canvas, opts);
+  const { scene, camera, renderer } = st;
+
+  const flashEl = host.querySelector(".flash");
+  const flash = () => { if (flashEl) { flashEl.style.animation = "none"; void flashEl.offsetWidth; flashEl.style.animation = ""; } };
+
+  let update, look = { bloom: 0.9, threshold: 0.72, radius: 0.5 };
+  if (kind === 101) { update = stewardScene(scene, camera); look = { bloom: 0.45, threshold: 0.85, radius: 0.5 }; }
+  else if (kind === 102 || kind === 103) { update = crownScene(scene, camera, renderer); look = { bloom: 0.6, threshold: 0.8, radius: 0.5 }; }
+  else if (kind === 104) { update = valarScene(scene, camera); look.bloom = 1.25; }
+  else if (kind >= 201 && kind <= 203) {
+    update = EVENT_SCENES[kind - 200](scene, camera, { intro: true, flash });
+    look = EVENT_LOOK[kind - 200];
+  }
+  else if (kind >= 3) { update = wizardScene(scene, camera, kind, flash); look = { bloom: 0.85, threshold: 0.9, radius: 0.25 }; }
+  else { update = apprenticeScene(scene, camera); look.bloom = 0.3; }
+
+  return run(canvas, st, update, look, opts);
+}
+
+/* the calm scene behind the game while a world event lasts: 30 frames a
+   second at a lower resolution, to be kind to batteries */
+export function ambient(id, host, opts = {}) {
+  const make = EVENT_SCENES[id];
+  if (!make) throw new Error("no scene for event " + id);
+  const canvas = newCanvas("event3d", host, false);
+  const lite = Object.assign({ lite: true, fps: 30 }, opts);
+  const st = makeStage(canvas, lite);
+  const update = make(st.scene, st.camera, { intro: false, flash() {} });
+  const look = EVENT_LOOK[id];
+  return run(canvas, st, update, { bloom: look.bloom * 0.8, threshold: look.threshold, radius: look.radius }, lite);
 }

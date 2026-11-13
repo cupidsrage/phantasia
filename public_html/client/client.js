@@ -653,7 +653,42 @@
     2: { cls: "event-gold", icon: "🪙" },
     3: { cls: "event-hunt", icon: "⚔️" }
   };
-  var eventEnds = 0, eventTimer = null;
+  var eventEnds = 0, eventTimer = null, eventScene = null, eventShown = 0;
+  var EVENT_INTRO = {
+    1: "The sky bleeds red", 2: "Gold floods the realm", 3: "The hunt is on"
+  };
+
+  function stopEventScene() {
+    if (eventScene) { try { eventScene.dispose(); } catch (e) {} eventScene = null; }
+    document.body.classList.remove("event-3d");
+  }
+
+  /* the event's own 3D world behind the game */
+  function startEventScene(id) {
+    load3d().then(function (m) {
+      if (eventShown !== id || eventScene) return;
+      try {
+        eventScene = m.ambient(id, $("event-fx"), {   /* rests while a ceremony plays */
+          paused: function () { return !!document.querySelector(".arrival.has3d"); }
+        });
+        document.body.classList.add("event-3d");
+      } catch (e) { /* keep the CSS version */ }
+    }, function () {});
+  }
+
+  /* the announcement, once per event per visit; waits for any ceremony
+     already on screen (a wizard logging in) to finish */
+  function eventIntro(id, name, effect, ends) {
+    var key = "phantasia-intro-" + id + "-" + Math.round(ends / 60000);
+    try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, "1"); } catch (e) {}
+    var tries = 0;
+    (function go() {
+      if (eventShown !== id) return;
+      if (document.querySelector(".arrival") && tries++ < 30) { setTimeout(go, 500); return; }
+      showCeremony("event " + EVENTS[id].cls, '<div class="flash"></div>', EVENT_INTRO[id], name,
+        effect.charAt(0).toUpperCase() + effect.slice(1), 200 + id);
+    })();
+  }
 
   async function readWorldEvent() {
     var id = await nextInt(), name = await next(), left = await nextInt(), effect = await next();
@@ -664,14 +699,20 @@
     var body = document.body, fx = $("event-fx"), banner = $("event-banner");
     Object.keys(EVENTS).forEach(function (k) { body.classList.remove(EVENTS[k].cls); });
     body.classList.remove("event-on");
-    fx.innerHTML = "";
     clearInterval(eventTimer);
 
     var ev = EVENTS[id];
     if (!ev || left <= 0) {
+      eventShown = 0;
+      stopEventScene();
+      fx.innerHTML = "";
       banner.hidden = true;
       return;
     }
+
+    var same = eventShown === id;            /* a refresh of the same event */
+    if (!same) { stopEventScene(); fx.innerHTML = ""; }
+    eventShown = id;
 
     body.classList.add("event-on", ev.cls);
     $("event-icon").textContent = ev.icon;
@@ -679,7 +720,7 @@
     $("event-effect").textContent = effect.charAt(0).toUpperCase() + effect.slice(1) + ".";
     banner.hidden = false;
 
-    if (id === 2) {          /* Gold Rush: drifting coins */
+    if (id === 2 && !same) { /* Gold Rush: drifting coins (until the 3D is up) */
       for (var i = 0; i < 22; i++) {
         var coin = document.createElement("span");
         coin.className = "coin";
@@ -693,6 +734,7 @@
     }
 
     eventEnds = Date.now() + left * 1000;
+    if (!same) { startEventScene(id); eventIntro(id, name, effect, eventEnds); }
     var tick = function () {
       var s = Math.max(0, Math.round((eventEnds - Date.now()) / 1000));
       $("event-time").textContent = Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2) + " left";
@@ -820,7 +862,8 @@
   /* fetch the 3D in the background once the page has loaded, so it is
      ready before the first ceremony (a wizard's plays right at login) */
   window.addEventListener("load", function () {
-    (window.requestIdleCallback || setTimeout)(load3d, 300);
+    if (window.requestIdleCallback) window.requestIdleCallback(function () { load3d(); }, { timeout: 2000 });
+    else setTimeout(load3d, 300);
   });
 
   function closeCeremony(el) {

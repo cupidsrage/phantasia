@@ -133,6 +133,13 @@ library is bundled in `client/vendor/three/` (MIT licence) and only loads
 the first time a ceremony plays. Browsers without WebGL, or set to reduce
 motion, get the flat animated version instead.
 
+World events get the same treatment. When one starts, every browser player
+sees a 3D announcement once: a blood-red moon rising over hills with bats
+for the Blood Moon, a shower of gold coins under a big spinning coin for
+the Gold Rush, and steel swords crossing between torches for the Champion
+Hunt. While the event lasts, a calmer version of the scene plays behind the
+game at 30 frames a second and pauses while a ceremony is on screen.
+
 ## Playing: the downloadable client
 
 The original client was a Java applet. Browsers have not run applets for
