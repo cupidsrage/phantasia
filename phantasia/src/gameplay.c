@@ -158,6 +158,60 @@ int Do_world_event_status(struct client_t *c, char *buffer)
 }
 
 /*
+ * Start world event theEvent (1-3; 0 picks one at random) for the given
+ * minutes and tell everyone.  Used by the timer and by wizards.
+ */
+void Do_world_event_start(struct client_t *c, int theEvent, int minutes)
+{
+    time_t now = time(NULL);
+    char message[SZ_LINE];
+
+    if (theEvent < 1 || theEvent > WE_COUNT) {
+	theEvent = MIN(WE_COUNT, 1 + (int) ROLL(0.0, (double) WE_COUNT));
+    }
+    minutes = MAX(1, minutes);
+
+    Do_lock_mutex(&c->realm->realm_lock);
+    c->realm->worldEvent = theEvent;
+    c->realm->worldEventEnds = now + minutes * 60;
+    Do_unlock_mutex(&c->realm->realm_lock);
+
+    Do_world_event_publish(theEvent, now + minutes * 60);
+
+    sprintf(message, "*** %s! For the next %d minute%s %s. ***\n",
+	    Do_world_event_name(theEvent), minutes, minutes == 1 ? "" : "s",
+	    Do_world_event_effect(theEvent));
+
+    Do_broadcast(c, message);
+    Do_log(EVENT_LOG, message);
+}
+
+	/* end the current world event, if any, and schedule the next */
+void Do_world_event_stop(struct client_t *c)
+{
+    int interval = Do_env_minutes("PHANTASIA_EVENT_MINUTES", 90) * 60;
+    int ended;
+    char message[SZ_LINE];
+
+    Do_lock_mutex(&c->realm->realm_lock);
+    ended = c->realm->worldEvent;
+    c->realm->worldEvent = WE_NONE;
+    c->realm->nextWorldEvent = time(NULL) +
+	    (time_t) (interval * (0.5 + RND()));
+    Do_unlock_mutex(&c->realm->realm_lock);
+
+    if (ended == WE_NONE) {
+	return;
+    }
+
+    Do_world_event_publish(WE_NONE, 0);
+
+    sprintf(message, "*** The %s has ended. ***\n",
+	    Do_world_event_name(ended));
+    Do_broadcast(c, message);
+}
+
+/*
  * Called on every player turn.  Starts and ends world events; whichever
  * player's turn notices the change announces it to everyone.
  */
@@ -165,9 +219,8 @@ void Do_world_event_tick(struct client_t *c)
 {
     time_t now = time(NULL);
     int interval = Do_env_minutes("PHANTASIA_EVENT_MINUTES", 90) * 60;
-    int length = Do_env_minutes("PHANTASIA_EVENT_LENGTH", 20) * 60;
-    int started = WE_NONE, ended = WE_NONE;
-    char message[SZ_LINE];
+    int length = Do_env_minutes("PHANTASIA_EVENT_LENGTH", 20);
+    int start = FALSE, stop = FALSE;
 
     Do_lock_mutex(&c->realm->realm_lock);
 
@@ -176,46 +229,19 @@ void Do_world_event_tick(struct client_t *c)
     }
 
     if (c->realm->worldEvent != WE_NONE) {
-
-	if (now >= c->realm->worldEventEnds) {
-	    ended = c->realm->worldEvent;
-	    c->realm->worldEvent = WE_NONE;
-	    c->realm->nextWorldEvent = now +
-		    (time_t) (interval * (0.5 + RND()));
-	}
+	stop = now >= c->realm->worldEventEnds;
     }
-    else if (now >= c->realm->nextWorldEvent) {
-
-	started = 1 + (int) ROLL(0.0, (double) WE_COUNT);
-	if (started > WE_COUNT) {
-	    started = WE_COUNT;
-	}
-	c->realm->worldEvent = started;
-	c->realm->worldEventEnds = now + length;
+    else {
+	start = now >= c->realm->nextWorldEvent;
     }
 
     Do_unlock_mutex(&c->realm->realm_lock);
 
-    if (started != WE_NONE || ended != WE_NONE) {
-	Do_world_event_publish(started, started != WE_NONE ? now + length : 0);
+    if (stop) {
+	Do_world_event_stop(c);
     }
-
-    if (started != WE_NONE) {
-
-	sprintf(message, "*** %s! For the next %d minute%s %s. ***\n",
-		Do_world_event_name(started), length / 60,
-		length / 60 == 1 ? "" : "s", Do_world_event_effect(started));
-
-	Do_broadcast(c, message);
-	Do_log(EVENT_LOG, message);
-    }
-
-    if (ended != WE_NONE) {
-
-	sprintf(message, "*** The %s has ended. ***\n",
-		Do_world_event_name(ended));
-
-	Do_broadcast(c, message);
+    else if (start) {
+	Do_world_event_start(c, 0, length);
     }
 }
 
@@ -406,6 +432,12 @@ void Do_maybe_make_champion(struct client_t *c)
 
     chance = Do_current_world_event(c) == WE_CHAMPION_HUNT ?
 	    CHAMPION_HUNT_CHANCE : CHAMPION_CHANCE;
+
+	/* a wizard sent one */
+    if (c->forceChampion) {
+	c->forceChampion = FALSE;
+	chance = 1.0;
+    }
 
     if (RND() >= chance) {
 	return;
@@ -785,22 +817,33 @@ int Do_chat_command(struct client_t *c, char *text)
 	    Do_send_chat_self(c, message);
 	}
     }
-#ifdef GEAR_TEST
-	/* test builds only: /eventtest N starts world event N for 5 minutes */
-    else if (strncasecmp(text, "/eventtest", 10) == 0) {
-	int n = atoi(text + 10);
-	Do_lock_mutex(&c->realm->realm_lock);
-	c->realm->worldEvent = (n >= WE_NONE && n <= WE_COUNT) ? n : WE_NONE;
-	c->realm->worldEventEnds = time(NULL) + 300;
-	Do_unlock_mutex(&c->realm->realm_lock);
-	Do_world_event_publish(c->realm->worldEvent, c->realm->worldEventEnds);
-	Do_broadcast(c, "*** (test) world event changed ***\n");
-    }
-#endif
     else if (strncasecmp(text, "/event", 6) == 0) {
 
-	Do_world_event_status(c, message);
-	Do_send_chat_self(c, message);
+	char verb[16] = "", kind[16] = "";
+	int minutes = 20, theEvent = 0;
+
+	sscanf(text + 6, "%15s %15s %d", verb, kind, &minutes);
+
+	if (c->wizard >= 3 && strcasecmp(verb, "start") == 0) {
+	    if (strncasecmp(kind, "blood", 5) == 0) theEvent = WE_BLOOD_MOON;
+	    else if (strncasecmp(kind, "gold", 4) == 0) theEvent = WE_GOLD_RUSH;
+	    else if (strncasecmp(kind, "hunt", 4) == 0 ||
+		    strncasecmp(kind, "champ", 5) == 0) theEvent = WE_CHAMPION_HUNT;
+	    else if (strncasecmp(kind, "random", 6) != 0) {
+		Do_send_chat_self(c, "Use: /event start blood|gold|hunt|random [minutes]\n");
+		return TRUE;
+	    }
+	    Do_world_event_start(c, theEvent, MAX(1, MIN(1440, minutes)));
+	    Do_wizard_log(c, "started a world event");
+	}
+	else if (c->wizard >= 3 && strcasecmp(verb, "stop") == 0) {
+	    Do_world_event_stop(c);
+	    Do_wizard_log(c, "stopped the world event");
+	}
+	else {
+	    Do_world_event_status(c, message);
+	    Do_send_chat_self(c, message);
+	}
     }
     else if (strncasecmp(text, "/gear", 5) == 0) {
 
@@ -824,10 +867,346 @@ int Do_chat_command(struct client_t *c, char *text)
 	Do_send_chat_self(c, "/gear - list your gear (Info > Gear to change it)\n");
 	Do_send_chat_self(c, "/artifacts - who holds each artifact\n");
 	Do_send_chat_self(c, "/filter - turn the chat filter on or off\n");
+	if (c->wizard >= 3) {
+	    Do_send_chat_self(c, "Wizards: /event start blood|gold|hunt|random [minutes], /event stop\n");
+	    Do_send_chat_self(c, "Wizards: Administrate > Realm Tools for artifacts, gear, bags, quests, champions\n");
+	}
     }
     else {
 	Do_send_chat_self(c, "Unknown command.  Type /help for a list.\n");
     }
 
     return TRUE;
+}
+
+
+/************************************************************************
+/ wizard tools: Administrate > Realm Tools
+*************************************************************************/
+
+	/* record what a wizard did */
+void Do_wizard_log(struct client_t *c, char *what)
+{
+    char line[SZ_LINE];
+
+    sprintf(line, "[%s] Wizard %s %s.\n", c->connection_id, c->player.name,
+	    what);
+    Do_log(EVENT_LOG, line);
+}
+
+	/* the target player's thread applies a wizard's action */
+void Do_wizard_event(struct client_t *c, struct event_t *the_event)
+{
+    struct event_t *event_ptr;
+
+    switch (the_event->type) {
+
+    case WIZ_GEAR_EVENT:
+	Do_gear_wizard_gift(c, (int) the_event->arg1, (int) the_event->arg2,
+		(double) the_event->arg3);
+	break;
+
+    case WIZ_BAG_EVENT:
+	Do_gear_wizard_bag(c, (int) the_event->arg3);
+	break;
+
+    case WIZ_ARTIFACT_EVENT:
+	Do_gear_wizard_artifact(c, (int) the_event->arg3);
+	break;
+
+    case WIZ_QUEST_EVENT:
+	Do_quest_ensure(c);
+	if (!c->questLoaded) {
+	    break;
+	}
+	if (the_event->arg3 == 1) {
+	    if (!c->quest.done) {
+		c->quest.progress = c->quest.target;
+		Do_quest_complete(c);
+	    }
+	}
+	else {
+	    Do_quest_new(c);
+	    Do_send_line(c, "The Wizards have set you a new quest.\n");
+	}
+	{
+	    char message[SZ_LINE];
+	    Do_quest_describe(&c->quest, message);
+	    Do_send_chat_self(c, message);
+	}
+	Do_lock_mutex(&c->realm->quest_lock);
+	Do_quest_save(c);
+	Do_unlock_mutex(&c->realm->quest_lock);
+	break;
+
+    case WIZ_CHAMPION_EVENT:
+	c->forceChampion = TRUE;
+	event_ptr = (struct event_t *) Do_create_event();
+	event_ptr->type = MONSTER_EVENT;
+	event_ptr->arg1 = MONSTER_RANDOM;
+	event_ptr->arg3 = SM_RANDOM;
+	Do_file_event(c, event_ptr);
+	break;
+    }
+}
+
+	/* send a wizard event to a player chosen from those online */
+static void Do_wizard_send(struct client_t *c, int type, double arg1,
+	double arg2, long arg3, char *what)
+{
+    struct event_t *event_ptr;
+    char name[SZ_NAME], prompt[SZ_LINE], log[SZ_LINE];
+
+    sprintf(prompt, "Who do you want to %s?\n", what);
+    if (Do_player_dialog(c, prompt, name) != S_NORM) {
+	return;
+    }
+
+    event_ptr = (struct event_t *) Do_create_event();
+    event_ptr->type = type;
+    event_ptr->arg1 = arg1;
+    event_ptr->arg2 = arg2;
+    event_ptr->arg3 = arg3;
+    event_ptr->from = c->game;
+
+    if (!Do_send_character_event(c, event_ptr, name)) {
+	free((void *)event_ptr);
+	Do_send_line(c, "That character just left the game.\n");
+	Do_more(c);
+	return;
+    }
+
+    sprintf(log, "used Realm Tools to %s %s", what, name);
+    Do_wizard_log(c, log);
+    Do_send_line(c, "Done.\n");
+    Do_more(c);
+}
+
+static void Do_wizard_events_menu(struct client_t *c)
+{
+    struct button_t buttons;
+    char message[SZ_LINE];
+    long answer, minutes = 20;
+
+    Do_world_event_status(c, message);
+    Do_send_line(c, message);
+    Do_send_line(c, "Start or end a world event:\n");
+
+    Do_clear_buttons(&buttons, 0);
+    strcpy(buttons.button[0], "Blood Moon\n");
+    strcpy(buttons.button[1], "Gold Rush\n");
+    strcpy(buttons.button[2], "Champion Hunt\n");
+    strcpy(buttons.button[3], "Random\n");
+    strcpy(buttons.button[4], "End Event\n");
+    strcpy(buttons.button[7], "Back\n");
+
+    if (Do_buttons(c, &answer, &buttons) != S_NORM || answer == 7 ||
+	    answer < 0 || answer > 4) {
+	return;
+    }
+
+    if (answer == 4) {
+	Do_world_event_stop(c);
+	Do_wizard_log(c, "stopped the world event");
+	return;
+    }
+
+    if (Do_long_dialog(c, &minutes, "For how many minutes? (1-1440)\n")) {
+	return;
+    }
+
+    Do_world_event_start(c, answer == 3 ? 0 : (int) answer + 1,
+	    (int) MAX(1, MIN(1440, minutes)));
+    Do_wizard_log(c, "started a world event");
+}
+
+static void Do_wizard_artifacts_menu(struct client_t *c)
+{
+    struct button_t buttons;
+    struct event_t *event_ptr;
+    char line[SZ_LINE], holder[SZ_NAME];
+    long answer, id;
+    int i;
+
+    for (i = 1; i <= NUM_ARTIFACTS; i++) {
+	Do_artifact_holder(c, i, holder);
+	sprintf(line, "%2d. %s: %s\n", i, Do_artifact_name(i),
+		holder[0] ? holder : "lost in the realm");
+	Do_send_line(c, line);
+    }
+
+    Do_clear_buttons(&buttons, 0);
+    strcpy(buttons.button[0], "Return One\n");
+    strcpy(buttons.button[1], "Give One\n");
+    strcpy(buttons.button[7], "Back\n");
+
+    if (Do_buttons(c, &answer, &buttons) != S_NORM || answer < 0 ||
+	    answer > 1) {
+	return;
+    }
+
+    sprintf(line, "Which artifact? (1-%d)\n", NUM_ARTIFACTS);
+    if (Do_long_dialog(c, &id, line) || id < 1 || id > NUM_ARTIFACTS) {
+	return;
+    }
+
+    Do_artifact_holder(c, (int) id, holder);
+
+    if (answer == 0) {
+	if (!holder[0]) {
+	    Do_send_line(c, "It is already lost in the realm.\n");
+	    Do_more(c);
+	    return;
+	}
+
+	    /* the holder's own thread removes it if they are online */
+	event_ptr = (struct event_t *) Do_create_event();
+	event_ptr->type = WIZ_ARTIFACT_EVENT;
+	event_ptr->arg3 = -id;
+	event_ptr->from = c->game;
+
+	if (!Do_send_character_event(c, event_ptr, holder)) {
+	    free((void *)event_ptr);
+	    Do_artifact_release_offline(c, (int) id);
+	}
+
+	sprintf(line, "returned %s from %s to the realm",
+		Do_artifact_name((int) id), holder);
+	Do_wizard_log(c, line);
+	Do_send_line(c, "Done.\n");
+	Do_more(c);
+	return;
+    }
+
+    if (holder[0]) {
+	sprintf(line, "%s holds it.  Return it to the realm first.\n", holder);
+	Do_send_line(c, line);
+	Do_more(c);
+	return;
+    }
+
+    Do_wizard_send(c, WIZ_ARTIFACT_EVENT, 0, 0, id, "give the artifact to");
+}
+
+static void Do_wizard_gear_menu(struct client_t *c)
+{
+    struct button_t buttons;
+    long slot, tier, circle = 0;
+
+    Do_send_line(c, "Which kind of gear?\n");
+    Do_clear_buttons(&buttons, 0);
+    strcpy(buttons.button[0], "Weapon\n");
+    strcpy(buttons.button[1], "Armor\n");
+    strcpy(buttons.button[2], "Helm\n");
+    strcpy(buttons.button[3], "Boots\n");
+    strcpy(buttons.button[4], "Trinket\n");
+    strcpy(buttons.button[5], "Any\n");
+    strcpy(buttons.button[7], "Back\n");
+    if (Do_buttons(c, &slot, &buttons) != S_NORM || slot < 0 || slot > 5) {
+	return;
+    }
+
+    Do_send_line(c, "Which tier?\n");
+    Do_clear_buttons(&buttons, 0);
+    strcpy(buttons.button[0], "Common\n");
+    strcpy(buttons.button[1], "Fine\n");
+    strcpy(buttons.button[2], "Masterwork\n");
+    strcpy(buttons.button[3], "Enchanted\n");
+    strcpy(buttons.button[7], "Back\n");
+    if (Do_buttons(c, &tier, &buttons) != S_NORM || tier < 0 || tier > 3) {
+	return;
+    }
+
+    if (Do_long_dialog(c, &circle,
+	    "Made for which circle? (0 = where the player is)\n")) {
+	return;
+    }
+
+    Do_wizard_send(c, WIZ_GEAR_EVENT, slot == 5 ? -1 : slot,
+	    TIER_COMMON + tier, MAX(0, circle), "give the gear to");
+}
+
+static void Do_wizard_bag_menu(struct client_t *c)
+{
+    static const int sizes[] = { 6, 10, 15, 20, 25, 30, 40, 50 };
+    struct button_t buttons;
+    long answer;
+    int i;
+
+    Do_send_line(c, "Which bag? (Items already carried are never lost.)\n");
+    Do_clear_buttons(&buttons, 0);
+    for (i = 0; i < 8; i++) {
+	sprintf(buttons.button[i], "%.16s\n", Do_bag_name(sizes[i]));
+    }
+    if (Do_buttons(c, &answer, &buttons) != S_NORM || answer < 0 ||
+	    answer > 7) {
+	return;
+    }
+
+    Do_wizard_send(c, WIZ_BAG_EVENT, 0, 0, sizes[answer], "give the bag to");
+}
+
+static void Do_wizard_quest_menu(struct client_t *c)
+{
+    struct button_t buttons;
+    long answer;
+
+    Do_clear_buttons(&buttons, 0);
+    strcpy(buttons.button[0], "New Quest\n");
+    strcpy(buttons.button[1], "Complete Quest\n");
+    strcpy(buttons.button[7], "Back\n");
+    if (Do_buttons(c, &answer, &buttons) != S_NORM || answer < 0 ||
+	    answer > 1) {
+	return;
+    }
+
+    Do_wizard_send(c, WIZ_QUEST_EVENT, 0, 0, answer,
+	    answer ? "complete the quest of" : "give a new quest to");
+}
+
+	/* one action per visit, so queued results (even gifts to yourself)
+	   take effect as soon as you are back on the main menu */
+void Do_wizard_tools(struct client_t *c)
+{
+    struct button_t buttons;
+    long answer;
+
+    {
+	Do_send_clear(c);
+	Do_send_line(c, "Realm Tools:\n");
+
+	Do_clear_buttons(&buttons, 0);
+	strcpy(buttons.button[0], "World Event\n");
+	strcpy(buttons.button[1], "Artifacts\n");
+	strcpy(buttons.button[2], "Give Gear\n");
+	strcpy(buttons.button[3], "Give Bag\n");
+	strcpy(buttons.button[4], "Quests\n");
+	strcpy(buttons.button[5], "Champion\n");
+	strcpy(buttons.button[6], "Moderate\n");
+	strcpy(buttons.button[7], "Done\n");
+
+	if (Do_buttons(c, &answer, &buttons) != S_NORM || answer == 7 ||
+		answer < 0) {
+	    Do_send_clear(c);
+	    return;
+	}
+
+	Do_send_clear(c);
+
+	switch (answer) {
+	case 0: Do_wizard_events_menu(c); break;
+	case 1: Do_wizard_artifacts_menu(c); break;
+	case 2: Do_wizard_gear_menu(c); break;
+	case 3: Do_wizard_bag_menu(c); break;
+	case 4: Do_wizard_quest_menu(c); break;
+	case 5:
+	    Do_wizard_send(c, WIZ_CHAMPION_EVENT, 0, 0, 0,
+		    "send a champion against");
+	    break;
+	case 6:
+	    Do_moderate(c);
+	    break;
+	}
+	Do_send_clear(c);
+    }
 }

@@ -230,6 +230,7 @@ int Do_accept_connections(struct server_t *s)
 	client_ptr->battle.timeouts = 0;
 	client_ptr->previousName[0] = '\0';
 	client_ptr->championFight = FALSE;
+	client_ptr->forceChampion = FALSE;
 	client_ptr->questLoaded = FALSE;
 	client_ptr->gearLoaded = FALSE;
 	client_ptr->numGear = 0;

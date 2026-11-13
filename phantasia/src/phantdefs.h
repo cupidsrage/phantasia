@@ -184,6 +184,11 @@ typedef char bool;
 #define REST_EVENT		58	/* rest player */
 #define INFORMATION_EVENT	59	/* go to information screen */
 #define FORCEAGE_EVENT      60  /* forcefully age a player */
+#define WIZ_GEAR_EVENT		61	/* wizard gift of gear */
+#define WIZ_BAG_EVENT		62	/* wizard sets bag size */
+#define WIZ_QUEST_EVENT		63	/* wizard: new (0) or complete (1) quest */
+#define WIZ_ARTIFACT_EVENT	64	/* wizard gives (+id) or takes (-id) */
+#define WIZ_CHAMPION_EVENT	65	/* wizard sends a champion */
 
 	/* normal events */
     /* events after this are destroyed on orphan */

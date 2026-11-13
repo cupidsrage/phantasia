@@ -51,6 +51,7 @@ Keep the service at **one replica**: the game state lives in that one process.
 | `PHANTASIA_PUBLIC_ADDRESS` | Railway TCP proxy | Game address shown on the website's play page. |
 | `PHANTASIA_EVENT_MINUTES` | `90` | Average minutes between world events (Blood Moon, Gold Rush, Champion Hunt). |
 | `PHANTASIA_EVENT_LENGTH` | `20` | How many minutes a world event lasts. |
+| `PHANTASIA_WIZARDS` | – | Game admins, as `account:Character:level` separated by commas (level 1 moderator, 2 apprentice, 3 wizard, 4 full wizard; default 4). Rewrites `data/wizards` on every start. Leave unset to manage that file by hand. |
 | `PHANTASIA_MOTD` | – | Replaces the message of the day on startup. |
 | `PHANTASIA_EMAIL_CONFIRM` | unset | Set to `1` to require e-mailed confirmation codes for new accounts. This needs a working `mail` command in the image, which Railway does not provide, so leave it unset. |
 
@@ -79,9 +80,29 @@ is `public_html/gear.html`.
 
 ### Wizards (admins)
 
-`phantasia/data/wizards` lists the characters that get wizard powers. The live
+The easiest way is the `PHANTASIA_WIZARDS` variable above, for example
+`myaccount:MyCharacter:4`. Otherwise, `phantasia/data/wizards` lists the characters that get wizard powers. The live
 copy is in the volume at `/app/phantasia/data/wizards`. You can edit it with
 `railway ssh` or seed your own before the first deploy.
+
+
+Level 4 wizards get **Administrate › Realm Tools**:
+
+- **World Event:** start a Blood Moon, Gold Rush, Champion Hunt or random
+  event for any number of minutes, or end the current one.
+- **Artifacts:** see who holds each one, return one to the realm (taken
+  straight from the holder if they are online), or give an unclaimed one
+  to a player.
+- **Give Gear:** any slot (or any), tier and circle, offered to the player
+  like a normal find.
+- **Give Bag:** any bag size; items already carried are never lost.
+- **Quests:** give a player a new daily quest, or complete theirs.
+- **Champion:** the player's next monster is a champion.
+- **Moderate:** the old Moderate menu, which used to have this button.
+
+Level 3 and 4 wizards can also type `/event start blood|gold|hunt|random
+[minutes]` and `/event stop` in chat. Every wizard action is written to the
+event log.
 
 ## Playing in the browser
 
