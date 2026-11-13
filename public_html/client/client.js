@@ -769,18 +769,45 @@
     setTimeout(function () { app.classList.remove("shake"); }, 1000);
   }
 
-  function showCeremony(cls, scenery, rank, name, what) {
+  /* the 3D scenes (ceremonies3d.js, three.js) load the first time a ceremony
+     plays; until they are ready, or if the device can't do WebGL, the CSS
+     scenery shows instead */
+  var scenes3d = null;
+  function load3d() {
+    if (!scenes3d) {
+      var ok = !window.matchMedia("(prefers-reduced-motion: reduce)").matches &&
+        HTMLScriptElement.supports && HTMLScriptElement.supports("importmap");
+      scenes3d = ok ? import("./ceremonies3d.js") : Promise.reject(new Error("no 3D"));
+      scenes3d.catch(function () {});
+    }
+    return scenes3d;
+  }
+
+  function closeCeremony(el) {
+    if (el._scene) { try { el._scene.dispose(); } catch (e) {} el._scene = null; }
+    if (el.parentNode) el.remove();
+  }
+
+  function showCeremony(cls, scenery, rank, name, what, kind) {
     var old = document.querySelector(".arrival");
-    if (old) old.remove();
+    if (old) closeCeremony(old);
     var el = document.createElement("div");
     el.className = "arrival " + cls;
     el.setAttribute("role", "status");
     el.innerHTML = scenery + card();
     fillCard(el, rank, name, what);
-    var done = function () { if (el.parentNode) el.remove(); };
+    var done = function () { closeCeremony(el); };
     el.addEventListener("click", done);
     document.body.appendChild(el);
     setTimeout(done, 6200);
+    load3d().then(function (m) {
+      if (!el.parentNode) return;
+      el._scene = m.play(kind, el);
+      el.classList.add("has3d");
+    }).catch(function () {   /* keep the CSS version, and don't try again */
+      scenes3d = Promise.reject(new Error("no 3D"));
+      scenes3d.catch(function () {});
+    });
     return el;
   }
 
@@ -791,11 +818,11 @@
 
     if (kind === 101) {
       showCeremony("steward", PENNANT.replace(/SIDE/g, "left") + PENNANT.replace(/SIDE/g, "right"),
-        "Steward", name, "has become Steward of the realm");
+        "Steward", name, "has become Steward of the realm", kind);
     }
     else if (kind === 102 || kind === 103) {
       el = showCeremony("king", '<div class="rays"></div>' + CROWN,
-        kind === 102 ? "Long live the King" : "Long live the Queen", name, "has claimed the throne!");
+        kind === 102 ? "Long live the King" : "Long live the Queen", name, "has claimed the throne!", kind);
       for (var i = 0; i < 46; i++) {          /* gold leaf tumbling down */
         var leaf = document.createElement("span");
         leaf.className = "leaf";
@@ -807,7 +834,7 @@
     }
     else if (kind === 104) {
       el = showCeremony("valar", '<div class="pillar"></div>' + runeRing("runes", RUNES2),
-        "Behold the new Valar", name, "ascends to the Valar!");
+        "Behold the new Valar", name, "ascends to the Valar!", kind);
       for (var j = 0; j < 70; j++) {          /* the heavens: stars */
         var st = document.createElement("span");
         st.className = "star";
@@ -825,13 +852,13 @@
     var big = level >= 3, el;
     if (big) {
       el = showCeremony("wizard", '<div class="flash"></div>' + runeRing("sigil", RUNES2) +
-        runeRing("sigil inner", RUNES) + BOLT, "Wizard", name, "has entered the realm!");
+        runeRing("sigil inner", RUNES) + BOLT, "Wizard", name, "has entered the realm!", level);
       sparks(el, 40, 0.15, 400);
       if (level >= 4) shake();
     }
     else {
       el = showCeremony("apprentice", '<div class="smoke"></div>', "Apprentice", name,
-        "appears in a puff of smoke");
+        "appears in a puff of smoke", 2);
       sparks(el, 14, 0.3, 180);
     }
   }

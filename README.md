@@ -115,6 +115,12 @@ The bridge does the game's connection handshake for the browser and passes
 the player's real IP (from Railway's `X-Forwarded-For`), so the game's
 per-address connection limits and bans apply to each player.
 
+Wizard arrivals and the Steward, King/Queen and Valar ceremonies are drawn
+in 3D with [three.js](https://threejs.org) (`client/ceremonies3d.js`). The
+library is bundled in `client/vendor/three/` (MIT licence) and only loads
+the first time a ceremony plays. Browsers without WebGL, or set to reduce
+motion, get the flat animated version instead.
+
 ## Playing: the downloadable client
 
 The original client was a Java applet. Browsers have not run applets for

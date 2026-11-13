@@ -572,6 +572,14 @@ body.event-hunt .event-fx::after { right: -60px; animation-delay: 0.7s; }
   color: #efe4c8; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9);
 }
 
+/* -- the 3D scene (ceremonies3d.js): replaces the flat scenery once loaded -- */
+.arrival .ceremony3d {
+  position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0;
+  display: block; animation: arrival-in 0.5s ease-out;
+}
+.arrival.has3d > :not(.card):not(.ceremony3d):not(.flash) { display: none; }
+.arrival.has3d .flash { z-index: 1; }
+
 @keyframes arrival-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes arrival-out { to { opacity: 0; visibility: hidden; } }
 @keyframes card-in { from { transform: scale(0.7) translateY(20px); opacity: 0; filter: blur(6px); }
