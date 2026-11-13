@@ -241,12 +241,32 @@
 
   /* ------------------------------------------------------- story log */
 
+  /* colour each line of the game log by what it is about, so a glance
+     tells you what is happening */
+  var LOG_KINDS = [
+    ["announce", /^\*\*\*/],
+    ["hurt", /hit you for|you were killed|killed you|you are poisoned|you've been hit|plague|you lose |drains you|curses you|smites you|your .* (breaks|is stolen)|you die|you have died/i],
+    ["foe", /attacks|you are attacked|find and attack|challenge|bars your way|stalks |appears and|now attacks|friend appears|grows bold|you encounter|sighted/i],
+    ["deal", /^you hit |magic bolt|fireball|frost lance|tendrils|lance of ice|you killed it|squish|is banished|transforms|crushing blow/i],
+    ["heal", /restor|heals? |healed|cure|you drain|warm light|mending|feast|dresses your wounds/i],
+    ["reward", /gold|gems?\b|you found|experience|reward|deed earned|you are paid|bounty|treasure|you receive|level up|you are now level/i],
+    ["world", /you enter |shadow|liberat|trading post|the town|realm project|siege|throne|season|night falls/i]
+  ];
+  function logKind(text) {
+    for (var i = 0; i < LOG_KINDS.length; i++) if (LOG_KINDS[i][1].test(text)) return LOG_KINDS[i][0];
+    return "";
+  }
+
   function addLog(text, cls) {
     var log = $("log");
     var stick = log.scrollTop + log.clientHeight >= log.scrollHeight - 30;
     var p = document.createElement("p");
     if (text === "") p.className = "sep";
-    else p.textContent = text;
+    else {
+      p.textContent = text;
+      var kind = logKind(text);
+      if (kind) p.classList.add("k-" + kind);
+    }
     if (cls) p.classList.add(cls);
     log.appendChild(p);
     while (log.childNodes.length > MAX_LOG) log.removeChild(log.firstChild);
@@ -1180,10 +1200,54 @@
     $("chat-input").placeholder = on ? "Say something…" : "Chat opens once you're in the realm";
   }
 
+  /* chat: each speaker gets a colour of their own; announcements and
+     replies to your commands look different from people talking */
+  function nameHue(name) {
+    var h = 0;
+    for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
+    return h;
+  }
+  /* a speaker must be someone in the realm (titles like "King Blue" too) */
+  function isPlayerName(who) {
+    var w = who.toLowerCase();
+    if (name && w === name.toLowerCase()) return true;
+    return players.some(function (pl) {
+      var n = pl.name.toLowerCase();
+      return w === n || w.slice(-n.length - 1) === " " + n;
+    });
+  }
   function addChat(text) {
     var log = $("chat-log");
     var p = document.createElement("p");
-    p.textContent = text;
+    var m = /^(\((\d+)\) - )?([^:]{1,48}?)( proclaims)?: (.*)$/.exec(text);
+    var me = (name || "").toLowerCase();
+    if (/^\*\*\*/.test(text)) {
+      p.className = "c-announce";
+      p.textContent = text.replace(/^\*+\s*|\s*\*+$/g, "");
+    }
+    else if (m && isPlayerName(m[3])) {
+      /* someone talking: "Name: message" */
+      var who = document.createElement("b");
+      who.className = "who";
+      who.textContent = m[3] + (m[4] || "");
+      who.style.color = "hsl(" + nameHue(m[3]) + ", 70%, 72%)";
+      if (m[2]) {
+        var ch = document.createElement("span");
+        ch.className = "chan";
+        ch.textContent = "[" + m[2] + "] ";
+        p.appendChild(ch);
+        p.classList.add("c-other");
+      }
+      p.appendChild(who);
+      p.appendChild(document.createTextNode(": " + m[5]));
+      if (m[4]) p.classList.add("c-proclaim");
+      if (me && m[3].toLowerCase().indexOf(me) < 0 && m[5].toLowerCase().indexOf(me) >= 0) p.classList.add("c-mention");
+    }
+    else {
+      /* the realm's news and answers to your commands */
+      p.textContent = text;
+      p.className = /has slain|has claimed|nemesis|champion|has completed|liberat|has fallen|retaken|crowned|Hail |Long live|Behold the new Valar|has found (the |[A-Z])/.test(text) ? "c-news" : "c-system";
+    }
     log.appendChild(p);
     while (log.childNodes.length > MAX_CHAT) log.removeChild(log.firstChild);
     log.scrollTop = log.scrollHeight;
