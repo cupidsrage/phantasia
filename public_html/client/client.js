@@ -20,7 +20,7 @@
     NAME: 40, LOCATION: 41, ENERGY: 42, STRENGTH: 43, SPEED: 44,
     SHIELD: 45, SWORD: 46, QUICKSILVER: 47, MANA: 48, LEVEL: 49,
     GOLD: 50, GEMS: 51, CLOAK: 52, BLESSING: 53, CROWN: 54,
-    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61
+    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61, WIZARD: 62
   };
 
   /* ---- client -> server ---- */
@@ -171,6 +171,7 @@
         case P.CONNECTION_DETAIL: await showDetail(); break;
         case P.GEAR: await readGear(); break;
         case P.WORLD_EVENT: await readWorldEvent(); break;
+        case P.WIZARD: { var lvl = await nextInt(); wizardArrives(await next(), lvl); break; }
         default:
           if (type >= P.NAME && type <= P.VIRGIN) await updateStatus(type);
           else console.warn("Unknown packet", type);
@@ -671,6 +672,50 @@
     };
     tick();
     eventTimer = setInterval(tick, 1000);
+  }
+
+  /* ------------------------------------------------------- a wizard arrives */
+
+  var BOLT = '<svg class="bolt" viewBox="0 0 140 600" preserveAspectRatio="none">' +
+    '<path d="M78 0 L52 170 L84 176 L40 330 L76 336 L30 600 L110 300 L74 296 L112 150 L80 146 L100 0 Z" fill="#eef4ff"/></svg>';
+
+  function wizardArrives(name, level) {
+    var old = document.querySelector(".arrival");
+    if (old) old.remove();
+
+    var big = level >= 3;
+    var el = document.createElement("div");
+    el.className = "arrival" + (big ? "" : " apprentice");
+    el.setAttribute("role", "status");
+    el.innerHTML = (big ? '<div class="flash"></div>' + BOLT : '<div class="smoke"></div>') +
+      '<div class="card"><div class="rank"></div><div class="who"></div><div class="what"></div></div>';
+    el.querySelector(".rank").textContent = big ? "Wizard" : "Apprentice";
+    el.querySelector(".who").textContent = name;
+    el.querySelector(".what").textContent = big ? "has entered the realm!" : "appears in a puff of smoke";
+
+    /* a burst of sparks */
+    for (var i = 0; i < (big ? 36 : 14); i++) {
+      var s = document.createElement("span");
+      s.className = "spark";
+      var a = Math.random() * Math.PI * 2, r = 120 + Math.random() * (big ? 380 : 180);
+      s.style.setProperty("--dx", Math.cos(a) * r + "px");
+      s.style.setProperty("--dy", Math.sin(a) * r + "px");
+      s.style.animationDelay = (big ? 0.15 : 0.3) + Math.random() * 0.3 + "s";
+      el.appendChild(s);
+    }
+
+    var done = function () { if (el.parentNode) el.remove(); };
+    el.addEventListener("click", done);
+    document.body.appendChild(el);
+    setTimeout(done, 5600);
+
+    if (level >= 4) {
+      var app = $("app");
+      app.classList.remove("shake");
+      void app.offsetWidth;          /* restart the animation */
+      app.classList.add("shake");
+      setTimeout(function () { app.classList.remove("shake"); }, 1000);
+    }
   }
 
   /* ------------------------------------------------------- players */

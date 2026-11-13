@@ -3163,6 +3163,11 @@ Do_entering_character(struct client_t *c)
 
     Do_broadcast(c, string_buffer);
 
+	/* browsers make a show of a wizard's arrival */
+    if (c->wizard >= 2) {
+	Do_announce_wizard(c);
+    }
+
         /* It's okay to chat now */
     Do_send_int(c, ACTIVATE_CHAT_PACKET);
 
