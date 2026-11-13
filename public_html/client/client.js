@@ -257,11 +257,36 @@
     return "";
   }
 
+  /* a line naming a piece of gear ("Fine Dagger of Thorns (Weapon) ...")
+     shows the item in its tier's colour, like the gear panel does */
+  var ITEM_LINE = /^(.*?)([A-Z][^():]*?) \((Weapon|Armor|Helm|Boots|Trinket|Regalia)\)(.*)$/;
+  var ARTIFACT_NAMES = /^(Mourneblade|The Phoenix Amulet|The Crown of the Deep|Gwaihir's Feather|The Dragonscale Aegis|The Ring of Hoarding|Wyrmslayer|The Mantle of Shadows|The Helm of Ages|The Wind-lord's Boots|The Archmage's Circlet|The Steward's Seal|The King's Crown|The Queen's Crown|The Halo of the Valar)$/;
+  var recentItems = [];        /* items just listed, to colour the buttons that follow */
+  function itemTier(itemName) {
+    if (ARTIFACT_NAMES.test(itemName)) return 5;
+    var m = /^(Worn|Fine|Masterwork|Enchanted) /.exec(itemName);
+    return m ? ["Worn", "", "Fine", "Masterwork", "Enchanted"].indexOf(m[1]) : 1;
+  }
+
   function addLog(text, cls) {
     var log = $("log");
     var stick = log.scrollTop + log.clientHeight >= log.scrollHeight - 30;
     var p = document.createElement("p");
+    var im = text ? ITEM_LINE.exec(text) : null;
     if (text === "") p.className = "sep";
+    else if (im) {
+      /* "<lead>Item Name (Slot) <stats>": the name in its tier colour */
+      var tier = itemTier(im[2].trim());
+      p.className = "k-item";
+      if (im[1]) p.appendChild(document.createTextNode(im[1]));
+      var nm = document.createElement("span");
+      nm.className = "gitem t" + tier;
+      nm.textContent = im[2];
+      p.appendChild(nm);
+      p.appendChild(document.createTextNode(" (" + im[3] + ")" + im[4]));
+      recentItems.push({ name: im[2].trim().toLowerCase(), tier: tier });
+      if (recentItems.length > 24) recentItems.shift();
+    }
     else {
       p.textContent = text;
       var kind = logKind(text);
@@ -382,6 +407,8 @@
       var i = slotServer[d], label = i === null ? "" : serverLabels[i];
       var b = actionButtons[d];
       b.querySelector("span").textContent = label;
+      var tier = i === null ? -1 : serverTiers[i];
+      b.querySelector("span").style.color = tier >= 0 ? TIER_COLORS[tier] : "";
       b.classList.toggle("empty", label === "" && !arranging);
       b.classList.toggle("slot-empty", label === "");
       b.classList.toggle("picked", arranging && d === arrangePick);
@@ -389,8 +416,20 @@
     }
   }
 
+  var serverTiers = [-1, -1, -1, -1, -1, -1, -1, -1];
   async function readButtons(withCompass) {
     for (var i = 0; i < 8; i++) serverLabels[i] = await next();
+    /* a shop's buttons name the items it just listed: give each its colour */
+    var pool = recentItems.slice();
+    for (var j = 0; j < 8; j++) {
+      serverTiers[j] = -1;
+      var lab = serverLabels[j].toLowerCase();
+      if (!lab) continue;
+      for (var q = 0; q < pool.length; q++) {
+        if (pool[q] && pool[q].name.indexOf(lab) >= 0) { serverTiers[j] = pool[q].tier; pool[q] = null; break; }
+      }
+    }
+    recentItems = [];
     placeButtons();
     buttonsLive = true;
     drawButtons();

@@ -218,6 +218,11 @@ body.event-siege .panel { border-color: #4a3020; }
 .log p.k-heal { color: #7fe0c8; }
 .log p.k-reward { color: #9ee08a; }
 .log p.k-world { color: #8fb8ff; }
+.log p.k-item { color: var(--muted); }
+.log .gitem { font-weight: 600; }
+.log .gitem.t0 { color: #9c9182; } .log .gitem.t1 { color: var(--text); }
+.log .gitem.t2 { color: #7fc97a; } .log .gitem.t3 { color: #6aa6e8; }
+.log .gitem.t4 { color: #c58cf0; } .log .gitem.t5 { color: var(--gold-2); }
 
 .actions {
   display: grid;
