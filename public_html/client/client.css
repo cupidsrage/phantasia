@@ -210,6 +210,15 @@ body.event-siege .panel { border-color: #4a3020; }
 .log p.sep { height: 6px; }
 .log p.old { opacity: 0.55; }
 
+/* what each line of the game log is about */
+.log p.k-announce { color: var(--gold-2); font-weight: 600; }
+.log p.k-hurt { color: #ff8f80; }
+.log p.k-foe { color: #ff6f6f; font-weight: 600; }
+.log p.k-deal { color: #ffb768; }
+.log p.k-heal { color: #7fe0c8; }
+.log p.k-reward { color: #9ee08a; }
+.log p.k-world { color: #8fb8ff; }
+
 .actions {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -310,6 +319,15 @@ button {
   white-space: pre-wrap; word-wrap: break-word;
 }
 .chat-log p { margin: 0 0 3px; }
+.chat-log p.c-announce { color: var(--gold-2); font-weight: 600; padding: 3px 7px; margin: 4px 0;
+  border-left: 3px solid var(--gold); background: rgba(214, 168, 74, 0.08); border-radius: 0 6px 6px 0; }
+.chat-log p.c-news { color: #ffcf8a; }
+.chat-log p.c-system { color: var(--muted); font-style: italic; }
+.chat-log p.c-other { opacity: 0.8; }
+.chat-log p.c-other .chan { color: var(--muted); font-size: 0.9em; }
+.chat-log p.c-proclaim { font-weight: 600; }
+.chat-log p.c-mention { background: rgba(240, 205, 122, 0.12); border-radius: 4px; padding: 0 4px; }
+.chat-log .who { font-weight: 700; }
 .chat-form { display: flex; gap: 6px; margin-top: 8px; }
 
 input[type="text"], input[type="password"], input[type="number"], select {
