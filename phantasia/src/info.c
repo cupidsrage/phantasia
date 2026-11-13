@@ -112,8 +112,8 @@ struct examine_t *Do_create_examine(struct client_t *c, struct game_t *requestor
     examine_ptr->quickness = c->player.quickness;
     examine_ptr->max_quickness = c->player.max_quickness;
     examine_ptr->mana = c->player.mana;
-    examine_ptr->brains = c->player.brains;
-    examine_ptr->magiclvl = c->player.magiclvl;
+    examine_ptr->brains = Do_eff_brains(c);
+    examine_ptr->magiclvl = Do_eff_magiclvl(c);
     examine_ptr->poison = c->player.poison;
     examine_ptr->sin = c->player.sin;
     examine_ptr->lives = c->player.lives;

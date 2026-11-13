@@ -115,9 +115,13 @@ typedef char bool;
 #define AB_PHOENIX		10	/* artifact: cheat death once */
 #define AB_SEAFARER		11	/* artifact: water monsters flee */
 #define AB_DRAGONBANE		12	/* artifact: double damage to dragons */
-#define NUM_ABILITIES		13
+#define AB_INSIGHT		13	/* more brains */
+#define AB_ARCANA		14	/* higher magic level */
+#define AB_WELLSPRING		15	/* regain mana each turn */
+#define AB_FOCUS		16	/* spells cost less mana */
+#define NUM_ABILITIES		17
 
-#define NUM_ARTIFACTS		10
+#define NUM_ARTIFACTS		11
 #define NUM_CHARS		6	/* number of character types */
 #define NUM_ITEMS		7	/* items in the shops */
 

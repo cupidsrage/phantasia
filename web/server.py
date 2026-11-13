@@ -237,7 +237,7 @@ async def bridge(reader, writer, headers, game_port):
 
 def artifact_holders(data_dir):
     """[{id, holder}] from the game's artifact file (holder "" if lost)."""
-    holders = {i: "" for i in range(1, 11)}
+    holders = {i: "" for i in range(1, 12)}  # artifacts 1-11
     try:
         with open(os.path.join(data_dir, "artifacts"), encoding="latin-1") as f:
             for line in f:

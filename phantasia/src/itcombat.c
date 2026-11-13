@@ -51,7 +51,7 @@ void Do_opponent_struct(struct client_t *c, struct opponent_t *theOpponent)
     theOpponent->max_energy = c->player.max_energy + c->player.shield;
     theOpponent->speed = c->player.quickness + 1;
     theOpponent->max_speed = theOpponent->speed;
-    theOpponent->brains = c->player.brains;
+    theOpponent->brains = Do_eff_brains(c);
     theOpponent->size = c->player.level;
 
     /* the bigger they are, the harder they fall to all or nothing */
