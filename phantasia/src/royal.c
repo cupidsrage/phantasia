@@ -185,6 +185,9 @@ void Do_royal_tithe(struct client_t *c, double spent)
 {
     double gold = floor(spent * 0.10), room;
 
+	/* spending also helps the local town prosper */
+    Do_world_spend(c, spent);
+
     if (gold < 1) {
 	return;
     }

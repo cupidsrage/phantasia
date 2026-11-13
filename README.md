@@ -80,6 +80,35 @@ from `/api/artifacts`). Gear is kept in `data/gear` and artifact holders in
 turned into equal "Worn" gear the first time they play. The player guide
 is `public_html/gear.html`.
 
+### The living realm (`src/world.c`)
+
+The realm changes with what players do. Its state is kept in `data/world`
+and published as `data/world.json` (served at `/api/world`, shown on the
+website's Realm Today page and in `/realm` in chat):
+
+- **Shadow:** eight regions (one per compass direction around the
+  Heartlands) slowly fill with Shadow; kills there push it back. Blighted
+  regions (75%+) have stronger, richer monsters; liberated ones (under 25%)
+  are safer with cheaper shops.
+- **Towns:** each region's town prospers with spending and kills (cheaper
+  shops, a healing inn) and falls when its Shadow reaches 95% (its trading
+  posts are closed until the Shadow is pushed under 50%).
+- **Sieges:** every few hours (`PHANTASIA_SIEGE_HOURS`, default 8) a
+  monster army marches on the throne for 45 minutes. Kills anywhere cut it
+  down. Victory pays the defenders; defeat overruns the throne room for a
+  day (no decrees, deadlier Heartlands, more Shadow).
+- **Realm projects:** five shared goals funded with gold at trading posts
+  and with kills, each giving a permanent realm-wide benefit.
+- **Nemeses:** monsters that kill players (always champions) become named,
+  growing nemeses with bounties.
+- **Ecology:** over-hunted species give way to emboldened neighbours.
+  Rare creatures appear only under the right conditions.
+- **Day and night, seasons:** night falls one hour in three; the season
+  changes weekly.
+
+Wizards can start a siege with `/event start siege`. Test builds
+(`-DGEAR_TEST`) have `/worldtest` shortcuts.
+
 ### Account deeds (`src/deeds.c`)
 
 Lifetime achievements of an account give every character on it a small

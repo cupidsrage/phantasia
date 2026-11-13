@@ -2029,6 +2029,14 @@ long answer;
 double dtemp;
 float ftemp;
 
+	/* a lost siege leaves the throne room in monsters' hands */
+    if (Do_world_throne_overrun() && c->wizard < 3) {
+	Do_send_line(c, "Monsters overrun the Lord's Chamber! No one can rule from here until it is cleared.\n");
+	Do_more(c);
+	Do_send_clear(c);
+	return;
+    }
+
 	/* determine what the player wants to do */
     strcpy(buttons.button[0], "Transport\n");
     strcpy(buttons.button[1], "Curse\n");
@@ -2295,6 +2303,14 @@ char error_msg[SZ_ERROR_MESSAGE];
 long answer;
 double dtemp;
 float ftemp;
+
+	/* a lost siege leaves the throne room in monsters' hands */
+    if (Do_world_throne_overrun() && c->wizard < 3) {
+	Do_send_line(c, "Monsters overrun the Lord's Chamber! No one can rule from here until it is cleared.\n");
+	Do_more(c);
+	Do_send_clear(c);
+	return;
+    }
 
 	/* determine what the player wants to do */
     strcpy(buttons.button[0], "Oust\n");
@@ -4032,6 +4048,14 @@ Do_trading_post(struct client_t *c)
     char string_buffer[SZ_LINE], error_msg[SZ_ERROR_MESSAGE];
     struct event_t *event_ptr;
     long answer;              /* pointer to option description */
+    double pf;                /* the town's prices (prosperity, liberation, projects) */
+
+	/* a town fallen to the Shadow has no trade; a flourishing one's
+	   inn feeds you */
+    if (Do_world_trading_post(c)) {
+	return;
+    }
+    pf = Do_world_price_factor(c);
 
     size = sqrt(fabs(c->player.x) / 100) + 1;
 
@@ -4043,8 +4067,8 @@ Do_trading_post(struct client_t *c)
     }
 
         /* set up cost of variable items */
-    blessingcost = 500.0 * (c->player.level + 5.0) + 10000;
-    amuletcost = 250.0 + floor(c->player.level / 5);
+    blessingcost = floor((500.0 * (c->player.level + 5.0) + 10000) * pf);
+    amuletcost = floor((250.0 + floor(c->player.level / 5)) * pf);
 
     Do_clear_buttons(&theItems, 0);
 
@@ -4068,7 +4092,7 @@ Do_trading_post(struct client_t *c)
 	    else if (loop == 3) 
                 cost = amuletcost;
             else
-                cost = c->realm->shop_item[loop].cost;
+                cost = (c->realm->shop_item[loop].cost * pf);
 
 	    if (loop == 1 || loop == 4 || loop == 5) {
 		sprintf(string_buffer, "%-12s: see the armory\n",
@@ -4113,6 +4137,7 @@ Do_trading_post(struct client_t *c)
 	Do_clear_buttons(&theButtons, 3);
 	strcpy(theButtons.button[3], "Armory\n");
 	strcpy(theButtons.button[4], "Bags\n");
+	strcpy(theButtons.button[5], "Realm Project\n");
 
 	if (Do_buttons(c, &itemp, &theButtons) != S_NORM) {
 	    Do_send_clear(c);
@@ -4130,6 +4155,11 @@ Do_trading_post(struct client_t *c)
 	    break;
         case 4:           /* buy a bigger bag */
 	    Do_gear_bag_shop(c);
+	    break;
+
+        case 5:           /* give gold to the realm project */
+	    Do_world_donate(c);
+	    Do_send_clear(c);
 	    break;
 
         case 0:           /* make purchase */
@@ -4158,16 +4188,16 @@ Do_trading_post(struct client_t *c)
                 case 0:
                     sprintf(string_buffer,
 	"Mana is one per %.0f gold piece.  How many do you want (%.0f max)?\n",
-                    	    c->realm->shop_item[0].cost,
+                    	    (c->realm->shop_item[0].cost * pf),
 			    floor(c->player.gold /
-			    c->realm->shop_item[0].cost));
+			    (c->realm->shop_item[0].cost * pf)));
 
 		    if (Do_double_dialog(c, &numitems, string_buffer)) {
 		        Do_send_clear(c);
 			break;
 		    }
 
-                    cost = numitems * c->realm->shop_item[0].cost;
+                    cost = numitems * (c->realm->shop_item[0].cost * pf);
 
                     if (cost > c->player.gold || numitems < 0)
                         ++cheat;
@@ -4208,8 +4238,8 @@ Do_trading_post(struct client_t *c)
 
                     sprintf(string_buffer,
 	  	   "A book costs %.0f gp.  How many do you want (%.0f max)?\n",
-                   c->realm->shop_item[2].cost, floor(c->player.gold /
-		   c->realm->shop_item[2].cost));
+                   (c->realm->shop_item[2].cost * pf), floor(c->player.gold /
+		   (c->realm->shop_item[2].cost * pf)));
 
 		    if (Do_double_dialog(c, &numitems, string_buffer)) {
 		        Do_send_clear(c);
@@ -4217,7 +4247,7 @@ Do_trading_post(struct client_t *c)
 		    }
 
 		    Do_send_clear(c);
-                    cost = numitems * c->realm->shop_item[2].cost;
+                    cost = numitems * (c->realm->shop_item[2].cost * pf);
 
                     if (cost > c->player.gold || numitems < 0)
                         ++cheat;

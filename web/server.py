@@ -8,7 +8,7 @@ server's TCP port.  Uses only the Python standard library.
     server.py --port 8080 --dir /app/public_html --game-port 43302
 
 /api/artifacts returns who holds each one-of-a-kind artifact, for the
-website's Legends page; /api/event the world event under way, for the
+website's Legends page; /api/world the state of the living realm; /api/event the world event under way, for the
 event banner on the website.
 
 The bridge performs the game's connection handshake itself, sending the
@@ -256,6 +256,7 @@ EVENT_EFFECTS = {
     1: "monsters roam more often and give double experience",
     2: "treasure is far more common and gold finds are doubled",
     3: "champions stalk the realm in great numbers",
+    4: "a monster army marches on the throne: slay monsters anywhere to push it back",
 }
 
 
@@ -274,6 +275,16 @@ def world_event(data_dir):
         return none
     return {"event": event, "name": name, "secondsLeft": left,
             "effect": EVENT_EFFECTS.get(event, "")}
+
+
+def world_state(data_dir):
+    """The living realm (regions, towns, sieges, projects, nemeses, news),
+    as the game publishes it in world.json."""
+    try:
+        with open(os.path.join(data_dir, "world.json"), encoding="latin-1") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
 
 
 async def send_json(writer, data):
@@ -299,6 +310,8 @@ async def handle(reader, writer, args):
             await send_json(writer, artifact_holders(args.data_dir))
         elif path == "/api/event":
             await send_json(writer, world_event(args.data_dir))
+        elif path == "/api/world":
+            await send_json(writer, world_state(args.data_dir))
         elif method in ("GET", "HEAD"):
             await serve_file(writer, method, target, args.dir)
         else:

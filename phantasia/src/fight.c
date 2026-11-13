@@ -147,12 +147,22 @@ Do_monster(struct client_t *c, struct event_t *the_event)
 	}
     }
 
+	/* the living world: a nemesis, a rare creature, or a neighbour of
+	   a species that has been hunted out */
+    c->nemesisFight = -1;
+    c->rareFight = 0;
+    c->emboldened = FALSE;
+    if (randomMonster && (int) the_event->arg1 != MONSTER_PURGATORY) {
+	c->battle.opponent->type = Do_world_pick_monster(c, c->battle.opponent->type);
+    }
+
     if (c->battle.opponent->type == 100) {
             c->battle.opponent->type = 15;
     }
 
 	/* sometimes meet one of the newer monsters instead */
     if (randomMonster && c->player.special_type != SC_VALAR &&
+	    !Do_world_special_encounter(c) &&
 	    (extraMonster = Do_pick_extra_monster(c)) >= 0) {
 
 	c->battle.opponent->type = extraMonster;
@@ -190,6 +200,9 @@ Do_monster(struct client_t *c, struct event_t *the_event)
     } else {
     	c->battle.opponent->size = c->player.circle;
     }
+
+	/* a nemesis keeps the size it grew to */
+    c->battle.opponent->size = Do_world_nemesis_size(c, c->battle.opponent->size);
 
     Do_lock_mutex(&c->realm->monster_lock);
 
@@ -363,6 +376,11 @@ Do_monster(struct client_t *c, struct event_t *the_event)
 
 	/* and the account's deeds add their share */
     c->battle.opponent->experience *= Do_deeds_xp_factor(c);
+
+	/* region, night, season; nemeses and rare creatures */
+    if (Do_world_shape_monster(c)) {
+	randomMonster = FALSE;
+    }
 
 	/* rarely, a random monster is a named champion */
     c->championFight = FALSE;
@@ -691,6 +709,9 @@ Do_monster(struct client_t *c, struct event_t *the_event)
 	    }
 	    else {
 	        event_ptr->arg3 = K_MONSTER;
+
+		    /* the monster may become a nemesis of the realm */
+		Do_world_player_slain(c);
 	    }
 
 	    event_ptr->arg4 = (void *) Do_malloc(
@@ -723,8 +744,9 @@ Do_monster(struct client_t *c, struct event_t *the_event)
     if (c->battle.opponent->experience) {
 	Do_experience(c, c->battle.opponent->experience, FALSE);
 
-	    /* account deeds, champions, daily quests and gear */
+	    /* account deeds, the living world, champions, quests and gear */
 	Do_deeds_kill(c);
+	Do_world_kill(c);
 	Do_champion_slain(c);
 	Do_quest_kill(c);
 	Do_gear_monster_drop(c);

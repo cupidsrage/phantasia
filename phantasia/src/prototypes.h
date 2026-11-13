@@ -368,6 +368,37 @@ void Do_gear_chat(struct client_t *c);
 void Do_artifacts_chat(struct client_t *c);
 
 #endif /* PHANTASIA_PROTOTYPES_H */
+	/* world.c */
+int Do_world_is_night(void);
+int Do_world_season(void);
+void Do_nemesis_name(int i, char *out);
+void Do_world_start_siege(struct client_t *c, int players);
+void Do_world_siege_effect(char *out);
+long Do_world_siege_bucket(void);
+void Do_world_siege_over(struct client_t *c);
+int Do_world_throne_overrun(void);
+void Do_world_turn(struct client_t *c);
+void Do_world_kill(struct client_t *c);
+void Do_world_player_slain(struct client_t *c);
+void Do_world_spend(struct client_t *c, double gold);
+int Do_world_pick_monster(struct client_t *c, int type);
+int Do_world_special_encounter(struct client_t *c);
+double Do_world_nemesis_size(struct client_t *c, double size);
+int Do_world_shape_monster(struct client_t *c);
+double Do_world_monster_chance_factor(struct client_t *c);
+double Do_world_gold_factor(struct client_t *c);
+double Do_world_gear_factor(struct client_t *c);
+double Do_world_spell_factor(void);
+double Do_world_price_factor(struct client_t *c);
+int Do_world_trading_post(struct client_t *c);
+void Do_world_donate(struct client_t *c);
+void Do_world_chat(struct client_t *c);
+#ifdef GEAR_TEST
+void Do_world_test(struct client_t *c, char *what);
+#endif
+int Do_env_minutes(const char *name, int fallback);
+const char *Do_strip_article(const char *name);
+void Do_wizard_log(struct client_t *c, char *what);
 	/* deeds.c */
 void Do_deeds_kill(struct client_t *c);
 void Do_deeds_quest(struct client_t *c);

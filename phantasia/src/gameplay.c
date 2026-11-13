@@ -39,7 +39,7 @@ static const char *championNames[] = {
 / helpers
 *************************************************************************/
 
-static int Do_env_minutes(const char *name, int fallback)
+int Do_env_minutes(const char *name, int fallback)
 {
     char *value = getenv(name);
     int minutes;
@@ -60,7 +60,7 @@ void Do_send_chat_self(struct client_t *c, char *message)
 }
 
 	/* "A Troll" -> "Troll" */
-static const char *Do_strip_article(const char *name)
+const char *Do_strip_article(const char *name)
 {
     if (strncmp(name, "A ", 2) == 0) {
 	return name + 2;
@@ -99,6 +99,9 @@ const char *Do_world_event_name(int theEvent)
 
     case WE_CHAMPION_HUNT:
 	return "Champion Hunt";
+
+    case WE_SIEGE:
+	return "Siege of the Throne";
     }
 
     return "none";
@@ -116,6 +119,13 @@ static const char *Do_world_event_effect(int theEvent)
 
     case WE_CHAMPION_HUNT:
 	return "champions stalk the realm in great numbers";
+
+    case WE_SIEGE:
+	{
+	    static char siege[SZ_LINE];		/* changes as the army falls */
+	    Do_world_siege_effect(siege);
+	    return siege;
+	}
     }
 
     return "";
@@ -166,7 +176,7 @@ void Do_world_event_start(struct client_t *c, int theEvent, int minutes)
     time_t now = time(NULL);
     char message[SZ_LINE];
 
-    if (theEvent < 1 || theEvent > WE_COUNT) {
+    if ((theEvent < 1 || theEvent > WE_COUNT) && theEvent != WE_SIEGE) {
 	theEvent = MIN(WE_COUNT, 1 + (int) ROLL(0.0, (double) WE_COUNT));
     }
     minutes = MAX(1, minutes);
@@ -205,6 +215,11 @@ void Do_world_event_stop(struct client_t *c)
     }
 
     Do_world_event_publish(WE_NONE, 0);
+
+	/* a siege that ran out of time was lost */
+    if (ended == WE_SIEGE) {
+	Do_world_siege_over(c);
+    }
 
     sprintf(message, "*** The %s has ended. ***\n",
 	    Do_world_event_name(ended));
@@ -265,12 +280,14 @@ void Do_world_event_sync(struct client_t *c)
     Do_unlock_mutex(&c->realm->realm_lock);
 
     if (theEvent == c->shownEvent && (theEvent == WE_NONE ||
-	    ends == c->shownEventEnds)) {
+	    ends == c->shownEventEnds) &&
+	    (theEvent != WE_SIEGE || Do_world_siege_bucket() == c->shownSiegeBucket)) {
 	return;
     }
 
     c->shownEvent = theEvent;
     c->shownEventEnds = ends;
+    c->shownSiegeBucket = theEvent == WE_SIEGE ? Do_world_siege_bucket() : -1;
 
     Do_send_int(c, WORLD_EVENT_PACKET);
     sprintf(line, "%d\n%s\n%ld\n%s\n", theEvent,
@@ -298,7 +315,8 @@ void Do_world_event_publish(int theEvent, time_t ends)
 	/* chance of a random monster encounter per turn */
 double Do_monster_chance(struct client_t *c)
 {
-    return Do_current_world_event(c) == WE_BLOOD_MOON ? 0.32 : 0.20;
+    return (Do_current_world_event(c) == WE_BLOOD_MOON ? 0.32 : 0.20) *
+	    Do_world_monster_chance_factor(c);
 }
 
 	/* multiplier for chances of finding treasure */
@@ -311,7 +329,8 @@ double Do_treasure_chance_factor(struct client_t *c)
 double Do_gold_find_factor(struct client_t *c)
 {
     return (Do_current_world_event(c) == WE_GOLD_RUSH ? 2.0 : 1.0) *
-	    Do_reign_gold_factor(c) * Do_deeds_gold_factor(c);
+	    Do_reign_gold_factor(c) * Do_deeds_gold_factor(c) *
+	    Do_world_gold_factor(c);
 }
 
 
@@ -833,8 +852,13 @@ int Do_chat_command(struct client_t *c, char *text)
 	    else if (strncasecmp(kind, "gold", 4) == 0) theEvent = WE_GOLD_RUSH;
 	    else if (strncasecmp(kind, "hunt", 4) == 0 ||
 		    strncasecmp(kind, "champ", 5) == 0) theEvent = WE_CHAMPION_HUNT;
+	    else if (strncasecmp(kind, "siege", 5) == 0) {
+		Do_world_start_siege(c, 2);
+		Do_wizard_log(c, "started a siege");
+		return TRUE;
+	    }
 	    else if (strncasecmp(kind, "random", 6) != 0) {
-		Do_send_chat_self(c, "Use: /event start blood|gold|hunt|random [minutes]\n");
+		Do_send_chat_self(c, "Use: /event start blood|gold|hunt|siege|random [minutes]\n");
 		return TRUE;
 	    }
 	    Do_world_event_start(c, theEvent, MAX(1, MIN(1440, minutes)));
@@ -858,6 +882,9 @@ int Do_chat_command(struct client_t *c, char *text)
     else if (strncasecmp(text, "/deedtest", 9) == 0) {
 	Do_deeds_test(c);
     }
+    else if (strncasecmp(text, "/worldtest", 10) == 0) {
+	Do_world_test(c, text + 11);
+    }
 	/* test builds only: a caster strong enough for every spell */
     else if (strncasecmp(text, "/spelltest", 10) == 0) {
 	c->player.magiclvl = 100;
@@ -869,6 +896,9 @@ int Do_chat_command(struct client_t *c, char *text)
     else if (strncasecmp(text, "/ceremony", 9) == 0 && text[9] != 't' &&
 	    c->wizard >= 2) {
 	Do_ceremony_chat(c, text + 9);
+    }
+    else if (strncasecmp(text, "/realm", 6) == 0) {
+	Do_world_chat(c);
     }
     else if (strncasecmp(text, "/deeds", 6) == 0) {
 	Do_deeds_chat(c);
@@ -901,6 +931,7 @@ int Do_chat_command(struct client_t *c, char *text)
 	Do_send_chat_self(c, "/filter - turn the chat filter on or off\n");
 	Do_send_chat_self(c, "/court - who rules, the royal coffers and the Valar's blessing\n");
 	Do_send_chat_self(c, "/deeds - your account's deeds and the bonuses they give all your characters\n");
+	Do_send_chat_self(c, "/realm - the state of the realm: regions, towns, the season, projects and nemeses\n");
 	if (c->wizard >= 3) {
 	    Do_send_chat_self(c, "Wizards: /event start blood|gold|hunt|random [minutes], /event stop\n");
 	    Do_send_chat_self(c, "Wizards: Administrate > Realm Tools for artifacts, gear, bags, quests, champions, ceremonies\n");

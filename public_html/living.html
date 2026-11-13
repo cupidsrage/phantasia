@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Living Realm · Phantasia Reimagined</title>
+<meta name="description" content="Phantasia Reimagined: The Living Realm">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+</head>
+<body class="page-living">
+<header class="site-head">
+  <a class="logo" href="index.html">Phantasia<span>Reimagined</span></a>
+  <nav class="site-nav" aria-label="Site"><a href="whatsnew.html">What's New</a><a href="intro.html" class="here">Guide</a><a href="world.html">Realm Today</a><a href="legends.html">Legends</a><a href="info.html">About</a><a class="play" href="play.html">Play</a></nav>
+</header>
+<main class="wrap with-side">
+<aside class="side panel"><details open><summary>Guide</summary><div class="side-inner"><h3>Getting started</h3><ul><li><a href="intro.html">Introduction</a></li><li><a href="characters.html">Characters</a></li><li><a href="stats.html">Statistics</a></li><li><a href="interface.html">The Game Screen</a></li><li><a href="commands.html">Commands</a></li><li><a href="tips.html">Tips</a></li></ul><h3>Adventuring</h3><ul><li><a href="realm.html">The Realm</a></li><li><a href="living.html" class="here">The Living Realm</a></li><li><a href="combat.html">Combat</a></li><li><a href="itcombat.html">Player Combat</a></li><li><a href="spells.html">Spells</a></li><li><a href="monsters.html">Monsters</a></li><li><a href="treasure.html">Treasure</a></li><li><a href="deeds.html">Deeds</a></li></ul><h3>Gear</h3><ul><li><a href="gear.html">Gear and Artifacts</a></li><li><a href="equipment.html">Equipment</a></li></ul><h3>Rulers</h3><ul><li><a href="steward.html">The Steward</a></li><li><a href="king.html">The King or Queen</a></li><li><a href="valar.html">The Valar</a></li><li><a href="council.html">The Council of the Wise</a></li></ul></div></details></aside><script>if (window.innerWidth < 860) document.querySelector(".side details").removeAttribute("open");</script>
+<article class="content">
+<h1>The Living Realm</h1><div class="rule"></div>
+<p class="lead">The realm changes with what its adventurers do, and with the passing of
+day and night. See how it stands right now on <a href="world.html">The Realm Today</a>,
+or type <code>/realm</code> in chat.</p>
+
+<h2 id="regions">Shadow and liberation</h2>
+<p>Beyond the Heartlands at the centre, the realm is split into eight regions, one for each
+direction of the compass: the Eastern Marches, the Dawnwood, the Northern Reach, the
+Frostfells, the Western Wastes, the Sunken Fens, the Southern Expanse and the Ember Coast.
+Shadow slowly creeps over every region, and every monster slain there pushes it back
+(champions push five times as hard, nemeses twenty).</p>
+<div class="table-scroll"><table>
+  <tr><th>State</th><th>Shadow</th><th>What it means</th></tr>
+  <tr><td><b>Liberated</b></td><td>under 25%</td><td>Monsters roam less, and shops are 10% cheaper. Whoever strikes the liberating blow is named across the realm.</td></tr>
+  <tr><td><b>Contested</b></td><td>25% to 74%</td><td>Nothing special, yet.</td></tr>
+  <tr><td><b>Blighted</b></td><td>75% or more</td><td>Monsters roam more often and are 20% stronger, but give 25% more experience and gold.</td></tr>
+</table></div>
+<p>When you cross into a region the game tells you its state, and the browser client shows
+it at the top of the screen.</p>
+
+<h2 id="towns">Living towns</h2>
+<p>Each region has a town, whose trading posts serve the whole region. A town prospers when
+adventurers spend gold in it and fight nearby, and slowly declines when it is left alone.</p>
+<ul>
+  <li><b>Struggling</b>: prices are 10% higher.</li>
+  <li><b>Steady</b>: normal prices.</li>
+  <li><b>Thriving</b>: prices are 5% lower.</li>
+  <li><b>Flourishing</b>: prices are 10% lower, and the inn heals you fully whenever you visit a trading post.</li>
+  <li><b>Fallen</b>: if its region's Shadow reaches 95%, the town falls and its trading posts lie in
+  ruins. Push the Shadow back under 50% to retake it.</li>
+</ul>
+
+<h2 id="sieges">Sieges on the throne</h2>
+<p>Every so often a monster army marches on the Lord's Chamber. For 45 minutes, every monster
+slain <b>anywhere</b> in the realm cuts the army down (champions count for 5, nemeses for 20).</p>
+<ul>
+  <li><b>Victory:</b> everyone who fought is paid for their share, and the King's coffers gain 25,000 gold.</li>
+  <li><b>Defeat:</b> for a day monsters hold the throne room: no Steward or ruler can make decrees, the
+  Heartlands' monsters are 30% stronger, Shadow spreads across every region, and the King's
+  coffers lose a quarter of their gold.</li>
+</ul>
+
+<h2 id="projects">Realm projects</h2>
+<p>The realm works together on one great project at a time. Each needs gold, given at any
+trading post (choose <b>Realm Project</b>), and monsters slain by anyone. The greatest givers
+are named on <a href="world.html">The Realm Today</a>. Each finished project helps everyone, forever:</p>
+<div class="table-scroll"><table>
+  <tr><th>Project</th><th>Gold</th><th>Monsters</th><th>When finished</th></tr>
+  <tr><td>Raise the Watchtowers</td><td>250,000</td><td>2,000</td><td>Shadow spreads a quarter more slowly</td></tr>
+  <tr><td>Rebuild the Bridge of Ages</td><td>500,000</td><td>4,000</td><td>Every shop is 5% cheaper</td></tr>
+  <tr><td>Found the Mages' Guild</td><td>750,000</td><td>6,000</td><td>Spells cost 10% less mana</td></tr>
+  <tr><td>Light the Great Forge</td><td>1,000,000</td><td>8,000</td><td>Gear is found 10% more often</td></tr>
+  <tr><td>Build the Great Library</td><td>1,500,000</td><td>10,000</td><td>5% more experience from every fight</td></tr>
+</table></div>
+
+<h2 id="nemeses">Nemesis monsters</h2>
+<p>A champion that kills an adventurer, and sometimes an ordinary monster, becomes a
+<b>nemesis</b>. It gets a name and a title ("Bane of" its victim, then "the Player-Eater",
+"the Dread" and "the Unstoppable"), keeps its size, and roams a region, wandering to a
+neighbouring one now and then. Every victim makes it stronger and raises the bounty on its
+head. It is most likely to find the adventurer it last killed.</p>
+<p>Slay a nemesis to claim its bounty and an Enchanted piece of its hoard, and drive back the
+Shadow where it fell. Up to five roam at once.</p>
+
+<h2 id="ecology">Monster ecology and rare creatures</h2>
+<p>Every kind of monster has a population. Hunt one kind hard and it grows scarce: its
+neighbours move in, emboldened, a little stronger and worth a little more. Populations
+recover over a few hours. Some creatures appear only when the conditions are right:</p>
+<ul>
+  <li><b>A Shadow Wyrm</b>: in Blighted regions, at night. Terrible, and terribly rewarding.</li>
+  <li><b>The Golden Stag</b>: in Liberated regions, by day. Swift and harmless, and it carries a fortune.</li>
+  <li><b>A Frost Giant</b>: in the Deep Frost season, from circle 10 out.</li>
+</ul>
+
+<h2 id="time">Day, night and the seasons</h2>
+<p>Night falls for one hour in every three. At night monsters roam more often and are 15%
+stronger, but give 15% more experience. The season changes every Monday:</p>
+<div class="table-scroll"><table>
+  <tr><th>Season</th><th>Effect</th></tr>
+  <tr><td>🌸 Bloom</td><td>Wounds mend as you travel</td></tr>
+  <tr><td>🌾 Harvest</td><td>10% more gold from treasure</td></tr>
+  <tr><td>🍂 Hunter's Moon</td><td>10% more experience from fights</td></tr>
+  <tr><td>❄️ Deep Frost</td><td>Monsters are 10% stronger, and gear is found 25% more often</td></tr>
+</table></div>
+<nav class="pager" aria-label="Guide pages"><a class="prev" href="realm.html"><small>Previous</small>&lsaquo; The Realm</a><a class="next" href="combat.html"><small>Next</small>Combat &rsaquo;</a></nav>
+</article>
+</main>
+<footer class="site-foot">
+  <a class="logo" href="index.html">Phantasia<span>Reimagined</span></a>
+  <nav aria-label="Footer"><a href="play.html">Play</a><a href="whatsnew.html">What's New</a><a href="intro.html">Guide</a><a href="world.html">Realm Today</a><a href="legends.html">Legends</a><a href="info.html">About</a><a href="credits.html">Credits</a></nav>
+  <div>Built on <i>Phantasia</i> by Edward Estes and <i>Phantasia 4</i> by Brian Kelly.</div>
+</footer>
+<script src="event-banner.js"></script>
+</body>
+</html>

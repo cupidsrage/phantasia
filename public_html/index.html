@@ -14,7 +14,7 @@
 <body class="page-index">
 <header class="site-head">
   <a class="logo" href="index.html">Phantasia<span>Reimagined</span></a>
-  <nav class="site-nav" aria-label="Site"><a href="whatsnew.html">What's New</a><a href="intro.html">Guide</a><a href="legends.html">Legends</a><a href="info.html">About</a><a class="play" href="play.html">Play</a></nav>
+  <nav class="site-nav" aria-label="Site"><a href="whatsnew.html">What's New</a><a href="intro.html">Guide</a><a href="world.html">Realm Today</a><a href="legends.html">Legends</a><a href="info.html">About</a><a class="play" href="play.html">Play</a></nav>
 </header>
 <main>
 <section class="hero">
@@ -136,6 +136,14 @@
       live.querySelector("b").textContent = ev.name;
     }
   }).catch(function () {});
+  fetch("/api/world", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (w) {
+    if (!w || !w.regions) return;
+    var blighted = w.regions.filter(function (r) { return r.state === "Blighted"; }).length;
+    if (w.siege && w.siege.active) parts.unshift('<a href="world.html"><b>The throne is under siege!</b></a>');
+    parts.push((w.night ? "🌙 Night" : "☀️ Day") + " in the season of <b>" + w.season + "</b>");
+    if (blighted) parts.push('<a href="world.html"><b>' + blighted + "</b> region" + (blighted === 1 ? "" : "s") + " under Shadow</a>");
+    show();
+  }).catch(function () {});
   fetch("/api/artifacts", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (list) {
     var held = list.filter(function (a) { return a.holder; }).length;
     parts.push("<b>" + held + "</b> of " + list.length + " artifacts claimed");
@@ -145,7 +153,7 @@
 </script>
 <footer class="site-foot">
   <a class="logo" href="index.html">Phantasia<span>Reimagined</span></a>
-  <nav aria-label="Footer"><a href="play.html">Play</a><a href="whatsnew.html">What's New</a><a href="intro.html">Guide</a><a href="legends.html">Legends</a><a href="info.html">About</a><a href="credits.html">Credits</a></nav>
+  <nav aria-label="Footer"><a href="play.html">Play</a><a href="whatsnew.html">What's New</a><a href="intro.html">Guide</a><a href="world.html">Realm Today</a><a href="legends.html">Legends</a><a href="info.html">About</a><a href="credits.html">Credits</a></nav>
   <div>Built on <i>Phantasia</i> by Edward Estes and <i>Phantasia 4</i> by Brian Kelly.</div>
 </footer>
 <script src="event-banner.js"></script>

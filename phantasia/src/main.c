@@ -605,6 +605,7 @@ Do_play_loop(struct client_t *c)
 		   on the throne (and their regalia keep up with them) */
 	    Do_royal_turn(c);
 	    Do_deeds_turn(c);
+	    Do_world_turn(c);
 
 	        /* check for monsters, guru's, etc. */
 	    if (!c->player.cloaked 
