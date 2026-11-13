@@ -154,6 +154,12 @@ It is plain HTML/JavaScript (`public_html/client/`) and talks to the game
 through a WebSocket bridge in `web/server.py`, the same small Python server
 that serves the website. Nothing needs installing, and it works on phones.
 
+Players can rearrange the eight action buttons (Arrange buttons, above
+them). The layout is kept per character and per label in the browser's
+local storage (`phantasia-button-layout:<character>`), and
+the client still answers the server with the original button number, so
+the server needs no changes.
+
 The bridge does the game's connection handshake for the browser and passes
 the player's real IP (from Railway's `X-Forwarded-For`), so the game's
 per-address connection limits and bans apply to each player.

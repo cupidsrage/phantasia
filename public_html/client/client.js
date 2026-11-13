@@ -190,6 +190,7 @@
     switch (type) {
       case P.NAME:
         name = await next();
+        setLayoutOwner(name);
         if (!name) { $("title-head").textContent = "Welcome to Phantasia Reimagined!"; $("title-tail").textContent = ""; }
         document.title = name ? name + " — Phantasia Reimagined" : "Phantasia Reimagined";
         break;
@@ -280,6 +281,10 @@
       actions.appendChild(b);
       actionButtons.push(b);
     }
+    $("arrange").addEventListener("click", function () { setArranging(!arranging); });
+    $("arrange-reset").addEventListener("click", function () {
+      layoutPrefs = {}; saveLayout(); placeButtons(); arrangePick = -1; drawButtons();
+    });
     var compass = $("compass");
     COMPASS.forEach(function (label, i) {
       var b = document.createElement("button");
@@ -292,28 +297,139 @@
     });
   }
 
-  async function readButtons(withCompass) {
-    for (var i = 0; i < 8; i++) {
-      var label = await next();
-      var b = actionButtons[i];
+  /* ---- the player's own button layout ----
+     The server sends 8 labelled buttons and expects the number of the
+     one pressed.  Players can put any button in any position: the layout
+     is remembered by label (so "Melee" can always sit in the same place)
+     and kept in this browser, one layout per character (a fighter and a
+     mage play differently); the screens before a character is chosen
+     have their own.  The server is still told the original number. */
+  var LAYOUT_KEY = "phantasia-button-layout";
+  var layoutOwner = "", layoutPrefs = {}, serverLabels = ["", "", "", "", "", "", "", ""];
+  var slotServer = [0, 1, 2, 3, 4, 5, 6, 7], buttonsLive = false;
+  var arranging = false, arrangePick = -1, compassLive = false;
+
+  function layoutKey() { return layoutOwner ? LAYOUT_KEY + ":" + layoutOwner.toLowerCase() : LAYOUT_KEY; }
+
+  function loadLayout() {
+    try { layoutPrefs = JSON.parse(localStorage.getItem(layoutKey()) || "{}") || {}; } catch (e) { layoutPrefs = {}; }
+  }
+
+  function saveLayout() {
+    try {
+      if (Object.keys(layoutPrefs).length) localStorage.setItem(layoutKey(), JSON.stringify(layoutPrefs));
+      else localStorage.removeItem(layoutKey());
+    } catch (e) {}
+  }
+
+  /* a character entered (or left) the realm: use their layout */
+  function setLayoutOwner(who) {
+    who = who || "";
+    if (who === layoutOwner) return;
+    layoutOwner = who;
+    loadLayout();
+    arrangePick = -1;
+    placeButtons();
+    drawButtons();
+    updateArrangeHint();
+  }
+
+  function updateArrangeHint() {
+    $("arrange-hint").textContent = (layoutOwner ? "Arranging " + layoutOwner + "'s buttons. " : "") +
+      "Tap a button, then tap the place it should go.";
+  }
+  loadLayout();
+
+  /* which server button goes in each of the 8 places */
+  function placeButtons() {
+    var placed = [null, null, null, null, null, null, null, null], waiting = [];
+    serverLabels.forEach(function (label, i) {
+      if (label === "") return;
+      var want = layoutPrefs[label];
+      if (typeof want === "number" && want >= 0 && want < 8 && placed[want] === null) placed[want] = i;
+      else waiting.push(i);
+    });
+    waiting.forEach(function (i) {           /* the rest: own place if free */
+      if (placed[i] === null) { placed[i] = i; return; }
+      for (var d = 0; d < 8; d++) if (placed[d] === null) { placed[d] = i; return; }
+    });
+    slotServer = placed;
+  }
+
+  function drawButtons() {
+    for (var d = 0; d < 8; d++) {
+      var i = slotServer[d], label = i === null ? "" : serverLabels[i];
+      var b = actionButtons[d];
       b.querySelector("span").textContent = label;
-      b.classList.toggle("empty", label === "");
-      b.disabled = label === "";
+      b.classList.toggle("empty", label === "" && !arranging);
+      b.classList.toggle("slot-empty", label === "");
+      b.classList.toggle("picked", arranging && d === arrangePick);
+      b.disabled = arranging ? false : (!buttonsLive || label === "");
     }
-    compassButtons.forEach(function (b) { b.disabled = !withCompass; });
+  }
+
+  async function readButtons(withCompass) {
+    for (var i = 0; i < 8; i++) serverLabels[i] = await next();
+    placeButtons();
+    buttonsLive = true;
+    drawButtons();
+    compassLive = !!withCompass;
+    compassButtons.forEach(function (b) { b.disabled = !withCompass || arranging; });
     pending = "buttons";
   }
 
   function disableButtons() {
-    actionButtons.forEach(function (b) { b.disabled = true; });
+    buttonsLive = false;
+    compassLive = false;
+    actionButtons.forEach(function (b) { b.disabled = !arranging; });
     compassButtons.forEach(function (b) { b.disabled = true; });
   }
 
-  function clickAction(i) {
-    if (pending !== "buttons" || actionButtons[i].disabled) return;
+  function clickAction(d) {
+    if (arranging) { arrangeClick(d); return; }
+    if (pending !== "buttons" || actionButtons[d].disabled || slotServer[d] === null) return;
     pending = null;
     disableButtons();
-    respond(String(i));
+    respond(String(slotServer[d]));
+  }
+
+  /* arrange mode: tap a button, then the place it should go */
+  function arrangeClick(d) {
+    if (arrangePick < 0) {
+      if (slotServer[d] === null) return;   /* pick a button first */
+      arrangePick = d;
+    }
+    else {
+      var a = slotServer[arrangePick];
+      slotServer[arrangePick] = slotServer[d];
+      slotServer[d] = a;
+      arrangePick = -1;
+      /* remember every button's place in this set, so it stays put */
+      for (var k = 0; k < 8; k++) {
+        if (slotServer[k] !== null && serverLabels[slotServer[k]] !== "") {
+          layoutPrefs[serverLabels[slotServer[k]]] = k;
+        }
+      }
+      saveLayout();
+    }
+    drawButtons();
+  }
+
+  function setArranging(on) {
+    arranging = on;
+    arrangePick = -1;
+    document.getElementById("actions").classList.toggle("arranging", on);
+    $("arrange").textContent = on ? "Done" : "Arrange buttons";
+    $("arrange").classList.toggle("on", on);
+    $("arrange-hint").hidden = !on;
+    updateArrangeHint();
+    $("arrange-reset").hidden = !on;
+    if (!on) {
+      placeButtons();
+      compassButtons.forEach(function (b) { b.disabled = !(pending === "buttons" && compassLive); });
+    }
+    else compassButtons.forEach(function (b) { b.disabled = true; });
+    drawButtons();
   }
 
   function clickCompass(i) {
@@ -1064,6 +1180,10 @@
     if (tag === "input" || tag === "textarea" || tag === "select") return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
 
+    if (arranging) {
+      if (e.key === "Escape" || e.key === "Enter") { e.preventDefault(); setArranging(false); }
+      return;
+    }
     var m = /^F([1-8])$/.exec(e.key);
     if (m) { e.preventDefault(); clickAction(+m[1] - 1); return; }
 
@@ -1076,7 +1196,7 @@
     if (e.key in ARROWS) { e.preventDefault(); clickCompass(ARROWS[e.key]); return; }
     if (e.key === " ") {
       e.preventDefault();
-      for (var i = 0; i < 8; i++) if (!actionButtons[i].disabled) { clickAction(i); return; }
+      for (var i = 0; i < 8; i++) if (!actionButtons[i].disabled && slotServer[i] !== null) { clickAction(i); return; }
     }
   });
 

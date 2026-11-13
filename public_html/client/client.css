@@ -223,6 +223,18 @@ button {
 .action:active:not(:disabled) { transform: translateY(1px); }
 .action:disabled { opacity: 0.28; cursor: default; }
 .action.empty { visibility: hidden; }
+.actions-bar { display: flex; align-items: center; justify-content: flex-end; gap: 14px;
+  padding: 6px 12px 0; border-top: 1px solid var(--line); font-size: 13px; min-height: 30px; }
+.actions-bar + .actions { border-top: 0; padding-top: 6px; }
+.arrange-hint { flex: 1; color: var(--gold-2); font-style: italic; }
+.arrange-link { background: none; border: 0; padding: 2px 0; color: var(--muted); font-family: "Cinzel", serif;
+  font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+.arrange-link:hover { color: var(--gold-2); }
+.arrange-link.on { color: #1a1208; background: linear-gradient(180deg, #f6d98c, #c8952f); padding: 3px 12px; border-radius: 999px; }
+.actions.arranging .action { cursor: grab; border-style: dashed; opacity: 1; }
+.actions.arranging .action.slot-empty { visibility: visible; background: transparent; border-color: var(--line); }
+.actions.arranging .action.picked { border: 2px solid var(--gold-2); box-shadow: 0 0 14px rgba(240, 205, 122, 0.5);
+  background: linear-gradient(180deg, #5a4426, #33271a); }
 .action kbd {
   position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
   font-family: ui-monospace, monospace; font-size: 11px; color: var(--gold);
