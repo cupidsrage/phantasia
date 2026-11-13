@@ -29,11 +29,22 @@ when it is total its town falls. Push it back and the region is
 <b class="st-liberated">Liberated</b>: safer roads and cheaper shops. <a href="living.html">How the living realm works &rsaquo;</a></p>
 <div class="world-map">
   <svg id="map" viewBox="-210 -210 420 420" role="img" aria-label="Map of the realm's eight regions"></svg>
-  <div class="map-legend"><span class="sw liberated"></span>Liberated <span class="sw contested"></span>Contested <span class="sw blighted"></span>Blighted</div>
+  <div class="map-legend"><span class="sw liberated"></span>Liberated <span class="sw contested"></span>Contested <span class="sw blighted"></span>Blighted <span class="sw post"></span>Trading posts</div>
 </div>
 <div class="table-scroll"><table id="regions">
   <tr><th>Region</th><th>Shadow</th><th>Town</th></tr>
 </table></div>
+
+<h2 id="shops">Where to find shops</h2>
+<p>Trading posts stand along the road that runs through the middle of each region, at the same
+distances from the throne on every road, and so in the same circles. The gold dots on the map
+mark them. Each region's posts belong to its town, so how the town is doing sets their prices
+(and a fallen town's posts are in ruins). When you enter a region the game tells you where its
+nearest post is; <code>/realm</code> in chat tells you again.</p>
+<div class="table-scroll"><table id="posts"></table></div>
+<p class="muted">The 5th posts are in the Plateau of Gorgoroth; the diagonal ones there are the only
+posts that sell blessings. Posts go on farther out, at 100 &times; n &times; n along the
+diagonals. <a href="realm.html#post">More about trading posts &rsaquo;</a></p>
 
 <h2>The realm project</h2>
 <div id="project" class="panel project-box"></div>
@@ -63,6 +74,7 @@ someone brings them down.</p>
 .world-map text.small { font-family: "EB Garamond", serif; font-size: 10px; fill: #d9cdb2; }
 .map-legend { text-align: center; font-size: 15px; color: var(--muted); }
 .map-legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin: 0 4px 0 14px; vertical-align: -1px; }
+.sw.post { background: #f0cd7a; border-radius: 50%; }
 .sw.liberated { background: #3f7a3a; } .sw.contested { background: #7a6a2a; } .sw.blighted { background: #7a1e18; }
 .project-box { padding: 18px 20px; }
 .project-box h3 { margin-top: 0; }
@@ -88,6 +100,30 @@ someone brings them down.</p>
     var r = Math.round(63 + (122 - 63) * t), g = Math.round(122 - (122 - 30) * t), b = Math.round(58 - (58 - 24) * t);
     return "rgb(" + r + "," + g + "," + b + ")";
   }
+  /* the game's rule for trading posts: rank n stands 100 n n along a
+     diagonal, or at the same distance (100 n n x root 2) along a main road */
+  var ROAD = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+  function postAt(region, n) {
+    var r = ROAD[region], diag = r[0] && r[1];
+    var a = diag ? 100 * n * n : Math.round(100 * n * n * Math.SQRT2);
+    var dist = diag ? Math.SQRT2 * a : a;
+    return [r[0] * a, r[1] * a, Math.floor(dist / 125 + 1)];
+  }
+  function drawPosts(d) {
+    var t = el("posts"), html = "<tr><th>Region (town)</th>";
+    for (var n = 1; n <= 6; n++) html += "<th>Post " + n + "</th>";
+    html += "</tr>";
+    d.regions.forEach(function (reg, i) {
+      html += "<tr><td><b>" + esc(reg.name) + "</b><br><span class=\"st-" + reg.townState.toLowerCase() + "\">" +
+        esc(reg.town) + " &middot; " + esc(reg.townState) + "</span></td>";
+      for (var n = 1; n <= 6; n++) {
+        var p = postAt(i, n);
+        html += "<td>" + p[0] + ", " + p[1] + "<br><small>circle " + p[2] + "</small></td>";
+      }
+      html += "</tr>";
+    });
+    t.innerHTML = html;
+  }
   /* regions in the game's order: east, then counter-clockwise */
   function drawMap(d) {
     var svg = el("map"), out = "", R = 200, r0 = 52;
@@ -102,6 +138,17 @@ someone brings them down.</p>
       out += '<text class="small" x="' + tx.toFixed(1) + '" y="' + (ty + 11).toFixed(1) + '">' + reg.shadow + "% · " + esc(reg.town) + (reg.townState === "Fallen" ? " (fallen)" : "") + "</text>";
     });
     var overrun = d.overrunUntil * 1000 > Date.now();
+    /* trading posts: gold dots along each region's road (not to scale) */
+    d.regions.forEach(function (reg, i) {
+      var am = i * Math.PI / 4;
+      [1, 2, 3, 4, 5].forEach(function (n) {
+        var rad = n <= 3 ? 58 + n * 16 : 140 + n * 10;
+        var pt = postAt(i, n);
+        out += '<circle cx="' + (rad * Math.cos(am)).toFixed(1) + '" cy="' + (-rad * Math.sin(am)).toFixed(1) +
+          '" r="3.6" fill="#f0cd7a" stroke="#3a2a10" stroke-width="1"><title>' +
+          esc(reg.town + "'s trading post " + n + ": " + pt[0] + ", " + pt[1] + " (circle " + pt[2] + ")") + "</title></circle>";
+      });
+    });
     out += '<circle r="' + (r0 - 4) + '" fill="' + (overrun ? "#7a1e18" : "#2a2116") + '" stroke="#d6a84a" stroke-width="1.5"/>';
     out += '<text y="-2">Heartlands</text><text class="small" y="12">' + (overrun ? "overrun!" : "the throne") + "</text>";
     out += '<text class="small" x="0" y="-202" style="font-size:9px">N</text>';
@@ -120,6 +167,7 @@ someone brings them down.</p>
     } else box.hidden = true;
 
     drawMap(d);
+    drawPosts(d);
     var t = el("regions");
     while (t.rows.length > 1) t.deleteRow(1);
     d.regions.forEach(function (reg) {
