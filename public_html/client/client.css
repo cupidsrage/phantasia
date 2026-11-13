@@ -321,6 +321,29 @@ kbd {
 
 /* ---------- gear ---------- */
 
+.side { overflow-y: auto; scrollbar-color: var(--line) transparent; }
+.gear-panel { flex: none; }
+.doll-row { display: flex; gap: 10px; align-items: center; }
+.doll { width: 104px; height: 148px; flex: none; }
+.doll .body > * { fill: #2a2219; stroke: #4a3c2b; stroke-width: 1.2; }
+.doll .gear-layer { display: none; stroke: rgba(0, 0, 0, 0.55); stroke-width: 1; }
+.doll .gear-layer.on { display: inline; }
+.doll .gear-layer .trim { fill: none; stroke: rgba(0, 0, 0, 0.45); stroke-width: 1.4; }
+.doll .gear-layer.art { filter: url(#glow); }
+.doll-row .gear { flex: 1; min-width: 0; }
+.doll-row .gear li { padding: 2px 0; }
+.doll-row .gear li .slot { width: 50px; font-size: 11px; }
+.doll-row .gear li .gname { font-size: 13px; }
+
+.bag-head { margin: 10px 0 6px; font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; }
+.bag-head span { color: var(--gold); font-family: "Cinzel", serif; font-weight: 600; }
+.bag { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
+.bag .cell { aspect-ratio: 1; border-radius: 4px; border: 1px solid #2c241a; background: #0f0c09;
+  display: grid; place-items: center; }
+.bag .cell svg { width: 78%; height: 78%; }
+.bag .cell.full { border-color: #4a3c2b; background: #1d1711; cursor: help; }
+.bag .cell.full.c5 { border-color: var(--gold); box-shadow: 0 0 6px rgba(214, 168, 74, 0.5); }
+
 .gear { list-style: none; margin: 0; padding: 0; font-size: 14px; }
 .gear li { display: flex; gap: 8px; padding: 3px 0; align-items: baseline; }
 .gear li .slot { color: var(--muted); width: 58px; flex: none; font-size: 12px;

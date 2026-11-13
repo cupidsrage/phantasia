@@ -499,13 +499,62 @@
   var SLOTS = ["Weapon", "Armor", "Helm", "Boots", "Trinket"];
   var TIERS = ["Worn", "Common", "Fine", "Masterwork", "Enchanted", "Artifact"];
 
+  var TIER_COLORS = ["#9c9182", "#d8cbb0", "#7fc97a", "#6aa6e8", "#c58cf0", "#f0cd7a"];
+
+  /* small icons for the bag grid, one per slot */
+  var ICONS = {
+    Weapon: '<path d="M14 2 L16 2 L16 4 L7 13 L5 11 Z"/><path d="M3 10 L8 15 L7 16 L2 11 Z"/><path d="M4 13 L1 16 L2 17 L5 14 Z"/>',
+    Armor: '<path d="M4 3 Q9 1 14 3 L16 6 L14 8 L14 16 Q9 17.5 4 16 L4 8 L2 6 Z"/>',
+    Helm: '<path d="M3 12 Q3 3 9 3 Q15 3 15 12 L15 14 L11 14 L11 10 L7 10 L7 14 L3 14 Z"/>',
+    Boots: '<path d="M5 2 L10 2 L10 11 L16 13 L16 16 L4 16 Z"/>',
+    Trinket: '<path d="M5 2 Q9 9 13 2" fill="none" stroke-width="1.4"/><circle cx="9" cy="11" r="4.5"/>'
+  };
+
+  /* the weapon in the adventurer's hand, shaped by what it is */
+  var WEAPONS = {
+    axe: '<path class="trim" d="M92 92 L104 40"/><path d="M100 46 Q114 44 112 58 Q104 56 99 56 Z"/>',
+    hammer: '<path class="trim" d="M92 92 L102 44"/><rect x="94" y="36" width="18" height="11" rx="2" transform="rotate(12 103 41)"/>',
+    blade: '<path d="M90 82 L104 30 L107 31 L95 84 Z"/><path d="M84 80 L100 86 L99 89 L83 83 Z"/><path class="trim" d="M90 86 L88 94"/>'
+  };
+
+  function weaponShape(name) {
+    if (/axe|glaive/i.test(name)) return WEAPONS.axe;
+    if (/hammer|mace/i.test(name)) return WEAPONS.hammer;
+    return WEAPONS.blade;
+  }
+
+  function itemTitle(it) {
+    return it.name + " (" + TIERS[it.tier] + " " + it.slot.toLowerCase() + ")\n" + it.stats +
+      (it.ab1 ? "\nAbility: " + it.ab1 + (it.ab2 ? ", " + it.ab2 : "") : "") +
+      (it.equipped ? "\nWorn" : "\nIn your bag");
+  }
+
   async function readGear() {
+    var capacity = await nextInt(), bagName = await next();
     var n = await nextInt(), items = [];
     for (var i = 0; i < n; i++) {
       items.push({ slot: await next(), name: await next(), stats: await next(),
         equipped: (await next()) === "1", tier: parseInt(await next(), 10) || 0,
         ab1: await next(), ab2: await next() });
     }
+
+    /* the adventurer */
+    SLOTS.forEach(function (slot) {
+      var it = items.filter(function (x) { return x.equipped && x.slot === slot; })[0];
+      var layer = $("d-" + slot);
+      layer.classList.toggle("on", !!it);
+      layer.classList.toggle("art", !!it && it.tier === 5);
+      if (it) {
+        if (slot === "Weapon") layer.innerHTML = weaponShape(it.name);
+        layer.setAttribute("fill", TIER_COLORS[it.tier]);
+        layer.innerHTML = layer.innerHTML.replace(/<title>.*?<\/title>/, "");
+        var t = document.createElementNS("http://www.w3.org/2000/svg", "title");
+        t.textContent = itemTitle(it);
+        layer.insertBefore(t, layer.firstChild);
+      }
+    });
+
+    /* what is worn, by slot */
     var ul = $("gear");
     ul.innerHTML = "";
     SLOTS.forEach(function (slot) {
@@ -517,16 +566,32 @@
       if (it) {
         span.textContent = it.name;
         span.className = "gname t" + it.tier;
-        li.title = it.name + " (" + TIERS[it.tier] + ")\n" + it.stats +
-          (it.ab1 ? "\nAbility: " + it.ab1 : "") + (it.ab2 ? ", " + it.ab2 : "");
+        li.title = itemTitle(it);
       } else {
-        span.textContent = "—";
+        span.textContent = "\u2014";
         span.className = "gname t0";
       }
       ul.appendChild(li);
     });
-    var pack = items.filter(function (x) { return !x.equipped; }).length;
-    $("gear-pack").textContent = "(backpack " + pack + "/6)";
+
+    /* the bag: one square per slot */
+    var packed = items.filter(function (x) { return !x.equipped; });
+    $("bag-name").textContent = bagName;
+    $("gear-pack").textContent = packed.length + " / " + capacity;
+    var bag = $("bag");
+    bag.innerHTML = "";
+    for (var k = 0; k < capacity; k++) {
+      var cell = document.createElement("div");
+      cell.className = "cell";
+      var it2 = packed[k];
+      if (it2) {
+        cell.className = "cell full c" + it2.tier;
+        cell.title = itemTitle(it2);
+        cell.innerHTML = '<svg viewBox="0 0 18 18" fill="' + TIER_COLORS[it2.tier] +
+          '" stroke="' + TIER_COLORS[it2.tier] + '">' + (ICONS[it2.slot] || "") + "</svg>";
+      }
+      bag.appendChild(cell);
+    }
   }
 
   /* ------------------------------------------------------- players */

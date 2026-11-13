@@ -340,6 +340,8 @@ double Do_gear_treasure_factor(struct client_t *c);
 double Do_gear_poison_factor(struct client_t *c);
 void Do_gear_menu(struct client_t *c);
 void Do_gear_armory(struct client_t *c, int slot);
+void Do_gear_bag_shop(struct client_t *c);
+const char *Do_bag_name(int size);
 void Do_gear_chat(struct client_t *c);
 void Do_artifacts_chat(struct client_t *c);
 

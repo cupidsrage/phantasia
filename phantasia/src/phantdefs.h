@@ -88,8 +88,9 @@ typedef char bool;
 #define SLOT_BOOTS		3	/* adds to quicksilver (speed) */
 #define SLOT_TRINKET		4	/* small mixed bonus */
 #define NUM_SLOTS		5
-#define BACKPACK_SIZE		6
-#define MAX_GEAR		(NUM_SLOTS + BACKPACK_SIZE)
+#define BACKPACK_SIZE		6	/* the starting bag (Belt Pouch) */
+#define MAX_BAG_SIZE		50	/* the largest bag */
+#define MAX_GEAR		(NUM_SLOTS + MAX_BAG_SIZE)
 
 	/* gear: tiers */
 #define TIER_WORN		0	/* converted from old shield/sword/quicksilver */
