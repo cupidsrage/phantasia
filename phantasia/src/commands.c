@@ -640,6 +640,9 @@ Do_valar(struct client_t *c)
 		c->modifiedName);
 
 	Do_broadcast(c, string_buffer);
+
+	/* browsers make a ceremony of it */
+    Do_announce_ceremony(c, CEREMONY_VALAR);
     }
 
 	/* modify player description */
@@ -795,6 +798,9 @@ Do_steward(struct client_t *c)
 
     Do_broadcast(c, string_buffer);
 
+	/* browsers make a ceremony of it */
+    Do_announce_ceremony(c, CEREMONY_STEWARD);
+
 	/* modify player description */
     Do_lock_mutex(&c->realm->realm_lock);
     Do_player_description(c);
@@ -874,6 +880,9 @@ Do_king(struct client_t *c)
     }
 
     Do_broadcast(c, string_buffer);
+
+	/* browsers make a ceremony of it */
+    Do_announce_ceremony(c, c->player.gender == MALE ? CEREMONY_KING : CEREMONY_QUEEN);
 
 	/* modify player description */
     Do_lock_mutex(&c->realm->realm_lock);

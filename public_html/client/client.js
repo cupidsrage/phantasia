@@ -171,7 +171,7 @@
         case P.CONNECTION_DETAIL: await showDetail(); break;
         case P.GEAR: await readGear(); break;
         case P.WORLD_EVENT: await readWorldEvent(); break;
-        case P.WIZARD: { var lvl = await nextInt(); wizardArrives(await next(), lvl); break; }
+        case P.WIZARD: { var kind = await nextInt(); ceremony(kind, await next()); break; }
         default:
           if (type >= P.NAME && type <= P.VIRGIN) await updateStatus(type);
           else console.warn("Unknown packet", type);
@@ -678,6 +678,67 @@
 
   var BOLT = '<svg class="bolt" viewBox="0 0 140 600" preserveAspectRatio="none">' +
     '<path d="M78 0 L52 170 L84 176 L40 330 L76 336 L30 600 L110 300 L74 296 L112 150 L80 146 L100 0 Z" fill="#eef4ff"/></svg>';
+
+  var CROWN = '<svg class="crown" viewBox="0 0 170 110"><path d="M10 95 L18 30 L52 62 L85 12 L118 62 L152 30 L160 95 Z" ' +
+    'fill="#f2c14e" stroke="#8a5f12" stroke-width="4"/><rect x="10" y="88" width="150" height="16" rx="4" fill="#d6a032" stroke="#8a5f12" stroke-width="3"/>' +
+    '<circle cx="85" cy="12" r="8" fill="#e8453c"/><circle cx="18" cy="30" r="6" fill="#4f86c6"/><circle cx="152" cy="30" r="6" fill="#4f86c6"/>' +
+    '<circle cx="50" cy="96" r="5" fill="#5fa35a"/><circle cx="85" cy="96" r="6" fill="#e8453c"/><circle cx="120" cy="96" r="5" fill="#5fa35a"/></svg>';
+
+  /* someone won a title: Steward 101, King 102, Queen 103, Valar 104 */
+  function ceremony(kind, name) {
+    if (kind < 100) { wizardArrives(name, kind); return; }
+    var old = document.querySelector(".arrival");
+    if (old) old.remove();
+
+    var look = { 101: ["steward", "Steward", "has become Steward of the realm"],
+                 102: ["king", "Long live the King", "has claimed the throne!"],
+                 103: ["king", "Long live the Queen", "has claimed the throne!"],
+                 104: ["valar", "Behold the new Valar", "ascends to the Valar!"] }[kind];
+    if (!look) return;
+
+    var el = document.createElement("div");
+    el.className = "arrival " + look[0];
+    el.setAttribute("role", "status");
+    el.innerHTML = (look[0] === "steward" ? '<div class="banner">\u269C</div>' :
+      look[0] === "king" ? '<div class="rays"></div>' + CROWN : '<div class="rays"></div>') +
+      '<div class="card"><div class="rank"></div><div class="who"></div><div class="what"></div></div>';
+    el.querySelector(".rank").textContent = look[1];
+    el.querySelector(".who").textContent = name;
+    el.querySelector(".what").textContent = look[2];
+
+    if (look[0] === "valar") {           /* the heavens open: stars */
+      for (var i = 0; i < 60; i++) {
+        var st = document.createElement("span");
+        st.className = "star";
+        st.style.left = Math.random() * 100 + "%";
+        st.style.top = Math.random() * 100 + "%";
+        st.style.animationDelay = -Math.random() * 1.6 + "s";
+        el.appendChild(st);
+      }
+    }
+    if (look[0] === "king") {            /* a shower of gold */
+      for (var j = 0; j < 40; j++) {
+        var s = document.createElement("span");
+        s.className = "spark";
+        var a = Math.random() * Math.PI * 2, r = 150 + Math.random() * 420;
+        s.style.setProperty("--dx", Math.cos(a) * r + "px");
+        s.style.setProperty("--dy", Math.sin(a) * r + "px");
+        s.style.animationDelay = 0.9 + Math.random() * 0.4 + "s";
+        el.appendChild(s);
+      }
+    }
+
+    var done = function () { if (el.parentNode) el.remove(); };
+    el.addEventListener("click", done);
+    document.body.appendChild(el);
+    setTimeout(done, 5600);
+
+    if (kind === 104) {                  /* the realm trembles */
+      var app = $("app");
+      app.classList.remove("shake"); void app.offsetWidth; app.classList.add("shake");
+      setTimeout(function () { app.classList.remove("shake"); }, 1000);
+    }
+  }
 
   function wizardArrives(name, level) {
     var old = document.querySelector(".arrival");

@@ -301,6 +301,7 @@ void Do_wizard_log(struct client_t *c, char *what);
 void Do_wizard_event(struct client_t *c, struct event_t *the_event);
 void Do_wizard_tools(struct client_t *c);
 void Do_announce_wizard(struct client_t *c);
+void Do_announce_ceremony(struct client_t *c, int kind);
 const char *Do_artifact_name(int id);
 void Do_artifact_holder(struct client_t *c, int id, char *holder);
 void Do_artifact_release_offline(struct client_t *c, int id);

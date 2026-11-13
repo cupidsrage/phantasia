@@ -141,7 +141,7 @@ typedef char bool;
 #define REPRIMAND_EVENT		11	/* Apprentices reprimand */
 #define UNTAG_EVENT		12	/* remove a prefix or suffix */
 #define UNSUSPEND_EVENT		13	/* resume player's game */
-#define WIZARD_ARRIVAL_EVENT	14	/* a wizard entered the realm */
+#define WIZARD_ARRIVAL_EVENT	14	/* a wizard arrived or a title was won */
 #define GAME_MARKER		15	/* only game events follow */
 	/* ASAP events */
 #define DEATH_EVENT		20	/* player died */
@@ -304,7 +304,13 @@ typedef char bool;
 #define VIRGIN_PACKET		57	/* refresh the player's virgin */
 #define GEAR_PACKET		60	/* gear list (browser client only) */
 #define WORLD_EVENT_PACKET	61	/* current world event (browser only) */
-#define WIZARD_PACKET		62	/* a wizard arrived (browser only) */
+#define WIZARD_PACKET		62	/* a ceremony to show (browser only) */
+
+	/* ceremonies shown to browser players (wizard levels are 2-4) */
+#define CEREMONY_STEWARD	101
+#define CEREMONY_KING		102
+#define CEREMONY_QUEEN		103
+#define CEREMONY_VALAR		104
 
 
 /* player->client packet headers */

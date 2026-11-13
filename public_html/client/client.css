@@ -555,6 +555,57 @@ body.event-hunt .event-fx::after { right: -60px; animation-delay: 0.7s; }
 .arrival.apprentice .card .rank { color: #d6d6e0; text-shadow: 0 0 10px rgba(200, 200, 220, 0.7); }
 #app.shake { animation: shake 0.6s ease-in-out 0.15s; }
 
+/* titles won: Steward, King/Queen, Valar */
+.arrival.steward { background: radial-gradient(circle at 50% 45%, rgba(20, 60, 35, 0.6), rgba(3, 8, 4, 0.88) 70%); }
+.arrival .banner {
+  position: absolute; top: 0; left: 50%; width: 230px; height: 0; margin-left: -115px;
+  background: linear-gradient(90deg, #0f4a27, #1d6b3a 50%, #0f4a27);
+  border-left: 6px solid #d6a84a; border-right: 6px solid #d6a84a;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 88%, 0 100%);
+  box-shadow: 0 0 40px rgba(214, 168, 74, 0.35);
+  animation: unfurl 1s cubic-bezier(.3,1.2,.5,1) forwards;
+  display: grid; justify-items: center; align-content: end; padding-bottom: 60px;
+  font-size: 64px; color: #f0cd7a; text-shadow: 0 0 14px rgba(240, 205, 122, 0.8);
+}
+.arrival.steward .card { margin-top: 300px; }
+@keyframes unfurl { to { height: 360px; } }
+
+.arrival.king { background: radial-gradient(circle at 50% 42%, rgba(90, 64, 10, 0.55), rgba(8, 5, 1, 0.9) 70%); }
+.arrival .rays {
+  position: absolute; left: 50%; top: 42%; width: 1600px; height: 1600px; margin: -800px 0 0 -800px;
+  background: repeating-conic-gradient(rgba(255, 215, 110, 0.18) 0deg 6deg, transparent 6deg 18deg);
+  mask: radial-gradient(circle, #000 0%, transparent 60%);
+  -webkit-mask: radial-gradient(circle, #000 0%, transparent 60%);
+  animation: rays-turn 30s linear infinite, arrival-in 1s ease-out;
+}
+.arrival .crown {
+  position: absolute; left: 50%; top: 18%; width: 170px; margin-left: -85px;
+  filter: drop-shadow(0 0 18px rgba(255, 210, 90, 0.85));
+  animation: crown-down 1.3s cubic-bezier(.2,1.2,.4,1) both;
+}
+.arrival.king .card { margin-top: 140px; }
+@keyframes crown-down { from { transform: translateY(-260px) rotate(-8deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes rays-turn { to { transform: rotate(360deg); } }
+
+.arrival.valar { background: radial-gradient(circle at 50% 40%, rgba(230, 235, 255, 0.35), rgba(30, 30, 60, 0.75) 45%, rgba(2, 2, 10, 0.93) 75%); }
+.arrival.valar .rays {
+  background: repeating-conic-gradient(rgba(255, 255, 255, 0.22) 0deg 4deg, transparent 4deg 12deg);
+  animation: rays-turn 40s linear infinite, arrival-in 1.4s ease-out;
+}
+.arrival .star {
+  position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #fff;
+  box-shadow: 0 0 6px 2px rgba(200, 220, 255, 0.9);
+  animation: twinkle 1.6s ease-in-out infinite alternate;
+}
+@keyframes twinkle { from { opacity: 0.2; transform: scale(0.6); } to { opacity: 1; transform: scale(1.3); } }
+.arrival.valar .card .who { color: #ffffff; text-shadow: 0 0 20px rgba(220, 230, 255, 1), 0 0 60px rgba(160, 190, 255, 0.8), 0 3px 0 #3a3f73; }
+.arrival.valar .card .rank, .arrival.king .card .rank, .arrival.steward .card .rank { color: #f0cd7a; text-shadow: 0 0 12px rgba(240, 205, 122, 0.8); }
+.arrival.valar .card .rank { color: #dfe7ff; text-shadow: 0 0 14px rgba(200, 215, 255, 0.95); }
+@media (prefers-reduced-motion: reduce) {
+  .arrival .rays, .arrival .star, .arrival .crown, .arrival .banner { animation: none; }
+  .arrival .banner { height: 360px; }
+}
+
 @keyframes arrival-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes arrival-out { to { opacity: 0; visibility: hidden; } }
 @keyframes flash { 0% { opacity: 0.95; } 15% { opacity: 0.1; } 25% { opacity: 0.7; } 100% { opacity: 0; } }
