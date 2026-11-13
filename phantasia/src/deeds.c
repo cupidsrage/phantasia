@@ -13,6 +13,7 @@
 enum {
     DEED_SLAYER, DEED_CHAMPION, DEED_STORM, DEED_QUESTS, DEED_RELICS,
     DEED_SEASONED, DEED_STEWARD, DEED_CROWN, DEED_VALAR, DEED_DARKLORD,
+    DEED_SHADOW,		/* new deeds go at the end (the file keeps their order) */
     NUM_DEEDS
 };
 
@@ -34,6 +35,7 @@ static const struct deed_def {
     { "Wore the Crown",       "times crowned King or Queen", { 1, 0, 0, 0 },               0, 1, 0 },
     { "Ascended to the Valar", "times raised to the Valar",  { 1, 0, 0, 0 },               2, 0, 0 },
     { "Dark Lord's Doom",     "times the Dark Lord fell to you", { 1, 0, 0, 0 },           2, 2, 0 },
+    { "Shadowbreaker",        "monsters slain answering a Call to Arms", { 50, 500, 5000, 0 }, 1, 1, 0 },
 };
 
 struct deed_rec {
@@ -70,12 +72,21 @@ static void Do_deeds_load_locked(void)
 	memset(&r, 0, sizeof r);
 	if (sscanf(p, "%32s%n", r.account, &n) != 1) continue;
 	p += n;
-	for (i = 0; i < NUM_DEEDS; i++) {
-	    r.count[i] = strtol(p, &end, 10);
-	    if (end == p) break;
-	    p = end;
+	{	/* the counts, then the artifact mask last: lines written
+		   before a deed was added simply have fewer counts */
+	    long vals[NUM_DEEDS + 1];
+	    int k = 0;
+
+	    while (k < NUM_DEEDS + 1) {
+		long v = strtol(p, &end, 10);
+		if (end == p) break;
+		vals[k++] = v;
+		p = end;
+	    }
+	    if (k == 0) continue;
+	    for (i = 0; i < k - 1 && i < NUM_DEEDS; i++) r.count[i] = vals[i];
+	    r.artifacts = vals[k - 1];
 	}
-	r.artifacts = strtol(p, &end, 10);
 
 	if (numRecs == capRecs) {
 	    capRecs = capRecs ? capRecs * 2 : 64;
@@ -224,6 +235,12 @@ void Do_deeds_kill(struct client_t *c)
     if (c->battle.opponent->special_type == SM_DARKLORD) {
 	Do_deed_bump(c, DEED_DARKLORD, 1, FALSE);
     }
+}
+
+	/* a monster slain in the region under a Call to Arms */
+void Do_deeds_valor(struct client_t *c)
+{
+    Do_deed_bump(c, DEED_SHADOW, 1, FALSE);
 }
 
 void Do_deeds_quest(struct client_t *c)

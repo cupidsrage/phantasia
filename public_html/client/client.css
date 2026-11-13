@@ -95,6 +95,8 @@ h2 small { color: var(--muted); letter-spacing: 0; }
 .world-status.state-blighted .chip.region { color: #ffb0a0; border-color: #7a2a22; background: rgba(120, 20, 20, 0.25); }
 .world-status.state-liberated .chip.region { color: #b8f0b0; border-color: #2f6a2a; background: rgba(30, 90, 30, 0.2); }
 .world-status.state-overrun .chip.region { color: #ffb0a0; border-color: #a02a22; }
+.world-status .chip.call { color: #ffd59a; border-color: #8a5a1a; background: rgba(140, 80, 20, 0.22); }
+.world-status .chip.call.here { color: #1a1208; background: linear-gradient(180deg, #f6d98c, #c8952f); border-color: #f0cd7a; font-weight: 600; }
 
 /* a siege on the throne */
 body.event-siege {

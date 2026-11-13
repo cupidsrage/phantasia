@@ -403,6 +403,7 @@ void Do_wizard_log(struct client_t *c, char *what);
 	/* deeds.c */
 void Do_deeds_kill(struct client_t *c);
 void Do_deeds_quest(struct client_t *c);
+void Do_deeds_valor(struct client_t *c);
 void Do_deeds_title(struct client_t *c, int kind);
 void Do_deeds_artifact(struct client_t *c, int id);
 void Do_deeds_turn(struct client_t *c);
