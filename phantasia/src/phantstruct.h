@@ -281,6 +281,7 @@ struct client_t		/* structure for client variables */
     int		bagSize;		/* backpack capacity (bags) */
     bool	gearLoaded;		/* gear has been loaded */
     bool	isBrowser;		/* playing through the browser client */
+    int		inCombat;		/* in a fight (no gear changes) */
     struct event_t *events;		/* pointer to character events */
     struct realm_t *realm;		/* pointer to server realm variables */
     struct game_t *game;		/* pointer to game's game_t struct */

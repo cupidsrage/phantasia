@@ -772,7 +772,9 @@ Do_handle_event(struct client_t *c, struct event_t *the_event)
 
     case IT_COMBAT_EVENT:
 
+	++c->inCombat;
 	Do_it_combat(c, the_event, TRUE);
+	--c->inCombat;
 	break;
 
     case EXPERIENCE_EVENT:
@@ -968,7 +970,9 @@ Do_handle_event(struct client_t *c, struct event_t *the_event)
 
     case MONSTER_EVENT:
 
+	++c->inCombat;
 	Do_monster(c, the_event);
+	--c->inCombat;
 	break;
 
     case MEDIC_EVENT:
@@ -1113,7 +1117,9 @@ Do_orphan_events(struct client_t *c)
         }
 
 	if (event_ptr->type == IT_COMBAT_EVENT) {
+	    ++c->inCombat;
 	    Do_it_combat(c, event_ptr, FALSE);
+	    --c->inCombat;
 	}
 
         if (event_ptr->type > DESTROY_MARKER || event_ptr->type ==

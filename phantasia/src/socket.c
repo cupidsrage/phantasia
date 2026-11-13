@@ -235,6 +235,7 @@ int Do_accept_connections(struct server_t *s)
 	client_ptr->numGear = 0;
 	client_ptr->bagSize = BACKPACK_SIZE;
 	client_ptr->isBrowser = FALSE;
+	client_ptr->inCombat = 0;
 	client_ptr->wizaccount[0] = '\0';
 	client_ptr->wizIP[0] = '\0';
 
@@ -1569,6 +1570,15 @@ int Do_packet(struct client_t *c, int thePacket)
 	}
 
 	    /* finished */
+	return S_NORM;
+
+    case C_GEAR_PACKET:
+
+	    /* equip or unequip from the browser's gear panel */
+	if (Do_get_socket_string(c, string_buffer, SZ_NAME) == S_ERROR)
+	    return S_ERROR;
+
+	Do_gear_click(c, string_buffer);
 	return S_NORM;
 
     case C_SCOREBOARD_PACKET:

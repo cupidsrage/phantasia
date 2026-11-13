@@ -626,8 +626,11 @@ void Do_gear_load(struct client_t *c)
 / applying gear to the character
 *************************************************************************/
 
-	/* recompute shield/sword/quicksilver from equipped gear */
-void Do_gear_apply(struct client_t *c, int gainEnergy)
+	/* recompute shield/sword/quicksilver from equipped gear.
+	   playerChoice: the player changed their own gear, so energy moves by
+	   the change in shield either way (no healing by swapping armor off
+	   and on).  Otherwise (wear, theft, Cerberus) energy is only capped. */
+void Do_gear_apply(struct client_t *c, int playerChoice)
 {
     double shield = 0, sword = 0, quick = 0, energy;
     int i;
@@ -641,8 +644,8 @@ void Do_gear_apply(struct client_t *c, int gainEnergy)
     }
 
     energy = c->player.energy;
-    if (gainEnergy && shield > c->player.shield) {
-	energy += shield - c->player.shield;
+    if (playerChoice && shield != c->player.shield) {
+	energy = MAX(1.0, energy + shield - c->player.shield);
     }
 
     Do_energy(c, energy, c->player.max_energy, shield, c->battle.force_field,
@@ -1513,7 +1516,7 @@ static void Do_gear_offer_artifact(struct client_t *c)
     }
 
     Do_gear_remove(c, index);
-    Do_gear_apply(c, FALSE);
+    Do_gear_apply(c, TRUE);
 
     if (answer == 0) {
 	Do_strength(c, c->player.max_strength * 1.1, c->player.sword,
@@ -1592,7 +1595,7 @@ void Do_gear_menu(struct client_t *c)
 	    index = Do_gear_choose(c, 1, "Which item do you want to take off?\n");
 	    if (index >= 0) {
 		c->gear[index].equipped = FALSE;
-		Do_gear_apply(c, FALSE);
+		Do_gear_apply(c, TRUE);
 		Do_gear_save(c);
 	    }
 	    break;
@@ -1815,6 +1818,60 @@ void Do_gear_bag_shop(struct client_t *c)
 	Do_send_line(c, line);
 	Do_more(c);
     }
+}
+
+/*
+ * The browser client's gear panel: click an item in the bag to wear it,
+ * or a worn item to put it in the bag.  The client sends
+ * "<e|u> <index> <slot> <equipped>" so a stale click is ignored.
+ */
+void Do_gear_click(struct client_t *c, char *request)
+{
+    char action, name[SZ_LINE], line[SZ_LINE * 2];
+    int index, slot, equipped;
+
+    if (!c->gearLoaded || sscanf(request, " %c %d %d %d", &action, &index,
+	    &slot, &equipped) != 4) {
+	return;
+    }
+
+    if (c->inCombat) {
+	Do_send_chat_self(c, "You can't change gear in the middle of a fight.\n");
+	Do_gear_send(c);
+	return;
+    }
+
+	/* the list must still match what the player clicked */
+    if (index < 0 || index >= c->numGear || c->gear[index].slot != slot ||
+	    c->gear[index].equipped != (equipped ? TRUE : FALSE)) {
+	Do_gear_send(c);
+	return;
+    }
+
+    Do_gear_name(&c->gear[index], name);
+
+    if (action == 'e' && !c->gear[index].equipped) {
+	Do_gear_equip(c, index);
+	Do_gear_apply(c, TRUE);
+	sprintf(line, "You put on %s.\n", name);
+    }
+    else if (action == 'u' && c->gear[index].equipped) {
+	if (Do_gear_backpack_count(c) >= c->bagSize) {
+	    Do_send_chat_self(c, "Your bag is full.\n");
+	    Do_gear_send(c);
+	    return;
+	}
+	c->gear[index].equipped = FALSE;
+	Do_gear_apply(c, TRUE);
+	sprintf(line, "You take off %s.\n", name);
+    }
+    else {
+	Do_gear_send(c);
+	return;
+    }
+
+    Do_gear_save(c);
+    Do_send_chat_self(c, line);
 }
 
 	/* text for /gear in chat */
