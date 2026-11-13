@@ -278,6 +278,7 @@ struct client_t		/* structure for client variables */
     int		reignTitle;		/* SC_ title held at the last check */
     time_t	reignPaid;		/* last treasury stipend */
     double	reignLevel;		/* level the regalia were sized for */
+    long	deedLevel;		/* highest level already counted for deeds */
     int		forceChampion;		/* next random monster is a champion */
     struct quest_t quest;		/* today's quest */
     bool	questLoaded;		/* quest has been loaded */

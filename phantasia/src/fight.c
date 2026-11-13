@@ -361,6 +361,9 @@ Do_monster(struct client_t *c, struct event_t *the_event)
 	/* rulers (and everyone under the Valar's blessing) learn faster */
     c->battle.opponent->experience *= Do_reign_xp_factor(c);
 
+	/* and the account's deeds add their share */
+    c->battle.opponent->experience *= Do_deeds_xp_factor(c);
+
 	/* rarely, a random monster is a named champion */
     c->championFight = FALSE;
     if (randomMonster && (int) the_event->arg1 != MONSTER_PURGATORY &&
@@ -720,7 +723,8 @@ Do_monster(struct client_t *c, struct event_t *the_event)
     if (c->battle.opponent->experience) {
 	Do_experience(c, c->battle.opponent->experience, FALSE);
 
-	    /* champions, daily quests and gear */
+	    /* account deeds, champions, daily quests and gear */
+	Do_deeds_kill(c);
 	Do_champion_slain(c);
 	Do_quest_kill(c);
 	Do_gear_monster_drop(c);

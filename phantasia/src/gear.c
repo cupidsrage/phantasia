@@ -935,6 +935,7 @@ static int Do_artifact_claim(struct client_t *c, struct gear_item_t *item)
     Do_save_artifacts_locked(c->realm);
 
     Do_unlock_mutex(&c->realm->gear_lock);
+    Do_deeds_artifact(c, id);
 
     memset(item, 0, sizeof(*item));
     item->slot = artifacts[id].slot;
@@ -1102,7 +1103,8 @@ void Do_gear_monster_drop(struct client_t *c)
     }
 
 	/* rulers find gear more often, and better */
-    if (RND() < GEAR_DROP_CHANCE * Do_reign_gear_factor(c)) {
+    if (RND() < GEAR_DROP_CHANCE * Do_reign_gear_factor(c) *
+	    Do_deeds_gear_factor(c)) {
 	Do_gear_make(&item, -1, c->player.circle, Do_reign_min_tier(c));
 	Do_gear_offer(c, &item);
     }
