@@ -80,6 +80,16 @@ from `/api/artifacts`). Gear is kept in `data/gear` and artifact holders in
 turned into equal "Worn" gear the first time they play. The player guide
 is `public_html/gear.html`.
 
+### New spells
+
+Once a character's magic level reaches 10, the combat spell menu gains a
+**More Spells** page (`Do_more_spells` in `src/fight.c`): Frost Lance (ML 10,
+damage and slows the monster), Mending Light (ML 20, heal 30%), Drain Life
+(ML 30, damage and heal half of it), Fireball (ML 50, heavy damage, may engulf
+for double) and Banish (ML 90, send a monster away without a fight), plus
+Transform, which moved there. Costs and levels are in `phantdefs.h`; the
+website's Spells page has the details.
+
 ### Ruling the realm (`src/royal.c`)
 
 Holding a title is now worth fighting for:
