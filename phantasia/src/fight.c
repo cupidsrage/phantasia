@@ -2160,6 +2160,217 @@ Do_hitmonster(struct client_t *c, double inflict)
 /**/
 /************************************************************************
 /
+/ Phantasia Reimagined spells: the "More Spells" page of the combat
+/ spell menu.  Returns 1 to go back to the first page, 2 to cast
+/ Transform (which lives on the first page's code), 0 when done.
+/
+*************************************************************************/
+
+#define MORE_DONE	0
+#define MORE_BACK	1
+#define MORE_TRANSFORM	2
+
+	/* damage of a fixed-cost spell, in line with a Magic Bolt of that
+	   much mana (Dark Lord shrugs off spell damage) */
+static double Do_spell_damage(struct client_t *c, double mana, double power)
+{
+    if (c->battle.opponent->special_type == SM_DARKLORD) {
+	return 0.0;
+    }
+    return floor(mana * (.7 + .6 * RND()) *
+	    (pow(Do_eff_magiclvl(c), 0.40) + 1) * power);
+}
+
+	/* against players a spell can fizzle, like a Magic Bolt */
+static int Do_spell_fizzles(struct client_t *c)
+{
+    return c->battle.opponent->special_type == SM_IT_COMBAT &&
+	    RND() > .05 + (sqrt(Do_eff_magiclvl(c)) / 50);
+}
+
+static int Do_more_spells(struct client_t *c, short *theAttack, double *theArg)
+{
+    struct button_t buttons;
+    char line[SZ_LINE];
+    double ml = Do_eff_magiclvl(c), cost, inflict, heal, top;
+    int pvp = c->battle.opponent->special_type == SM_IT_COMBAT;
+    long answer;
+
+    Do_clear_buttons(&buttons, 0);
+    if (ml >= ML_FROST)    strcpy(buttons.button[0], "Frost Lance\n");
+    if (ml >= ML_MENDING)  strcpy(buttons.button[1], "Mending Light\n");
+    if (ml >= ML_DRAIN)    strcpy(buttons.button[2], "Drain Life\n");
+    if (ml >= ML_FIREBALL) strcpy(buttons.button[3], "Fireball\n");
+    if (ml >= ML_BANISH)   strcpy(buttons.button[4], "Banish\n");
+    if (ml >= ML_XFORM)    strcpy(buttons.button[5], "Transform\n");
+    strcpy(buttons.button[6], "Back\n");
+    strcpy(buttons.button[7], "Cancel\n");
+
+    Do_send_line(c, "Which spell do you wish to cast?\n");
+    if (Do_buttons(c, &answer, &buttons) != S_NORM) {
+	*theAttack = IT_PASS;
+	return MORE_DONE;
+    }
+
+    switch (answer) {
+
+    case 0:	/* Frost Lance: damage, and the target slows down */
+	cost = MM_FROST + ml / 4;
+	if (ml < ML_FROST) break;
+	if (c->player.mana < Do_gear_spell_cost(c, cost)) {
+	    Do_send_line(c, "You do not have enough mana.\n");
+	    *theAttack = IT_NO_BOLT;
+	    return MORE_DONE;
+	}
+	Do_mana(c, -Do_gear_spell_cost(c, cost), FALSE);
+	if (Do_spell_fizzles(c)) {
+	    Do_send_line(c, "Your Frost Lance shatters harmlessly!\n");
+	    *theAttack = IT_NO_BOLT;
+	    return MORE_DONE;
+	}
+	inflict = Do_spell_damage(c, cost, 1.1);
+	Do_send_line(c, "A lance of ice streaks from your hands!\n");
+	if (!pvp && c->battle.opponent->speed > 1) {
+	    c->battle.opponent->speed *= 0.6;
+	    sprintf(line, "%s is chilled to the bone and slows down.\n",
+		    c->battle.opponent->name);
+	    Do_send_line(c, line);
+	}
+	Do_hitmonster(c, inflict);
+	*theAttack = IT_BOLT;
+	*theArg = inflict;
+	return MORE_DONE;
+
+    case 1:	/* Mending Light: heal yourself */
+	cost = MM_MENDING + ml / 2;
+	if (ml < ML_MENDING) break;
+	if (pvp) {
+	    Do_send_line(c, "Mending Light can't be cast while fighting another player.\n");
+	    return MORE_BACK;
+	}
+	top = c->player.max_energy + c->player.shield;
+	if (c->player.energy >= top) {
+	    Do_send_line(c, "You are already at full energy.\n");
+	    return MORE_BACK;
+	}
+	if (c->player.mana < Do_gear_spell_cost(c, cost)) {
+	    Do_send_line(c, "You do not have enough mana.\n");
+	    return MORE_BACK;
+	}
+	Do_mana(c, -Do_gear_spell_cost(c, cost), FALSE);
+	heal = MIN(ceil(top * 0.30), MAX(0.0, top - c->player.energy));
+	Do_energy(c, c->player.energy + heal, c->player.max_energy,
+		c->player.shield, c->battle.force_field, FALSE);
+	sprintf(line, "Warm light washes over you, restoring %.0f energy.\n", heal);
+	Do_send_line(c, line);
+	*theAttack = IT_PASS;
+	return MORE_DONE;
+
+    case 2:	/* Drain Life: damage, and you heal half of it */
+	cost = MM_DRAIN + ml / 2;
+	if (ml < ML_DRAIN) break;
+	if (c->player.mana < Do_gear_spell_cost(c, cost)) {
+	    Do_send_line(c, "You do not have enough mana.\n");
+	    *theAttack = IT_NO_BOLT;
+	    return MORE_DONE;
+	}
+	Do_mana(c, -Do_gear_spell_cost(c, cost), FALSE);
+	if (Do_spell_fizzles(c)) {
+	    Do_send_line(c, "The dark tendrils wither before they touch!\n");
+	    *theAttack = IT_NO_BOLT;
+	    return MORE_DONE;
+	}
+	inflict = Do_spell_damage(c, cost, 0.9);
+	Do_send_line(c, "Dark tendrils drink the life from your foe!\n");
+	Do_hitmonster(c, inflict);
+	if (!pvp && inflict > 0) {
+	    top = c->player.max_energy + c->player.shield;
+	    heal = MIN(floor(inflict / 2), MAX(0.0, top - c->player.energy));
+	    if (heal >= 1) {
+		Do_energy(c, c->player.energy + heal, c->player.max_energy,
+			c->player.shield, c->battle.force_field, FALSE);
+		sprintf(line, "You drain %.0f energy.\n", heal);
+		Do_send_line(c, line);
+	    }
+	}
+	*theAttack = IT_BOLT;
+	*theArg = inflict;
+	return MORE_DONE;
+
+    case 3:	/* Fireball: big damage, sometimes engulfing */
+	cost = MM_FIREBALL + ml;
+	if (ml < ML_FIREBALL) break;
+	if (c->player.mana < Do_gear_spell_cost(c, cost)) {
+	    Do_send_line(c, "You do not have enough mana.\n");
+	    *theAttack = IT_NO_BOLT;
+	    return MORE_DONE;
+	}
+	Do_mana(c, -Do_gear_spell_cost(c, cost), FALSE);
+	if (Do_spell_fizzles(c)) {
+	    Do_send_line(c, "Your Fireball sputters out in a puff of smoke!\n");
+	    *theAttack = IT_NO_BOLT;
+	    return MORE_DONE;
+	}
+	inflict = Do_spell_damage(c, cost, 1.3);
+	if (RND() < 0.2) {
+	    Do_send_line(c, "The Fireball engulfs your foe in roaring flame!\n");
+	    inflict *= 2;
+	}
+	else {
+	    Do_send_line(c, "A Fireball bursts from your hands!\n");
+	}
+	Do_hitmonster(c, inflict);
+	*theAttack = IT_BOLT;
+	*theArg = inflict;
+	return MORE_DONE;
+
+    case 4:	/* Banish: send a monster away (no reward) */
+	if (ml < ML_BANISH) break;
+	if (pvp || c->battle.opponent->special_type == SM_DARKLORD ||
+		c->battle.opponent->special_type == SM_MORGOTH) {
+	    sprintf(line, "%s can not be banished.\n", c->battle.opponent->name);
+	    Do_send_line(c, line);
+	    return MORE_BACK;
+	}
+	if (c->player.mana < Do_gear_spell_cost(c, MM_BANISH)) {
+	    Do_send_line(c, "You do not have enough mana.\n");
+	    return MORE_BACK;
+	}
+	Do_mana(c, -Do_gear_spell_cost(c, MM_BANISH), FALSE);
+	if (9000 * ml / (c->battle.opponent->experience + 18000 * ml) > RND() - .1) {
+	    sprintf(line, "%s is banished from the realm in a clap of thunder!\n",
+		    c->battle.opponent->name);
+	    Do_send_line(c, line);
+	    Do_cancel_monster(c->battle.opponent);
+	}
+	else {
+	    sprintf(line, "%s resists the Banish spell.\n", c->battle.opponent->name);
+	    Do_send_line(c, line);
+	}
+	*theAttack = IT_PASS;
+	return MORE_DONE;
+
+    case 5:
+	if (ml >= ML_XFORM) return MORE_TRANSFORM;
+	break;
+
+    case 6:
+	return MORE_BACK;
+
+    case 7:	/* cancel: back to the fight menu */
+	*theAttack = IT_PASS;
+	Do_playerhits(c, theAttack, theArg);
+	return MORE_DONE;
+    }
+
+	/* a spell they can't cast yet: show the page again */
+    Do_send_line(c, "You can not cast that spell.\n");
+    return MORE_BACK;
+}
+
+
+/************************************************************************
+/
 / FUNCTION NAME: Do_throwspell(struct client_t *c)
 /
 / FUNCTION: throw a magic spell
@@ -2209,10 +2420,11 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
 	strcpy(theButtons.button[4], "Force Field\n");
     }
 
-    if (Do_eff_magiclvl(c) >= ML_XFORM &&
+	/* the new spells (and Transform) are on a second page */
+    if (Do_eff_magiclvl(c) >= ML_FROST &&
 	c->battle.opponent->special_type != SM_MORGOTH) {
 
-	strcpy(theButtons.button[7], "Transform\n");
+	strcpy(theButtons.button[7], "More Spells\n");
     }
     else {
 	strcpy(theButtons.button[7], "Cancel\n");
@@ -2243,6 +2455,20 @@ Do_throwspell(struct client_t *c, short *theAttack, double *theArg)
     if (Do_buttons(c, &answer, &theButtons) != S_NORM) {
 	*theAttack = IT_PASS;
 	return;
+    }
+
+    if (answer == 7 && Do_eff_magiclvl(c) >= ML_FROST &&
+	    c->battle.opponent->special_type != SM_MORGOTH) {
+
+	switch (Do_more_spells(c, theAttack, theArg)) {
+	case MORE_BACK:
+	    Do_throwspell(c, theAttack, theArg);
+	    return;
+	case MORE_TRANSFORM:
+	    break;		/* on to the Transform code (answer is 7) */
+	default:
+	    return;
+	}
     }
 
     switch(answer) {

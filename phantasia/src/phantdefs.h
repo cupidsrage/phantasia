@@ -540,6 +540,18 @@ typedef char bool;
 #define ML_XFORM        75.0            /* magic level for 'transform' */
 #define MM_XFORM        150.0           /* mana used for 'transform' */
 #define MM_SPECIFY      1000.0          /* mana used for 'specify' */
+
+	/* Phantasia Reimagined spells (the "More Spells" page in combat) */
+#define ML_FROST        10.0            /* magic level for 'frost lance' */
+#define MM_FROST        25.0            /* mana (+ magic level / 4) */
+#define ML_MENDING      20.0            /* magic level for 'mending light' */
+#define MM_MENDING      40.0            /* mana (+ magic level / 2) */
+#define ML_DRAIN        30.0            /* magic level for 'drain life' */
+#define MM_DRAIN        50.0            /* mana (+ magic level / 2) */
+#define ML_FIREBALL     50.0            /* magic level for 'fireball' */
+#define MM_FIREBALL     90.0            /* mana (+ magic level) */
+#define ML_BANISH       90.0            /* magic level for 'banish' */
+#define MM_BANISH       200.0           /* mana used for 'banish' */
 #define ML_CLOAK        20.0            /* magic level for 'cloak' */
 #define MEL_CLOAK       7.0             /* experience level for 'cloak' */
 #define MM_CLOAK        35.0            /* mana used for 'cloak' */

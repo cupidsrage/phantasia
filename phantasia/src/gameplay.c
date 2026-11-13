@@ -853,6 +853,13 @@ int Do_chat_command(struct client_t *c, char *text)
     else if (strncasecmp(text, "/ceremonytest", 13) == 0) {
 	Do_announce_ceremony(c, atoi(text + 13));
     }
+	/* test builds only: a caster strong enough for every spell */
+    else if (strncasecmp(text, "/spelltest", 10) == 0) {
+	c->player.magiclvl = 100;
+	c->player.mana = 10000;
+	Do_mana(c, 0, TRUE);
+	Do_send_chat_self(c, "Magic level 100, 10000 mana.\n");
+    }
 #endif
     else if (strncasecmp(text, "/ceremony", 9) == 0 && text[9] != 't' &&
 	    c->wizard >= 2) {
