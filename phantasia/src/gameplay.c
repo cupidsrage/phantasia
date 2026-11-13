@@ -845,6 +845,12 @@ int Do_chat_command(struct client_t *c, char *text)
 	    Do_send_chat_self(c, message);
 	}
     }
+#ifdef GEAR_TEST
+	/* test builds only: /ceremonytest N shows ceremony N to everyone */
+    else if (strncasecmp(text, "/ceremonytest", 13) == 0) {
+	Do_announce_ceremony(c, atoi(text + 13));
+    }
+#endif
     else if (strncasecmp(text, "/gear", 5) == 0) {
 
 	Do_gear_chat(c);
@@ -1212,18 +1218,24 @@ void Do_wizard_tools(struct client_t *c)
 }
 
 
-	/* tell every game a wizard has arrived (Do_file_event shows browsers) */
-void Do_announce_wizard(struct client_t *c)
+	/* tell every game about a ceremony (Do_file_event shows browsers):
+	   a wizard arriving (2-4) or a new Steward, King, Queen or Valar */
+void Do_announce_ceremony(struct client_t *c, int kind)
 {
     struct event_t *event_ptr;
 
     event_ptr = (struct event_t *) Do_create_event();
     event_ptr->type = WIZARD_ARRIVAL_EVENT;
-    event_ptr->arg1 = (double) c->wizard;
+    event_ptr->arg1 = (double) kind;
     event_ptr->arg3 = strlen(c->modifiedName) + 1;
     event_ptr->arg4 = (void *) Do_malloc(event_ptr->arg3);
     strcpy(event_ptr->arg4, c->modifiedName);
     event_ptr->from = c->game;
 
     Do_broadcast_event(c, event_ptr);
+}
+
+void Do_announce_wizard(struct client_t *c)
+{
+    Do_announce_ceremony(c, c->wizard);
 }
