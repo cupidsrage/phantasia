@@ -141,36 +141,54 @@ static const char *Cap(const char *s, char *buf)
 *************************************************************************/
 
 /*
- * Trading posts stand along the eight compass roads out from 0,0: on the
- * diagonals (as in the original game) and on the axes, at 100 x n * n
- * along the road (100, 400, 900, 1600, ...), so every region has them.
- * Returns n (the post's rank, 1 = nearest the throne), or 0 if (x, y) is
- * not a post.  *diagonal says which kind of road it is on.
+ * Trading posts stand along the eight compass roads out from 0,0.  On the
+ * diagonals they are where they always were: at (100 n*n, 100 n*n) and its
+ * mirrors.  On the four main roads they stand at the same distance from
+ * the throne as their diagonal partners (100 n*n times the square root of
+ * 2, rounded), so every post is in the same circle, among the same
+ * monsters, as before.  Returns n (the post's rank, 1 = nearest the
+ * throne), or 0 if (x, y) is not a post.  *diagonal says which road.
  */
+static double Do_axis_post_distance(int n)
+{
+    return floor(100.0 * n * n * M_SQRT2 + 0.5);
+}
+
 int Do_trading_post_rank(double x, double y, int *diagonal)
 {
     double ax = fabs(x), ay = fabs(y), d, n;
+    int rank;
 
     if (diagonal) *diagonal = FALSE;
     if (ax == 0 && ay == 0) return 0;
-    if (ax == ay) { d = ax; if (diagonal) *diagonal = TRUE; }
-    else if (ax == 0) d = ay;
-    else if (ay == 0) d = ax;
-    else return 0;
-    n = sqrt(d / 100.0);
-    return floor(n) == n ? (int) n : 0;
+    if (ax == ay) {				/* a diagonal road */
+	n = sqrt(ax / 100.0);
+	if (floor(n) != n) return 0;
+	if (diagonal) *diagonal = TRUE;
+	return (int) n;
+    }
+    if (ax != 0 && ay != 0) return 0;
+    d = ax + ay;				/* a main road */
+    rank = (int) floor(sqrt(d / (100.0 * M_SQRT2)) + 0.5);
+    return rank >= 1 && Do_axis_post_distance(rank) == d ? rank : 0;
 }
 
-	/* the post nearest (x, y) on its region's road */
+/* the post nearest (x, y) on its region's road */
 static void Do_nearest_post(int r, double x, double y, double *px, double *py)
 {
     static const int dx[NUM_REGIONS] = { 1, 1, 0, -1, -1, -1, 0, 1 };
     static const int dy[NUM_REGIONS] = { 0, 1, 1, 1, 0, -1, -1, -1 };
-    double t = MAX(fabs(x), fabs(y));
-    double n = MAX(1.0, floor(sqrt(t / 100.0) + 0.5));
+    double t = sqrt(x * x + y * y);		/* distance from the throne */
+    int n = (int) MAX(1.0, floor(sqrt(t / (100.0 * M_SQRT2)) + 0.5));
 
-    *px = dx[r] * 100.0 * n * n;
-    *py = dy[r] * 100.0 * n * n;
+    if (dx[r] && dy[r]) {			/* a diagonal road */
+	*px = dx[r] * 100.0 * n * n;
+	*py = dy[r] * 100.0 * n * n;
+    }
+    else {					/* a main road: same distance */
+	*px = dx[r] * Do_axis_post_distance(n);
+	*py = dy[r] * Do_axis_post_distance(n);
+    }
 }
 
 int Do_world_is_night(void)
@@ -1256,7 +1274,7 @@ void Do_world_test(struct client_t *c, char *what)
 	c->player.max_energy = 200000;
 	Do_energy(c, 200000, 200000, c->player.shield, 0, TRUE);
     }
-    if (!strncmp(what, "posteast", 8)) Do_location(c, 900, 0, TRUE);	/* an axis post */
+    if (!strncmp(what, "posteast", 8)) Do_location(c, 1273, 0, TRUE);	/* rank 3, main road */
     else if (!strncmp(what, "gotonorth", 9)) Do_location(c, 60, 900, TRUE);	/* the Northern Reach */
     else if (!strncmp(what, "goto", 4)) Do_location(c, 900, 120, TRUE);	/* the Eastern Marches */
     if (!strncmp(what, "doom", 4)) {
