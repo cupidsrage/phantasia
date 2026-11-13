@@ -411,6 +411,9 @@ Do_file_event(struct client_t *c, struct event_t *the_event)
 	    Do_send_buffer(c);
 	}
 
+	    /* a world event may have just started or ended */
+	Do_world_event_sync(c);
+
 	    /* delete the string */
 	free(the_event->arg4);
 
