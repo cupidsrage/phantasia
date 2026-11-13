@@ -140,6 +140,57 @@ static const char *Cap(const char *s, char *buf)
 / time, places
 *************************************************************************/
 
+/*
+ * Trading posts stand along the eight compass roads out from 0,0.  On the
+ * diagonals they are where they always were: at (100 n*n, 100 n*n) and its
+ * mirrors.  On the four main roads they stand at the same distance from
+ * the throne as their diagonal partners (100 n*n times the square root of
+ * 2, rounded), so every post is in the same circle, among the same
+ * monsters, as before.  Returns n (the post's rank, 1 = nearest the
+ * throne), or 0 if (x, y) is not a post.  *diagonal says which road.
+ */
+static double Do_axis_post_distance(int n)
+{
+    return floor(100.0 * n * n * M_SQRT2 + 0.5);
+}
+
+int Do_trading_post_rank(double x, double y, int *diagonal)
+{
+    double ax = fabs(x), ay = fabs(y), d, n;
+    int rank;
+
+    if (diagonal) *diagonal = FALSE;
+    if (ax == 0 && ay == 0) return 0;
+    if (ax == ay) {				/* a diagonal road */
+	n = sqrt(ax / 100.0);
+	if (floor(n) != n) return 0;
+	if (diagonal) *diagonal = TRUE;
+	return (int) n;
+    }
+    if (ax != 0 && ay != 0) return 0;
+    d = ax + ay;				/* a main road */
+    rank = (int) floor(sqrt(d / (100.0 * M_SQRT2)) + 0.5);
+    return rank >= 1 && Do_axis_post_distance(rank) == d ? rank : 0;
+}
+
+/* the post nearest (x, y) on its region's road */
+static void Do_nearest_post(int r, double x, double y, double *px, double *py)
+{
+    static const int dx[NUM_REGIONS] = { 1, 1, 0, -1, -1, -1, 0, 1 };
+    static const int dy[NUM_REGIONS] = { 0, 1, 1, 1, 0, -1, -1, -1 };
+    double t = sqrt(x * x + y * y);		/* distance from the throne */
+    int n = (int) MAX(1.0, floor(sqrt(t / (100.0 * M_SQRT2)) + 0.5));
+
+    if (dx[r] && dy[r]) {			/* a diagonal road */
+	*px = dx[r] * 100.0 * n * n;
+	*py = dy[r] * 100.0 * n * n;
+    }
+    else {					/* a main road: same distance */
+	*px = dx[r] * Do_axis_post_distance(n);
+	*py = dy[r] * Do_axis_post_distance(n);
+    }
+}
+
 int Do_world_is_night(void)
 {
     return (time(NULL) / 60) % NIGHT_CYCLE >= NIGHT_CYCLE - NIGHT_LENGTH;
@@ -648,9 +699,11 @@ void Do_world_turn(struct client_t *c)
 		    Do_world_throne_overrun() ? ", overrun by monsters" : "");
 	}
 	else {
-	    sprintf(line, "You enter %s (%s, %.0f%% Shadow). The town of %s is %s.\n",
+	    double px, py;
+	    Do_nearest_post(r, c->player.x, c->player.y, &px, &py);
+	    sprintf(line, "You enter %s (%s, %.0f%% Shadow). The town of %s is %s; its nearest trading post is at %.0f, %.0f.\n",
 		    regionNames[r], Do_region_state(r), W.region[r].shadow,
-		    townNames[r], Do_town_tier(r));
+		    townNames[r], Do_town_tier(r), px, py);
 	}
 	Do_send_line(c, Cap(line, line));
     }
@@ -1168,6 +1221,13 @@ void Do_world_chat(struct client_t *c)
 		Do_region_state(i), W.region[i].shadow, townNames[i], Do_town_tier(i));
 	Do_send_chat_self(c, line);
     }
+    if (Do_player_region(c) != HEARTLANDS) {
+	double px, py;
+	Do_nearest_post(Do_player_region(c), c->player.x, c->player.y, &px, &py);
+	sprintf(line, "The nearest trading post of %s is at %.0f, %.0f.\n",
+		townNames[Do_player_region(c)], px, py);
+	Do_send_chat_self(c, line);
+    }
     if (time(NULL) < W.overrunUntil) Do_send_chat_self(c, "The Lord's Chamber is overrun by monsters!\n");
     if (W.project < NUM_PROJECTS) {
 	sprintf(line, "Realm project: %s - gold %.0f/%.0f, monsters %ld/%ld (then %s).\n",
@@ -1214,7 +1274,8 @@ void Do_world_test(struct client_t *c, char *what)
 	c->player.max_energy = 200000;
 	Do_energy(c, 200000, 200000, c->player.shield, 0, TRUE);
     }
-    if (!strncmp(what, "gotonorth", 9)) Do_location(c, 60, 900, TRUE);	/* the Northern Reach */
+    if (!strncmp(what, "posteast", 8)) Do_location(c, 1273, 0, TRUE);	/* rank 3, main road */
+    else if (!strncmp(what, "gotonorth", 9)) Do_location(c, 60, 900, TRUE);	/* the Northern Reach */
     else if (!strncmp(what, "goto", 4)) Do_location(c, 900, 120, TRUE);	/* the Eastern Marches */
     if (!strncmp(what, "doom", 4)) {
 	c->forceChampion = TRUE;

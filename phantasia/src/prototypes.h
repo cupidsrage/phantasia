@@ -370,6 +370,7 @@ void Do_artifacts_chat(struct client_t *c);
 #endif /* PHANTASIA_PROTOTYPES_H */
 	/* world.c */
 int Do_world_is_night(void);
+int Do_trading_post_rank(double x, double y, int *diagonal);
 int Do_world_season(void);
 void Do_nemesis_name(int i, char *out);
 void Do_world_start_siege(struct client_t *c, int players);

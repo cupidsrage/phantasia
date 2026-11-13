@@ -1453,12 +1453,10 @@ Do_bestow(struct client_t *c, struct event_t *the_event)
         return;
     }
 
-    if (fabs(c->player.x) == fabs(c->player.y) && c->player.location !=
-                PL_THRONE) {
+    if (c->player.location != PL_THRONE &&
+	    Do_trading_post_rank(c->player.x, c->player.y, NULL)) {
 
-        dtemp = sqrt(fabs(c->player.x)/100.0);
-
-        if (floor(dtemp) == dtemp) {
+        {
             sprintf(string_buffer, "You see %s's head page approach.  The post owner leaves the shop, says \"Oh great!  My tax refund is finally here!\", grabs the gold from the page and disappears back into the post.\n", the_event->arg4);
             Do_send_line(c, string_buffer);
 
@@ -4057,13 +4055,17 @@ Do_trading_post(struct client_t *c)
     }
     pf = Do_world_price_factor(c);
 
-    size = sqrt(fabs(c->player.x) / 100) + 1;
+	/* farther posts stock more; blessings are sold only at the
+	   diagonal posts in the Plateau of Gorgoroth (rank 5) */
+    {
+	int diagonal, rank = Do_trading_post_rank(c->player.x, c->player.y, &diagonal);
 
-        /* only give blessings in the Cracks */
-    if (size != 6) {
-      size = MIN(6, size);
-    } else {
-      size = 7;
+	size = (rank ? rank : (int) sqrt(fabs(c->player.x) / 100)) + 1;
+	if (size == 6 && diagonal) {
+	    size = 7;
+	} else {
+	    size = MIN(6, size);
+	}
     }
 
         /* set up cost of variable items */
@@ -4595,11 +4597,9 @@ Do_teleport(struct client_t *c, struct event_t *the_event)
     if (the_event->arg2 == TRUE) {
 
            /* is the destination a post? */
-        if (event_ptr->arg1 == event_ptr->arg2) {
-           
-            dtemp = sqrt(fabs(event_ptr->arg1)/100.0);
+        if (Do_trading_post_rank(event_ptr->arg1, event_ptr->arg2, NULL)) {
 
-            if (floor(dtemp) == dtemp) {
+            {
 
                    /* bypass the monster check */
                 event2_ptr = (struct event_t *) Do_create_event();
