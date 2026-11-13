@@ -607,6 +607,12 @@ Do_play_loop(struct client_t *c)
 	    Do_deeds_turn(c);
 	    Do_world_turn(c);
 
+		/* world events start and end on everyone's turns, not only
+		   those of players out hunting (a wizard alone, or a player
+		   on the throne, keeps the realm's clock running too) */
+	    Do_world_event_tick(c);
+	    Do_world_event_sync(c);
+
 	        /* check for monsters, guru's, etc. */
 	    if (!c->player.cloaked 
                 && (c->wizard < 3) 
@@ -981,9 +987,8 @@ Do_random_events(struct client_t *c)
 {
     struct event_t *event_ptr;
 
-	/* world events and "reach a circle" quests */
-    Do_world_event_tick(c);
-    Do_world_event_sync(c);
+	/* "reach a circle" quests (world events are timed in Do_play_loop,
+	   for every player, wizards and those off the map included) */
     Do_quest_check_location(c);
 
 	/* Mending gear heals as you travel */
