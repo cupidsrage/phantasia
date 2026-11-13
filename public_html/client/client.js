@@ -800,20 +800,47 @@
   /* the 3D scenes (ceremonies3d.js, three.js) load the first time a ceremony
      plays; until they are ready, or if the device can't do WebGL, the CSS
      scenery shows instead */
-  var scenes3d = null;
+  var scenes3d = null, ready3d = null;
+  function webglOk() {
+    try {
+      var cv = document.createElement("canvas");
+      return !!(window.WebGLRenderingContext &&
+        (cv.getContext("webgl2") || cv.getContext("webgl")));
+    } catch (e) { return false; }
+  }
   function load3d() {
     if (!scenes3d) {
       var ok = !window.matchMedia("(prefers-reduced-motion: reduce)").matches &&
-        HTMLScriptElement.supports && HTMLScriptElement.supports("importmap");
+        HTMLScriptElement.supports && HTMLScriptElement.supports("importmap") && webglOk();
       scenes3d = ok ? import("./ceremonies3d.js") : Promise.reject(new Error("no 3D"));
-      scenes3d.catch(function () {});
+      scenes3d.then(function (m) { ready3d = m; }, function () {});
     }
     return scenes3d;
   }
+  /* fetch the 3D in the background once the page has loaded, so it is
+     ready before the first ceremony (a wizard's plays right at login) */
+  window.addEventListener("load", function () {
+    (window.requestIdleCallback || setTimeout)(load3d, 300);
+  });
 
   function closeCeremony(el) {
     if (el._scene) { try { el._scene.dispose(); } catch (e) {} el._scene = null; }
     if (el.parentNode) el.remove();
+  }
+
+  function play3d(el, m, kind) {
+    try {
+      el._scene = m.play(kind, el);
+      el.classList.remove("loading3d");
+      el.classList.add("has3d");
+      return true;
+    } catch (e) {               /* WebGL refused: flat version from now on */
+      ready3d = null;
+      scenes3d = Promise.reject(e);
+      scenes3d.catch(function () {});
+      el.classList.remove("loading3d");
+      return false;
+    }
   }
 
   function showCeremony(cls, scenery, rank, name, what, kind) {
@@ -828,13 +855,27 @@
     el.addEventListener("click", done);
     document.body.appendChild(el);
     setTimeout(done, 6200);
+
+    if (ready3d) { play3d(el, ready3d, kind); return el; }
+
+    /* still downloading: show only the title card until the 3D is ready.
+       The flat scenery appears only if 3D fails or takes too long, and
+       then stays, so the two never swap mid-ceremony */
+    el.classList.add("loading3d");
+    var settled = false;
+    var giveUp = setTimeout(function () {
+      if (settled) return;
+      settled = true;
+      el.classList.remove("loading3d");
+    }, 2500);
     load3d().then(function (m) {
-      if (!el.parentNode) return;
-      el._scene = m.play(kind, el);
-      el.classList.add("has3d");
-    }).catch(function () {   /* keep the CSS version, and don't try again */
-      scenes3d = Promise.reject(new Error("no 3D"));
-      scenes3d.catch(function () {});
+      if (settled || !el.parentNode) return;
+      settled = true; clearTimeout(giveUp);
+      play3d(el, m, kind);
+    }, function () {
+      if (settled) return;
+      settled = true; clearTimeout(giveUp);
+      el.classList.remove("loading3d");
     });
     return el;
   }
