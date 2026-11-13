@@ -604,6 +604,7 @@ Do_play_loop(struct client_t *c)
 		/* rulers are paid from the treasury as they reign, even
 		   on the throne (and their regalia keep up with them) */
 	    Do_royal_turn(c);
+	    Do_deeds_turn(c);
 
 	        /* check for monsters, guru's, etc. */
 	    if (!c->player.cloaked 

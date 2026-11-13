@@ -233,6 +233,7 @@ int Do_accept_connections(struct server_t *s)
 	client_ptr->reignTitle = SC_NONE;
 	client_ptr->reignPaid = 0;
 	client_ptr->reignLevel = 0;
+	client_ptr->deedLevel = 0;
 	client_ptr->forceChampion = FALSE;
 	client_ptr->questLoaded = FALSE;
 	client_ptr->gearLoaded = FALSE;

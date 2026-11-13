@@ -368,6 +368,19 @@ void Do_gear_chat(struct client_t *c);
 void Do_artifacts_chat(struct client_t *c);
 
 #endif /* PHANTASIA_PROTOTYPES_H */
+	/* deeds.c */
+void Do_deeds_kill(struct client_t *c);
+void Do_deeds_quest(struct client_t *c);
+void Do_deeds_title(struct client_t *c, int kind);
+void Do_deeds_artifact(struct client_t *c, int id);
+void Do_deeds_turn(struct client_t *c);
+double Do_deeds_xp_factor(struct client_t *c);
+double Do_deeds_gold_factor(struct client_t *c);
+double Do_deeds_gear_factor(struct client_t *c);
+void Do_deeds_chat(struct client_t *c);
+#ifdef GEAR_TEST
+void Do_deeds_test(struct client_t *c);
+#endif
 	/* royal.c */
 int Do_reign_title(struct client_t *c);
 double Do_reign_xp_factor(struct client_t *c);

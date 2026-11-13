@@ -72,6 +72,8 @@
 #define WORLD_EVENT_FILE	PHANTASIA_DIR "/data/worldevent"
 #define ARTIFACT_FILE		PHANTASIA_DIR "/data/artifacts"
 #define TEMP_ARTIFACT_FILE	PHANTASIA_DIR "/data/artifacts.tmp"
+#define DEEDS_FILE		PHANTASIA_DIR "/data/deeds"
+#define TEMP_DEEDS_FILE		PHANTASIA_DIR "/data/deeds.tmp"
 
 /* Log Files */
 #define BATTLE_LOG		PHANTASIA_DIR "/log/battles"

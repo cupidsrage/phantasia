@@ -311,7 +311,7 @@ double Do_treasure_chance_factor(struct client_t *c)
 double Do_gold_find_factor(struct client_t *c)
 {
     return (Do_current_world_event(c) == WE_GOLD_RUSH ? 2.0 : 1.0) *
-	    Do_reign_gold_factor(c);
+	    Do_reign_gold_factor(c) * Do_deeds_gold_factor(c);
 }
 
 
@@ -679,6 +679,7 @@ static void Do_quest_complete(struct client_t *c)
     double gold, gems, level = c->player.level;
 
     q->done = TRUE;
+    Do_deeds_quest(c);
 
     gold = floor((200.0 + level * 60.0) * (q->type == QT_CHAMPION ? 3.0 : 1.0));
     gems = floor((1.0 + level / 25.0) * (q->type == QT_CHAMPION ? 2.0 : 1.0));
@@ -853,6 +854,10 @@ int Do_chat_command(struct client_t *c, char *text)
     else if (strncasecmp(text, "/ceremonytest", 13) == 0) {
 	Do_announce_ceremony(c, atoi(text + 13));
     }
+	/* test builds only: nearly earn some deeds */
+    else if (strncasecmp(text, "/deedtest", 9) == 0) {
+	Do_deeds_test(c);
+    }
 	/* test builds only: a caster strong enough for every spell */
     else if (strncasecmp(text, "/spelltest", 10) == 0) {
 	c->player.magiclvl = 100;
@@ -864,6 +869,9 @@ int Do_chat_command(struct client_t *c, char *text)
     else if (strncasecmp(text, "/ceremony", 9) == 0 && text[9] != 't' &&
 	    c->wizard >= 2) {
 	Do_ceremony_chat(c, text + 9);
+    }
+    else if (strncasecmp(text, "/deeds", 6) == 0) {
+	Do_deeds_chat(c);
     }
     else if (strncasecmp(text, "/court", 6) == 0 ||
 	    strncasecmp(text, "/treasury", 9) == 0) {
@@ -892,6 +900,7 @@ int Do_chat_command(struct client_t *c, char *text)
 	Do_send_chat_self(c, "/artifacts - who holds each artifact\n");
 	Do_send_chat_self(c, "/filter - turn the chat filter on or off\n");
 	Do_send_chat_self(c, "/court - who rules, the royal coffers and the Valar's blessing\n");
+	Do_send_chat_self(c, "/deeds - your account's deeds and the bonuses they give all your characters\n");
 	if (c->wizard >= 3) {
 	    Do_send_chat_self(c, "Wizards: /event start blood|gold|hunt|random [minutes], /event stop\n");
 	    Do_send_chat_self(c, "Wizards: Administrate > Realm Tools for artifacts, gear, bags, quests, champions, ceremonies\n");
@@ -1459,6 +1468,7 @@ void Do_announce_ceremony(struct client_t *c, int kind)
 	/* a new title: put on the regalia straight away */
     if (kind >= CEREMONY_STEWARD) {
 	Do_royal_refresh(c);
+	Do_deeds_title(c, kind);
     }
 
     event_ptr = (struct event_t *) Do_create_event();

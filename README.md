@@ -80,6 +80,17 @@ from `/api/artifacts`). Gear is kept in `data/gear` and artifact holders in
 turned into equal "Worn" gear the first time they play. The player guide
 is `public_html/gear.html`.
 
+### Account deeds (`src/deeds.c`)
+
+Lifetime achievements of an account give every character on it a small
+permanent bonus: Monster Slayer (kills), Champion's Bane, Stormrider (kills
+during world events), Dutiful (daily quests), Relic Hunter (artifacts held),
+Seasoned (highest level), Served as Steward, Wore the Crown, Ascended to the
+Valar and Dark Lord's Doom. Each tier adds +1% experience, +1% gold or +5% gear
+finds (up to +13% / +9% / +30% in all). Progress is kept per account in
+`data/deeds`; players type `/deeds` to see theirs. The tiers and bonuses are
+the `deeds[]` table at the top of the file.
+
 ### New spells
 
 Once a character's magic level reaches 10, the combat spell menu gains a
