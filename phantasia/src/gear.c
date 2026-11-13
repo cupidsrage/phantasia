@@ -1104,7 +1104,7 @@ void Do_gear_monster_drop(struct client_t *c)
 
 	/* rulers find gear more often, and better */
     if (RND() < GEAR_DROP_CHANCE * Do_reign_gear_factor(c) *
-	    Do_deeds_gear_factor(c)) {
+	    Do_deeds_gear_factor(c) * Do_world_gear_factor(c)) {
 	Do_gear_make(&item, -1, c->player.circle, Do_reign_min_tier(c));
 	Do_gear_offer(c, &item);
     }
@@ -1491,7 +1491,8 @@ double Do_eff_magiclvl(struct client_t *c)
 	/* what a spell really costs with Focus gear */
 double Do_gear_spell_cost(struct client_t *c, double cost)
 {
-    return ceil(cost * MAX(0.5, 1.0 - 0.1 * Do_gear_ability(c, AB_FOCUS)));
+    return ceil(cost * MAX(0.5, 1.0 - 0.1 * Do_gear_ability(c, AB_FOCUS)) *
+	    Do_world_spell_factor());
 }
 
 double Do_gear_gold_factor(struct client_t *c)
@@ -1850,7 +1851,7 @@ void Do_gear_armory(struct client_t *c, int slot)
 		stock[n].base = MIN(7, (int) (log(cc) / log(2.2)) + rand_r(&state) % 2);
 		Do_gear_set_stats(&stock[n], cc, q);
 	    }
-	    price[n] = Do_gear_buy_price(&stock[n]);
+	    price[n] = floor(Do_gear_buy_price(&stock[n]) * Do_world_price_factor(c));
 
 	    Do_gear_describe(&stock[n], line);
 	    sprintf(line + strlen(line), " - %.0f gold\n", price[n]);
@@ -1933,6 +1934,7 @@ void Do_gear_bag_shop(struct client_t *c)
     char line[SZ_LINE];
     long answer;
     int now, next;
+    double bagPrice;
 
     for (;;) {
 
@@ -1951,8 +1953,9 @@ void Do_gear_bag_shop(struct client_t *c)
 	}
 
 	next = now + 1;
+	bagPrice = floor(bagPrice * Do_world_price_factor(c));
 	sprintf(line, "The bag maker offers a %s, holding %d items, for %.0f gold.\n",
-		bags[next].name, bags[next].size, bags[next].price);
+		bags[next].name, bags[next].size, bagPrice);
 	Do_send_line(c, line);
 	sprintf(line, "Your items move into the new bag.  You have %.0f gold.\n",
 		c->player.gold);
@@ -1967,19 +1970,19 @@ void Do_gear_bag_shop(struct client_t *c)
 	    return;
 	}
 
-	if (bags[next].price > c->player.gold) {
+	if (bagPrice > c->player.gold) {
 	    Do_send_line(c, "You can't afford it yet.\n");
 	    Do_more(c);
 	    continue;
 	}
 
-	Do_gold(c, -bags[next].price, FALSE);
-	Do_royal_tithe(c, bags[next].price);
+	Do_gold(c, -bagPrice, FALSE);
+	Do_royal_tithe(c, bagPrice);
 	c->bagSize = bags[next].size;
 
 	sprintf(line, "%s, %s, bought a %s for %.0f\n", c->player.lcname,
 		c->realm->charstats[c->player.type].class_name,
-		bags[next].name, bags[next].price);
+		bags[next].name, bagPrice);
 	Do_log(PURCHASE_LOG, line);
 
 	Do_gear_send(c);

@@ -20,7 +20,7 @@
     NAME: 40, LOCATION: 41, ENERGY: 42, STRENGTH: 43, SPEED: 44,
     SHIELD: 45, SWORD: 46, QUICKSILVER: 47, MANA: 48, LEVEL: 49,
     GOLD: 50, GEMS: 51, CLOAK: 52, BLESSING: 53, CROWN: 54,
-    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61, WIZARD: 62, SELECT: 63
+    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61, WIZARD: 62, SELECT: 63, WORLD: 64
   };
 
   /* ---- client -> server ---- */
@@ -177,6 +177,7 @@
         case P.WORLD_EVENT: await readWorldEvent(); break;
         case P.WIZARD: { var kind = await nextInt(); ceremony(kind, await next()); break; }
         case P.SELECT: await askSelect(); break;
+        case P.WORLD: await readWorld(); break;
         default:
           if (type >= P.NAME && type <= P.VIRGIN) await updateStatus(type);
           else console.warn("Unknown packet", type);
@@ -803,12 +804,39 @@
   var EVENTS = {
     1: { cls: "event-blood", icon: "🌕" },
     2: { cls: "event-gold", icon: "🪙" },
-    3: { cls: "event-hunt", icon: "⚔️" }
+    3: { cls: "event-hunt", icon: "⚔️" },
+    4: { cls: "event-siege", icon: "🏰" }
   };
   var eventEnds = 0, eventTimer = null, eventScene = null, eventShown = 0;
   var EVENT_INTRO = {
-    1: "The sky bleeds red", 2: "Gold floods the realm", 3: "The hunt is on"
+    1: "The sky bleeds red", 2: "Gold floods the realm", 3: "The hunt is on",
+    4: "To arms! The throne is besieged"
   };
+
+  /* the living world: region, town, day or night and season */
+  async function readWorld() {
+    var region = await next(), state = await next(), shadow = await nextInt();
+    var town = await next(), townState = await next(), night = (await next()) === "1";
+    var season = await next();
+    var box = $("world-status");
+    var SEASON_ICON = { "Bloom": "🌸", "Harvest": "🌾", "Hunter's Moon": "🍂", "Deep Frost": "❄️" };
+    box.hidden = false;
+    box.className = "world-status state-" + state.toLowerCase();
+    box.innerHTML = "";
+    function chip(text, title, cls) {
+      var s = document.createElement("span");
+      s.className = "chip" + (cls ? " " + cls : "");
+      s.textContent = text;
+      if (title) s.title = title;
+      box.appendChild(s);
+    }
+    chip((night ? "🌙 Night" : "☀️ Day"), night ? "Monsters are stronger and roam more at night" : "");
+    chip((SEASON_ICON[season] || "") + " " + season, "This week's season (/realm for its effect)");
+    var where = region + " · " + state + (state === "Blighted" || state === "Contested" || state === "Liberated" ? " (" + shadow + "% Shadow)" : "");
+    chip(where, state === "Blighted" ? "Monsters here are stronger and richer" :
+      state === "Liberated" ? "Safer roads and cheaper shops" : "", "region");
+    if (town) chip("🏘 " + town + " · " + townState, "The local town (its shops and inn)", "town");
+  }
 
   function stopEventScene() {
     if (eventScene) { try { eventScene.dispose(); } catch (e) {} eventScene = null; }

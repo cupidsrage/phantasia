@@ -74,6 +74,10 @@
 #define TEMP_ARTIFACT_FILE	PHANTASIA_DIR "/data/artifacts.tmp"
 #define DEEDS_FILE		PHANTASIA_DIR "/data/deeds"
 #define TEMP_DEEDS_FILE		PHANTASIA_DIR "/data/deeds.tmp"
+#define WORLD_FILE		PHANTASIA_DIR "/data/world"
+#define TEMP_WORLD_FILE		PHANTASIA_DIR "/data/world.tmp"
+#define WORLD_JSON_FILE		PHANTASIA_DIR "/data/world.json"
+#define TEMP_WORLD_JSON_FILE	PHANTASIA_DIR "/data/world.json.tmp"
 
 /* Log Files */
 #define BATTLE_LOG		PHANTASIA_DIR "/log/battles"

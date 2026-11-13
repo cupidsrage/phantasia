@@ -6,7 +6,8 @@
   var LOOKS = {
     1: { icon: "🌕", bg: "linear-gradient(90deg,#5a0d0b,#2a0606)", edge: "#c2392e", title: "#ff9a8a" },
     2: { icon: "🪙", bg: "linear-gradient(90deg,#5a430c,#261c05)", edge: "#e0b23a", title: "#ffe08a" },
-    3: { icon: "⚔️", bg: "linear-gradient(90deg,#4a1240,#1e0b2e)", edge: "#a54bc2", title: "#f0b2ff" }
+    3: { icon: "⚔️", bg: "linear-gradient(90deg,#4a1240,#1e0b2e)", edge: "#a54bc2", title: "#f0b2ff" },
+    4: { icon: "🏰", bg: "linear-gradient(90deg,#5a2410,#24100a)", edge: "#c0602a", title: "#ffc890" }
   };
 
   function show(ev) {

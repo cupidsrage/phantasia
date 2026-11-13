@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Realm Today · Phantasia Reimagined</title>
+<meta name="description" content="The living realm right now: which regions lie under Shadow, the towns, sieges, the realm project and the nemeses at large.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+</head>
+<body class="page-world">
+<header class="site-head">
+  <a class="logo" href="index.html">Phantasia<span>Reimagined</span></a>
+  <nav class="site-nav" aria-label="Site"><a href="whatsnew.html">What's New</a><a href="intro.html">Guide</a><a href="world.html" class="here">Realm Today</a><a href="legends.html">Legends</a><a href="info.html">About</a><a class="play" href="play.html">Play</a></nav>
+</header>
+<main class="wrap">
+<article class="content">
+<h1>The Realm Today</h1><div class="rule"></div>
+<p class="lead" id="now">Reading the realm&hellip;</p>
+<div id="siege" class="siege-box" hidden></div>
+
+<h2>The regions</h2>
+<p>Shadow creeps over every region unless adventurers fight there. Under heavy Shadow a
+region is <b class="st-blighted">Blighted</b>: its monsters are stronger and richer, and
+when it is total its town falls. Push it back and the region is
+<b class="st-liberated">Liberated</b>: safer roads and cheaper shops. <a href="living.html">How the living realm works &rsaquo;</a></p>
+<div class="world-map">
+  <svg id="map" viewBox="-210 -210 420 420" role="img" aria-label="Map of the realm's eight regions"></svg>
+  <div class="map-legend"><span class="sw liberated"></span>Liberated <span class="sw contested"></span>Contested <span class="sw blighted"></span>Blighted</div>
+</div>
+<div class="table-scroll"><table id="regions">
+  <tr><th>Region</th><th>Shadow</th><th>Town</th></tr>
+</table></div>
+
+<h2>The realm project</h2>
+<div id="project" class="panel project-box"></div>
+
+<h2>Nemeses at large</h2>
+<p>Monsters that kill adventurers grow stronger, earn a name and carry a bounty until
+someone brings them down.</p>
+<div class="table-scroll"><table id="nemeses"><tr><th>Nemesis</th><th>Victims</th><th>Bounty</th><th>Roams</th></tr></table></div>
+
+<h2>Recent happenings</h2>
+<ul id="news" class="news"></ul>
+<p class="muted" id="updated"></p>
+</article>
+
+<style>
+.siege-box { margin: 0 0 18px; padding: 14px 18px; border-radius: 10px; border: 1px solid #c0602a;
+  background: linear-gradient(90deg, rgba(110, 40, 20, 0.55), rgba(40, 20, 14, 0.6)); box-shadow: 0 0 18px rgba(220, 110, 40, 0.35); }
+.siege-box b { color: #ffc890; font-family: "Cinzel", serif; }
+.bar { height: 12px; border-radius: 6px; background: #0b0907; border: 1px solid var(--line); overflow: hidden; margin: 4px 0 10px; }
+.bar i { display: block; height: 100%; background: linear-gradient(90deg, #c8952f, #f6d98c); }
+.bar.red i { background: linear-gradient(90deg, #8a1c14, #e0645a); }
+.st-blighted { color: #ff9a8a; } .st-liberated { color: #9ee09a; } .st-contested { color: var(--gold-2); }
+.st-fallen { color: #ff7060; font-weight: 600; } .st-flourishing, .st-thriving { color: #9ee09a; }
+.world-map { max-width: 460px; margin: 6px auto 4px; }
+.world-map svg { width: 100%; height: auto; display: block; }
+.world-map text { font-family: "Cinzel", serif; fill: #f3e8cf; font-size: 11px; text-anchor: middle; paint-order: stroke; stroke: rgba(0,0,0,.75); stroke-width: 3px; }
+.world-map text.small { font-family: "EB Garamond", serif; font-size: 10px; fill: #d9cdb2; }
+.map-legend { text-align: center; font-size: 15px; color: var(--muted); }
+.map-legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin: 0 4px 0 14px; vertical-align: -1px; }
+.sw.liberated { background: #3f7a3a; } .sw.contested { background: #7a6a2a; } .sw.blighted { background: #7a1e18; }
+.project-box { padding: 18px 20px; }
+.project-box h3 { margin-top: 0; }
+.news { list-style: none; padding: 0; }
+.news li { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.news time { display: block; font-size: 14px; color: var(--muted); }
+</style>
+
+<script>
+(function () {
+  function el(id) { return document.getElementById(id); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function fmt(n) { return Math.round(n).toLocaleString(); }
+  function ago(t) {
+    var s = Math.max(0, Date.now() / 1000 - t);
+    if (s < 90) return "just now";
+    if (s < 5400) return Math.round(s / 60) + " minutes ago";
+    if (s < 129600) return Math.round(s / 3600) + " hours ago";
+    return Math.round(s / 86400) + " days ago";
+  }
+  function color(shadow) {               /* green (liberated) to red (blighted) */
+    var t = Math.max(0, Math.min(1, shadow / 100));
+    var r = Math.round(63 + (122 - 63) * t), g = Math.round(122 - (122 - 30) * t), b = Math.round(58 - (58 - 24) * t);
+    return "rgb(" + r + "," + g + "," + b + ")";
+  }
+  /* regions in the game's order: east, then counter-clockwise */
+  function drawMap(d) {
+    var svg = el("map"), out = "", R = 200, r0 = 52;
+    d.regions.forEach(function (reg, i) {
+      var a0 = (i - 0.5) * Math.PI / 4, a1 = (i + 0.5) * Math.PI / 4;
+      function p(rad, a) { return (rad * Math.cos(a)).toFixed(1) + "," + (-rad * Math.sin(a)).toFixed(1); }
+      out += '<path d="M' + p(r0, a0) + " L" + p(R, a0) + " A" + R + "," + R + " 0 0,0 " + p(R, a1) +
+        " L" + p(r0, a1) + " A" + r0 + "," + r0 + " 0 0,1 " + p(r0, a0) + 'Z" fill="' + color(reg.shadow) +
+        '" stroke="#0d0b09" stroke-width="3"><title>' + esc(reg.name + ": " + reg.state + ", " + reg.shadow + "% Shadow. " + reg.town + " is " + reg.townState) + "</title></path>";
+      var am = i * Math.PI / 4, tx = 128 * Math.cos(am), ty = -128 * Math.sin(am);
+      out += '<text x="' + tx.toFixed(1) + '" y="' + (ty - 4).toFixed(1) + '">' + esc(reg.name.replace(/^The /, "")) + "</text>";
+      out += '<text class="small" x="' + tx.toFixed(1) + '" y="' + (ty + 11).toFixed(1) + '">' + reg.shadow + "% · " + esc(reg.town) + (reg.townState === "Fallen" ? " (fallen)" : "") + "</text>";
+    });
+    var overrun = d.overrunUntil * 1000 > Date.now();
+    out += '<circle r="' + (r0 - 4) + '" fill="' + (overrun ? "#7a1e18" : "#2a2116") + '" stroke="#d6a84a" stroke-width="1.5"/>';
+    out += '<text y="-2">Heartlands</text><text class="small" y="12">' + (overrun ? "overrun!" : "the throne") + "</text>";
+    out += '<text class="small" x="0" y="-202" style="font-size:9px">N</text>';
+    svg.innerHTML = out;
+  }
+  function show(d) {
+    if (!d || !d.regions) { el("now").textContent = "The realm is quiet right now. Check back once the server is running."; return; }
+    el("now").innerHTML = (d.night ? "🌙 It is <b>night</b>" : "☀️ It is <b>day</b>") + ", in the season of <b>" + esc(d.season) +
+      "</b>: " + esc(d.seasonEffect) + "." + (d.overrunUntil * 1000 > Date.now() ? " <b class=\"st-blighted\">Monsters hold the Lord's Chamber!</b>" : "");
+    var s = d.siege, box = el("siege");
+    if (s.active) {
+      box.hidden = false;
+      box.innerHTML = "🏰 <b>The throne is under siege!</b> " + fmt(s.army) + " of " + fmt(s.armyMax) +
+        " monsters remain. Slay monsters anywhere to push them back. <a href=\"client/\">Join the defence &rsaquo;</a>" +
+        '<div class="bar red"><i style="width:' + Math.max(0, Math.min(100, 100 * s.army / s.armyMax)) + '%"></i></div>';
+    } else box.hidden = true;
+
+    drawMap(d);
+    var t = el("regions");
+    while (t.rows.length > 1) t.deleteRow(1);
+    d.regions.forEach(function (reg) {
+      var row = t.insertRow(-1);
+      row.insertCell(-1).innerHTML = "<b>" + esc(reg.name) + "</b><br><span class=\"st-" + reg.state.toLowerCase() + "\">" + esc(reg.state) + "</span>";
+      row.insertCell(-1).innerHTML = reg.shadow + "%" + '<div class="bar red" style="width:120px"><i style="width:' + reg.shadow + '%"></i></div>';
+      row.insertCell(-1).innerHTML = esc(reg.town) + "<br><span class=\"st-" + reg.townState.toLowerCase() + "\">" + esc(reg.townState) + "</span>";
+    });
+
+    var p = d.project, html = "";
+    if (p.name) {
+      html += "<h3>" + esc(p.name) + "</h3><p>When it is finished, " + esc(p.effect) +
+        ". Give gold at any trading post (<b>Realm Project</b>); every monster slain counts too.</p>" +
+        "Gold: " + fmt(p.gold) + " of " + fmt(p.goldNeeded) + '<div class="bar"><i style="width:' + Math.min(100, 100 * p.gold / p.goldNeeded) + '%"></i></div>' +
+        "Monsters slain: " + fmt(p.kills) + " of " + fmt(p.killsNeeded) + '<div class="bar"><i style="width:' + Math.min(100, 100 * p.kills / p.killsNeeded) + '%"></i></div>';
+      if (p.donors.length) html += "<p><b>Greatest givers:</b> " + p.donors.map(function (x) { return esc(x.name) + " (" + fmt(x.gold) + ")"; }).join(", ") + "</p>";
+    } else html += "<h3>Every project is complete</h3>";
+    if (p.done.length) html += "<p class=\"muted\">Completed: " + p.done.map(function (x) { return "<b>" + esc(x.name) + "</b> (" + esc(x.effect) + ")"; }).join("; ") + ".</p>";
+    el("project").innerHTML = html;
+
+    var n = el("nemeses");
+    while (n.rows.length > 1) n.deleteRow(1);
+    if (!d.nemeses.length) { var r = n.insertRow(-1), c = r.insertCell(-1); c.colSpan = 4; c.textContent = "None. The realm is safe, for now."; }
+    d.nemeses.forEach(function (m) {
+      var row = n.insertRow(-1);
+      row.insertCell(-1).innerHTML = "<b>" + esc(m.name) + "</b>";
+      row.insertCell(-1).textContent = m.kills;
+      row.insertCell(-1).textContent = fmt(m.bounty) + " gold";
+      row.insertCell(-1).textContent = m.region;
+    });
+
+    var ul = el("news");
+    ul.innerHTML = d.news.length ? "" : "<li>Nothing yet. The realm awaits its heroes.</li>";
+    d.news.forEach(function (x) {
+      var li = document.createElement("li");
+      li.innerHTML = "<time></time>";
+      li.querySelector("time").textContent = ago(x.when);
+      li.appendChild(document.createTextNode(x.text));
+      ul.appendChild(li);
+    });
+    el("updated").textContent = "Updated " + new Date().toLocaleTimeString() + ". Refreshes every minute.";
+  }
+  function load() {
+    fetch("/api/world", { cache: "no-store" }).then(function (r) { return r.json(); }).then(show)
+      .catch(function () { el("now").textContent = "Could not reach the realm right now."; });
+  }
+  load();
+  setInterval(load, 60000);
+})();
+</script>
+</main>
+<footer class="site-foot">
+  <a class="logo" href="index.html">Phantasia<span>Reimagined</span></a>
+  <nav aria-label="Footer"><a href="play.html">Play</a><a href="whatsnew.html">What's New</a><a href="intro.html">Guide</a><a href="world.html">Realm Today</a><a href="legends.html">Legends</a><a href="info.html">About</a><a href="credits.html">Credits</a></nav>
+  <div>Built on <i>Phantasia</i> by Edward Estes and <i>Phantasia 4</i> by Brian Kelly.</div>
+</footer>
+<script src="event-banner.js"></script>
+</body>
+</html>

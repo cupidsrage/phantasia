@@ -73,6 +73,7 @@ typedef char bool;
 #define WE_GOLD_RUSH		2	/* more treasure, double gold */
 #define WE_CHAMPION_HUNT	3	/* champions are far more common */
 #define WE_COUNT		3
+#define WE_SIEGE		4	/* a monster army marches on the throne */
 
 	/* daily quest types */
 #define QT_SLAY			1	/* slay N monsters */
@@ -306,6 +307,7 @@ typedef char bool;
 #define GEAR_PACKET		60	/* gear list (browser client only) */
 #define WORLD_EVENT_PACKET	61	/* current world event (browser only) */
 #define WIZARD_PACKET		62	/* a ceremony to show (browser only) */
+#define WORLD_PACKET		64	/* region, town, time and season (browser only) */
 #define SELECT_PACKET		63	/* pick one from a list (browser only) */
 
 	/* ceremonies shown to browser players (wizard levels are 2-4) */

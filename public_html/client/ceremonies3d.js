@@ -988,11 +988,12 @@ function makeStage(canvas, opts) {
   try { return stage(canvas, opts); } catch (e) { canvas.remove(); throw e; }
 }
 
-const EVENT_SCENES = { 1: bloodScene, 2: goldScene, 3: huntScene };
+const EVENT_SCENES = { 1: bloodScene, 2: goldScene, 3: huntScene, 4: huntScene };
 const EVENT_LOOK = {
   1: { bloom: 0.9, threshold: 0.7, radius: 0.5 },
   2: { bloom: 0.55, threshold: 0.88, radius: 0.35 },
   3: { bloom: 0.5, threshold: 0.95, radius: 0.35 },
+  4: { bloom: 0.5, threshold: 0.95, radius: 0.35 },
 };
 
 /* a ceremony or world-event announcement, full screen behind the card */
@@ -1008,7 +1009,7 @@ export function play(kind, host, opts = {}) {
   if (kind === 101) { update = stewardScene(scene, camera); look = { bloom: 0.45, threshold: 0.85, radius: 0.5 }; }
   else if (kind === 102 || kind === 103) { update = crownScene(scene, camera, renderer); look = { bloom: 0.6, threshold: 0.8, radius: 0.5 }; }
   else if (kind === 104) { update = valarScene(scene, camera); look.bloom = 1.25; }
-  else if (kind >= 201 && kind <= 203) {
+  else if (kind >= 201 && kind <= 204) {
     update = EVENT_SCENES[kind - 200](scene, camera, { intro: true, flash });
     look = EVENT_LOOK[kind - 200];
   }

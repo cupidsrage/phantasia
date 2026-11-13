@@ -279,6 +279,14 @@ struct client_t		/* structure for client variables */
     time_t	reignPaid;		/* last treasury stipend */
     double	reignLevel;		/* level the regalia were sized for */
     long	deedLevel;		/* highest level already counted for deeds */
+    int		nemesisFight;		/* nemesis being fought, or -1 */
+    int		rareFight;		/* rare creature being fought (1-3), or 0 */
+    int		emboldened;		/* monster grew bold (its prey hunted out) */
+    int		worldRegion;		/* region last announced */
+    long	siegeId;		/* siege this player fought in */
+    double	siegeKills;		/* their share of the army slain */
+    long	shownSiegeBucket;	/* siege army last shown to the browser */
+    char	worldShown[256];	/* world status last sent to the browser */
     int		forceChampion;		/* next random monster is a champion */
     struct quest_t quest;		/* today's quest */
     bool	questLoaded;		/* quest has been loaded */

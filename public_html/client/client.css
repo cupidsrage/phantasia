@@ -89,6 +89,25 @@ h2 small { color: var(--muted); letter-spacing: 0; }
   text-overflow: ellipsis;
 }
 #title-tail { color: var(--muted); font-size: 15px; }
+.world-status { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+.world-status .chip { font-size: 12.5px; line-height: 1; padding: 4px 9px; border-radius: 999px;
+  border: 1px solid var(--line); background: rgba(0, 0, 0, 0.25); color: var(--muted); white-space: nowrap; }
+.world-status.state-blighted .chip.region { color: #ffb0a0; border-color: #7a2a22; background: rgba(120, 20, 20, 0.25); }
+.world-status.state-liberated .chip.region { color: #b8f0b0; border-color: #2f6a2a; background: rgba(30, 90, 30, 0.2); }
+.world-status.state-overrun .chip.region { color: #ffb0a0; border-color: #a02a22; }
+
+/* a siege on the throne */
+body.event-siege {
+  --gold: #e0a070; --gold-2: #ffd0a0; --line: #4a3020;
+  --event-bg: linear-gradient(90deg, rgba(110, 40, 20, 0.6), rgba(40, 20, 14, 0.65));
+  --event-edge: #c0602a; --event-glow: rgba(220, 110, 40, 0.45); --event-title: #ffc890;
+  background: radial-gradient(ellipse at top, #301608 0%, #100804 65%) fixed, #100804;
+}
+body.event-siege .panel { border-color: #4a3020; }
+.arrival.event-siege { background: #0a0604;
+  --c-rank: #ffd0a0; --c-glow: rgba(240, 120, 40, 0.7); --c-metal: #e0a070; }
+.arrival.event-siege .flash { background: #ffb070; }
+.arrival.event-siege .card { margin-top: 150px; }
 
 .conn {
   display: flex;
