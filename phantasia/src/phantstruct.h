@@ -199,6 +199,7 @@ struct gear_item_t		/* one piece of equipment */
     short	ability;		/* AB_ */
     short	ability2;		/* AB_ (artifacts have two) */
     short	artifact;		/* artifact number, 0 if none */
+    short	circle;			/* circle it was made for (sets its price) */
     double	shield;			/* energy bonus */
     double	sword;			/* damage bonus */
     double	quicksilver;		/* speed bonus */

@@ -342,6 +342,7 @@ void Do_gear_menu(struct client_t *c);
 void Do_gear_armory(struct client_t *c, int slot);
 void Do_gear_bag_shop(struct client_t *c);
 void Do_gear_click(struct client_t *c, char *request);
+double Do_gear_threat(double circle);
 double Do_eff_brains(struct client_t *c);
 double Do_eff_magiclvl(struct client_t *c);
 double Do_gear_spell_cost(struct client_t *c, double cost);

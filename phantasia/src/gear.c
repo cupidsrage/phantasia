@@ -263,32 +263,71 @@ void Do_gear_describe(struct gear_item_t *item, char *buffer)
 *************************************************************************/
 
 	/* fill in the stats for an item of this slot and quality */
-static void Do_gear_roll_stats(struct gear_item_t *item, double circle,
-	double quality)
+/*
+ * How hard an average monster hits at a circle.  Measured from the monster
+ * table and the encounter rules (the Dead Marshes are smoothed over, and
+ * Gorgoroth at circle 25 is where monsters get much stronger).  Gear is
+ * scaled by this so it keeps pace as players move out.
+ */
+double Do_gear_threat(double circle)
 {
+    static const double at[][2] = {
+	{ 1, 7 }, { 5, 31 }, { 10, 70 }, { 15, 200 }, { 20, 400 },
+	{ 25, 1000 }, { 30, 1450 }, { 40, 2250 }, { 50, 2900 },
+	{ 75, 4400 }, { 100, 5800 }
+    };
+    int n = (int) (sizeof(at) / sizeof(at[0])), i;
     double c = MAX(1.0, circle);
-    double q = quality * (0.85 + RND() * 0.3);
+
+    if (c >= at[n - 1][0]) {
+	return at[n - 1][1] * c / at[n - 1][0];
+    }
+
+    for (i = 1; i < n; i++) {
+	if (c <= at[i][0]) {
+	    return at[i - 1][1] + (at[i][1] - at[i - 1][1]) *
+		    (c - at[i - 1][0]) / (at[i][0] - at[i - 1][0]);
+	}
+    }
+
+    return at[n - 1][1];
+}
+
+	/* bonuses for an item of a slot, circle and quality */
+static void Do_gear_set_stats(struct gear_item_t *item, double circle,
+	double q)
+{
+    double c = MAX(1.0, circle), threat = Do_gear_threat(c);
 
     item->shield = item->sword = item->quicksilver = 0;
+    item->circle = (short) MIN(30000.0, floor(c));
 
     switch (item->slot) {
     case SLOT_WEAPON:
-	item->sword = MAX(1, floor(1.6 * c * q));
+	item->sword = MAX(1, floor(0.4 * threat * q));
 	break;
     case SLOT_ARMOR:
-	item->shield = MAX(1, floor(40.0 * c * q));
+	item->shield = MAX(1, floor(5.5 * threat * q));
 	break;
     case SLOT_HELM:
-	item->shield = MAX(1, floor(15.0 * c * q));
+	item->shield = MAX(1, floor(2.0 * threat * q));
 	break;
     case SLOT_BOOTS:
 	item->quicksilver = MAX(1, floor(0.6 * MAX(1.0, c - 3.0) * q));
 	break;
     case SLOT_TRINKET:
-	item->shield = floor(6.0 * c * q);
-	item->sword = floor(0.3 * c * q);
+	item->shield = floor(0.8 * threat * q);
+	item->sword = floor(0.08 * threat * q);
 	break;
     }
+}
+
+static void Do_gear_roll_stats(struct gear_item_t *item, double circle,
+	double quality)
+{
+    double c = MAX(1.0, circle);
+
+    Do_gear_set_stats(item, c, quality * (0.85 + RND() * 0.3));
 
 	/* the base name tracks how far out it was made */
     item->base = MIN(7, (int) (log(c) / log(2.2) + RND() * 1.5));
@@ -414,10 +453,10 @@ static void Do_gear_save_locked(struct client_t *c)
 
     for (i = 0; i < c->numGear; i++) {
 	struct gear_item_t *g = &c->gear[i];
-	fprintf(out_file, "%s %d %d %d %d %d %d %d %.0f %.0f %.0f\n",
+	fprintf(out_file, "%s %d %d %d %d %d %d %d %.0f %.0f %.0f %d\n",
 		c->player.lcname, g->slot, g->equipped, g->tier, g->base,
 		g->ability, g->ability2, g->artifact, g->shield, g->sword,
-		g->quicksilver);
+		g->quicksilver, g->circle);
     }
 
 	/* the bag (slot -2), which also marks the character as converted */
@@ -536,7 +575,8 @@ void Do_gear_load(struct client_t *c)
     FILE *the_file;
     char line[SZ_LINE], name[SZ_NAME + 1];
     struct gear_item_t g;
-    int slot, equipped, tier, base, ab, ab2, art, found = FALSE, id;
+    int slot, equipped, tier, base, ab, ab2, art, found = FALSE, id, fields;
+    int circle;
     double shield, sword, quick;
 
     c->numGear = 0;
@@ -547,11 +587,18 @@ void Do_gear_load(struct client_t *c)
     if ((the_file = fopen(GEAR_FILE, "r")) != NULL) {
 	while (fgets(line, sizeof(line), the_file) != NULL) {
 
-	    if (sscanf(line, "%32s %d %d %d %d %d %d %d %lf %lf %lf", name,
-		    &slot, &equipped, &tier, &base, &ab, &ab2, &art, &shield,
-		    &sword, &quick) != 11 ||
-		    strcmp(name, c->player.lcname) != 0) {
+	    circle = 0;
+	    fields = sscanf(line, "%32s %d %d %d %d %d %d %d %lf %lf %lf %d",
+		    name, &slot, &equipped, &tier, &base, &ab, &ab2, &art,
+		    &shield, &sword, &quick, &circle);
+
+	    if (fields < 11 || strcmp(name, c->player.lcname) != 0) {
 		continue;
+	    }
+
+		/* items saved before circles were kept: assume this one */
+	    if (circle <= 0) {
+		circle = (int) MAX(1.0, c->player.circle);
 	    }
 
 	    found = TRUE;
@@ -574,6 +621,7 @@ void Do_gear_load(struct client_t *c)
 	    g.ability2 = (ab2 >= 0 && ab2 < NUM_ABILITIES) ? ab2 : 0;
 	    g.artifact = (art >= 0 && art <= NUM_ARTIFACTS) ? art : 0;
 	    g.shield = shield; g.sword = sword; g.quicksilver = quick;
+	    g.circle = (short) MIN(30000, circle);
 	    c->gear[c->numGear++] = g;
 	}
 	fclose(the_file);
@@ -595,6 +643,7 @@ void Do_gear_load(struct client_t *c)
 	if (c->player.sword >= 1) {
 	    memset(&g, 0, sizeof(g));
 	    g.slot = SLOT_WEAPON; g.equipped = TRUE; g.tier = TIER_WORN;
+	    g.circle = (short) MAX(1.0, c->player.circle);
 	    g.base = MIN(7, (int) (log(MAX(1.0, c->player.circle)) / log(2.2)));
 	    g.sword = floor(c->player.sword);
 	    c->gear[c->numGear++] = g;
@@ -602,6 +651,7 @@ void Do_gear_load(struct client_t *c)
 	if (c->player.shield >= 1) {
 	    memset(&g, 0, sizeof(g));
 	    g.slot = SLOT_ARMOR; g.equipped = TRUE; g.tier = TIER_WORN;
+	    g.circle = (short) MAX(1.0, c->player.circle);
 	    g.base = MIN(7, (int) (log(MAX(1.0, c->player.circle)) / log(2.2)));
 	    g.shield = floor(c->player.shield);
 	    c->gear[c->numGear++] = g;
@@ -609,6 +659,7 @@ void Do_gear_load(struct client_t *c)
 	if (c->player.quicksilver >= 1) {
 	    memset(&g, 0, sizeof(g));
 	    g.slot = SLOT_BOOTS; g.equipped = TRUE; g.tier = TIER_WORN;
+	    g.circle = (short) MAX(1.0, c->player.circle);
 	    g.base = MIN(7, (int) (log(MAX(1.0, c->player.circle)) / log(2.2)));
 	    g.quicksilver = floor(c->player.quicksilver);
 	    c->gear[c->numGear++] = g;
@@ -992,7 +1043,8 @@ void Do_gear_treasure_find(struct client_t *c, int slot, double value,
 	return;
     }
 
-    Do_gear_make_valued(&item, slot, value, circle);
+	/* the old fixed bonuses can't keep up farther out: roll real gear */
+    Do_gear_make(&item, slot, circle, TIER_COMMON);
     Do_gear_offer(c, &item);
 }
 
@@ -1626,16 +1678,35 @@ void Do_gear_menu(struct client_t *c)
 }
 
 	/* value of an item in gold, matching the old shop prices */
-static double Do_gear_value(struct gear_item_t *g)
+/*
+ * What the armory pays for an item: about half an average treasure find
+ * of gold at the circle it came from (a find is about 30 + 36 x
+ * (circle - 1)), more for better tiers.  Selling drops then adds roughly a
+ * third to a player's gold, not a flood.  The armory sells for
+ * GEAR_MARKUP times what it pays.
+ */
+#define GEAR_MARKUP	16.0
+
+static double Do_gear_sell_price(struct gear_item_t *g)
 {
-    double value = g->shield * 5.0 + g->sword * 500.0 +
-	    g->quicksilver * 2000.0;
+    static const double tierMult[] = { 0.25, 0.5, 1.0, 2.0, 4.0, 0.0 };
+    static const double slotMult[] = { 1.0, 1.0, 0.6, 1.0, 0.6 };
+    double price, circle = MAX(1, g->circle);
+
+    price = (15.0 + 18.0 * (circle - 1.0)) *
+	    tierMult[MAX(0, MIN(TIER_ARTIFACT, g->tier))] *
+	    slotMult[MAX(0, MIN(NUM_SLOTS - 1, g->slot))];
 
     if (g->ability != AB_NONE) {
-	value *= 1.5;
+	price *= 1.3;
     }
 
-    return floor(MAX(10.0, value));
+    return floor(MAX(1.0, price));
+}
+
+static double Do_gear_buy_price(struct gear_item_t *g)
+{
+    return floor(Do_gear_sell_price(g) * GEAR_MARKUP);
 }
 
 	/* the armory at a trading post: slot < 0 shows every slot */
@@ -1675,13 +1746,9 @@ void Do_gear_armory(struct client_t *c, int slot)
 		double q = Do_tier_quality(t) * (0.9 + (rand_r(&state) % 20) / 100.0);
 		double cc = MAX(1.0, c->player.circle);
 		stock[n].base = MIN(7, (int) (log(cc) / log(2.2)) + rand_r(&state) % 2);
-		if (s == SLOT_WEAPON) stock[n].sword = MAX(1, floor(1.6 * cc * q));
-		else if (s == SLOT_ARMOR) stock[n].shield = MAX(1, floor(40.0 * cc * q));
-		else if (s == SLOT_HELM) stock[n].shield = MAX(1, floor(15.0 * cc * q));
-		else if (s == SLOT_BOOTS) stock[n].quicksilver = MAX(1, floor(0.6 * MAX(1.0, cc - 3.0) * q));
-		else { stock[n].shield = floor(6.0 * cc * q); stock[n].sword = floor(0.3 * cc * q); }
+		Do_gear_set_stats(&stock[n], cc, q);
 	    }
-	    price[n] = Do_gear_value(&stock[n]);
+	    price[n] = Do_gear_buy_price(&stock[n]);
 
 	    Do_gear_describe(&stock[n], line);
 	    sprintf(line + strlen(line), " - %.0f gold\n", price[n]);
@@ -1706,7 +1773,7 @@ void Do_gear_armory(struct client_t *c, int slot)
 	if (answer == 6) {
 	    index = Do_gear_choose(c, 0, "What will you sell? (Only backpack items can be sold.)\n");
 	    if (index >= 0 && c->gear[index].artifact == 0) {
-		double paid = floor(Do_gear_value(&c->gear[index]) * 0.4);
+		double paid = Do_gear_sell_price(&c->gear[index]);
 		sprintf(line, "The armorer pays you %.0f gold.\n", paid);
 		Do_send_line(c, line);
 		Do_gold(c, paid, FALSE);
