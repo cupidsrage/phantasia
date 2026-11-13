@@ -26,6 +26,22 @@ if [ -n "$PHANTASIA_MOTD" ]; then
     printf '%s\n' "$PHANTASIA_MOTD" > "$DATA_DIR/motd"
 fi
 
+# wizards (game admins) from a variable, e.g.
+#   PHANTASIA_WIZARDS="myaccount:MyCharacter:4, otheraccount:Helper:2"
+# level 1 moderator, 2 apprentice, 3 wizard, 4 full wizard (default 4).
+# Network checks are skipped, so the wizard can play from anywhere.
+if [ -n "${PHANTASIA_WIZARDS:-}" ]; then
+    : > "$DATA_DIR/wizards"
+    echo "$PHANTASIA_WIZARDS" | tr ',' '\n' | while IFS=: read -r acct char level; do
+        acct=$(echo "$acct" | tr -d ' ' | tr 'A-Z' 'a-z')
+        char=$(echo "$char" | tr -d ' ' | tr 'A-Z' 'a-z')
+        level=$(echo "${level:-4}" | tr -dc '0-9')
+        [ -z "$acct" ] || [ -z "$char" ] && continue
+        echo "${level:-4} * $acct $char 1" >> "$DATA_DIR/wizards"
+        echo "Wizard (level ${level:-4}): $char on account $acct"
+    done
+fi
+
 # the game keeps its own port so it never collides with the website's $PORT
 export PHANTASIA_PORT=${PHANTASIA_PORT:-43302}
 
