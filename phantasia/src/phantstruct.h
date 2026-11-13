@@ -278,6 +278,7 @@ struct client_t		/* structure for client variables */
     bool	questLoaded;		/* quest has been loaded */
     struct gear_item_t gear[MAX_GEAR];	/* equipped items and backpack */
     int		numGear;		/* items in gear[] */
+    int		bagSize;		/* backpack capacity (bags) */
     bool	gearLoaded;		/* gear has been loaded */
     bool	isBrowser;		/* playing through the browser client */
     struct event_t *events;		/* pointer to character events */

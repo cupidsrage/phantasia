@@ -69,7 +69,7 @@ the server. Daily quest progress is kept in `data/quests`. Character save
 files are unchanged.
 
 Shields, swords and quicksilver are now **gear** (`src/gear.c`). Characters
-wear a weapon, armor, helm, boots and trinket, and carry a 6-item backpack.
+wear a weapon, armor, helm, boots and trinket, and carry a bag (6 slots to start, upgraded at trading posts up to 50).
 Many items have an ability. Ten one-of-a-kind **artifacts** exist, and
 whoever holds each one is shown live on the website's Legends page (served
 from `/api/artifacts`). Gear is kept in `data/gear` and artifact holders in

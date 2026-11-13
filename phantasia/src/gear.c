@@ -104,6 +104,46 @@ static const struct artifact_def artifacts[NUM_ARTIFACTS + 1] = {
 };
 
 
+	/* bags, bought one upgrade at a time at trading posts */
+struct bag_def {
+    int size;
+    const char *name;
+    double price;
+};
+
+static const struct bag_def bags[] = {
+    { 6, "Belt Pouch", 0 },
+    { 10, "Satchel", 400 },
+    { 15, "Leather Rucksack", 1500 },
+    { 20, "Traveler's Pack", 4000 },
+    { 25, "Adventurer's Pack", 9000 },
+    { 30, "Reinforced Pack", 18000 },
+    { 40, "Bag of Holding", 40000 },
+    { 50, "Bag of the Endless Road", 80000 }
+};
+
+#define NUM_BAGS (int) (sizeof(bags) / sizeof(bags[0]))
+
+	/* which bag a capacity belongs to */
+static int Do_bag_index(int size)
+{
+    int i, best = 0;
+
+    for (i = 0; i < NUM_BAGS; i++) {
+	if (bags[i].size <= size) {
+	    best = i;
+	}
+    }
+
+    return best;
+}
+
+const char *Do_bag_name(int size)
+{
+    return bags[Do_bag_index(size)].name;
+}
+
+
 /************************************************************************
 / naming and describing items
 *************************************************************************/
@@ -354,10 +394,9 @@ static void Do_gear_save_locked(struct client_t *c)
 		g->quicksilver);
     }
 
-	/* a placeholder so a character with no gear isn't converted again */
-    if (c->numGear == 0) {
-	fprintf(out_file, "%s -1 0 0 0 0 0 0 0 0 0\n", c->player.lcname);
-    }
+	/* the bag (slot -2), which also marks the character as converted */
+    fprintf(out_file, "%s -2 %d 0 0 0 0 0 0 0 0\n", c->player.lcname,
+	    c->bagSize);
 
     fclose(out_file);
     rename(TEMP_GEAR_FILE, GEAR_FILE);
@@ -475,6 +514,7 @@ void Do_gear_load(struct client_t *c)
     double shield, sword, quick;
 
     c->numGear = 0;
+    c->bagSize = BACKPACK_SIZE;
 
     Do_lock_mutex(&c->realm->gear_lock);
 
@@ -489,6 +529,12 @@ void Do_gear_load(struct client_t *c)
 	    }
 
 	    found = TRUE;
+
+		/* the bag */
+	    if (slot == -2) {
+		c->bagSize = MAX(BACKPACK_SIZE, MIN(MAX_BAG_SIZE, equipped));
+		continue;
+	    }
 
 	    if (slot < 0 || slot >= NUM_SLOTS || c->numGear >= MAX_GEAR) {
 		continue;
@@ -614,7 +660,8 @@ void Do_gear_send(struct client_t *c)
     }
 
     Do_send_int(c, GEAR_PACKET);
-    sprintf(line, "%d\n", c->numGear);
+    sprintf(line, "%d\n%s\n%d\n", c->bagSize, Do_bag_name(c->bagSize),
+	    c->numGear);
     Do_send_string(c, line);
 
     for (i = 0; i < c->numGear; i++) {
@@ -804,7 +851,7 @@ void Do_gear_offer(struct client_t *c, struct gear_item_t *item)
 	Do_send_line(c, line);
     }
 
-    room = Do_gear_backpack_count(c) < BACKPACK_SIZE;
+    room = Do_gear_backpack_count(c) < c->bagSize;
 
 	/* with a full backpack, Swap wears the new item and leaves the old */
     Do_clear_buttons(&buttons, 0);
@@ -1061,6 +1108,7 @@ void Do_gear_death(struct client_t *c)
     }
 
     c->numGear = 0;
+    c->bagSize = BACKPACK_SIZE;
     Do_gear_save(c);
     c->gearLoaded = FALSE;
 }
@@ -1298,7 +1346,8 @@ static void Do_gear_list(struct client_t *c)
 
     Do_send_line(c, "\n");
     n = Do_gear_backpack_count(c);
-    sprintf(line, "Backpack (%d of %d):\n", n, BACKPACK_SIZE);
+    sprintf(line, "%s (%d of %d):\n", Do_bag_name(c->bagSize), n,
+	    c->bagSize);
     Do_send_line(c, line);
 
     for (i = 0; i < c->numGear; i++) {
@@ -1315,36 +1364,64 @@ static void Do_gear_list(struct client_t *c)
 static int Do_gear_choose(struct client_t *c, int which, char *prompt)
 {
     struct button_t buttons;
-    int map[8], n = 0, i;
+    int matches[MAX_GEAR], count = 0, page = 0, pages, n, i;
     long answer;
+    char line[SZ_LINE];
 
-    Do_clear_buttons(&buttons, 0);
-
-    for (i = 0; i < c->numGear && n < 7; i++) {
+    for (i = 0; i < c->numGear; i++) {
 	struct gear_item_t *g = &c->gear[i];
 
 	if ((which == 0 && !g->equipped) || (which == 1 && g->equipped) ||
 		(which == 2 && g->artifact > 0)) {
-	    Do_gear_label(g, buttons.button[n]);
-	    map[n++] = i;
+	    matches[count++] = i;
 	}
     }
 
-    if (n == 0) {
+    if (count == 0) {
 	Do_send_line(c, "There is nothing to choose.\n");
 	Do_more(c);
 	return -1;
     }
 
-    strcpy(buttons.button[7], "Cancel\n");
-    Do_send_line(c, prompt);
+	/* 7 to a page, or 6 and a "More" button when there are more */
+    pages = count <= 7 ? 1 : (count + 5) / 6;
 
-    if (Do_buttons(c, &answer, &buttons) != S_NORM || answer < 0 ||
-	    answer >= n) {
-	return -1;
+    for (;;) {
+	int perPage = pages == 1 ? 7 : 6;
+	int first = page * perPage;
+
+	Do_clear_buttons(&buttons, 0);
+
+	for (n = 0; n < perPage && first + n < count; n++) {
+	    Do_gear_label(&c->gear[matches[first + n]], buttons.button[n]);
+	}
+
+	if (pages > 1) {
+	    strcpy(buttons.button[6], "More...\n");
+	    sprintf(line, "%s(Page %d of %d.)\n", prompt, page + 1, pages);
+	    Do_send_line(c, line);
+	}
+	else {
+	    Do_send_line(c, prompt);
+	}
+	strcpy(buttons.button[7], "Cancel\n");
+
+	if (Do_buttons(c, &answer, &buttons) != S_NORM || answer == 7 ||
+		answer < 0) {
+	    return -1;
+	}
+
+	if (pages > 1 && answer == 6) {
+	    page = (page + 1) % pages;
+	    continue;
+	}
+
+	if (answer >= n) {
+	    return -1;
+	}
+
+	return matches[first + answer];
     }
-
-    return map[answer];
 }
 
 static void Do_gear_offer_artifact(struct client_t *c)
@@ -1425,7 +1502,8 @@ void Do_gear_menu(struct client_t *c)
 	}
 	strcpy(buttons.button[7], "Done\n");
 #ifdef GEAR_TEST
-	strcpy(buttons.button[6], "Armory\n");	/* test builds only */
+	strcpy(buttons.button[5], "Bags\n");	/* test builds only */
+	strcpy(buttons.button[6], "Armory\n");
 #endif
 
 	if (Do_buttons(c, &answer, &buttons) != S_NORM || answer == 7) {
@@ -1435,6 +1513,9 @@ void Do_gear_menu(struct client_t *c)
 
 	switch (answer) {
 #ifdef GEAR_TEST
+	case 5:
+	    Do_gear_bag_shop(c);
+	    break;
 	case 6:
 	    Do_gear_armory(c, -1);
 	    break;
@@ -1450,7 +1531,7 @@ void Do_gear_menu(struct client_t *c)
 	    break;
 
 	case 1:
-	    if (Do_gear_backpack_count(c) >= BACKPACK_SIZE) {
+	    if (Do_gear_backpack_count(c) >= c->bagSize) {
 		Do_send_line(c, "Your backpack is full.\n");
 		Do_more(c);
 		break;
@@ -1594,7 +1675,7 @@ void Do_gear_armory(struct client_t *c, int slot)
 	    continue;
 	}
 
-	if (Do_gear_backpack_count(c) >= BACKPACK_SIZE &&
+	if (Do_gear_backpack_count(c) >= c->bagSize &&
 		Do_gear_equipped_in(c, stock[answer].slot) >= 0) {
 	    Do_send_line(c, "Your backpack is full.  Sell or discard something first.\n");
 	    Do_more(c);
@@ -1614,6 +1695,70 @@ void Do_gear_armory(struct client_t *c, int slot)
 	Do_gear_save(c);
 
 	Do_send_line(c, "You put it on at once.\n");
+	Do_more(c);
+    }
+}
+
+	/* the bag maker at a trading post */
+void Do_gear_bag_shop(struct client_t *c)
+{
+    struct button_t buttons;
+    char line[SZ_LINE];
+    long answer;
+    int now, next;
+
+    for (;;) {
+
+	Do_send_clear(c);
+	now = Do_bag_index(c->bagSize);
+
+	sprintf(line, "You carry a %s, which holds %d items.\n",
+		bags[now].name, bags[now].size);
+	Do_send_line(c, line);
+
+	if (now >= NUM_BAGS - 1) {
+	    Do_send_line(c, "The bag maker bows.  'There is no finer bag in all the realm.'\n");
+	    Do_more(c);
+	    Do_send_clear(c);
+	    return;
+	}
+
+	next = now + 1;
+	sprintf(line, "The bag maker offers a %s, holding %d items, for %.0f gold.\n",
+		bags[next].name, bags[next].size, bags[next].price);
+	Do_send_line(c, line);
+	sprintf(line, "Your items move into the new bag.  You have %.0f gold.\n",
+		c->player.gold);
+	Do_send_line(c, line);
+
+	Do_clear_buttons(&buttons, 0);
+	strcpy(buttons.button[0], "Upgrade\n");
+	strcpy(buttons.button[7], "Leave\n");
+
+	if (Do_buttons(c, &answer, &buttons) != S_NORM || answer != 0) {
+	    Do_send_clear(c);
+	    return;
+	}
+
+	if (bags[next].price > c->player.gold) {
+	    Do_send_line(c, "You can't afford it yet.\n");
+	    Do_more(c);
+	    continue;
+	}
+
+	Do_gold(c, -bags[next].price, FALSE);
+	c->bagSize = bags[next].size;
+
+	sprintf(line, "%s, %s, bought a %s for %.0f\n", c->player.lcname,
+		c->realm->charstats[c->player.type].class_name,
+		bags[next].name, bags[next].price);
+	Do_log(PURCHASE_LOG, line);
+
+	Do_gear_send(c);
+	Do_gear_save(c);
+
+	sprintf(line, "You shoulder your new %s.\n", bags[next].name);
+	Do_send_line(c, line);
 	Do_more(c);
     }
 }

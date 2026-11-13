@@ -4064,6 +4064,7 @@ Do_trading_post(struct client_t *c)
 	strcpy(theButtons.button[2], "Leave\n");
 	Do_clear_buttons(&theButtons, 3);
 	strcpy(theButtons.button[3], "Armory\n");
+	strcpy(theButtons.button[4], "Bags\n");
 
 	if (Do_buttons(c, &itemp, &theButtons) != S_NORM) {
 	    Do_send_clear(c);
@@ -4078,6 +4079,9 @@ Do_trading_post(struct client_t *c)
 
         case 3:           /* browse gear of every kind */
 	    Do_gear_armory(c, -1);
+	    break;
+        case 4:           /* buy a bigger bag */
+	    Do_gear_bag_shop(c);
 	    break;
 
         case 0:           /* make purchase */

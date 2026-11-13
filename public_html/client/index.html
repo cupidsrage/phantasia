@@ -68,9 +68,50 @@
     </section>
 
     <section class="panel gear-panel">
-      <h2>Gear <small id="gear-pack"></small></h2>
-      <ul id="gear" class="gear"><li class="empty">Enter the realm to see your gear</li></ul>
-      <div class="gear-hint">Change gear with Info &rsaquo; Gear</div>
+      <h2>Gear</h2>
+      <div class="doll-row">
+        <svg id="doll" class="doll" viewBox="0 0 120 170" aria-label="Your character and the gear they wear">
+          <defs>
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="2.2" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <!-- the adventurer -->
+          <g class="body">
+            <circle cx="60" cy="24" r="12"/>
+            <rect x="55" y="35" width="10" height="6" rx="2"/>
+            <path d="M40 44 Q60 38 80 44 L84 92 Q60 98 36 92 Z"/>
+            <path d="M40 46 L26 84 L32 86 L45 56 Z"/>
+            <path d="M80 46 L94 84 L88 86 L75 56 Z"/>
+            <path d="M42 92 L50 148 L58 148 L59 96 Z"/>
+            <path d="M78 92 L70 148 L62 148 L61 96 Z"/>
+          </g>
+          <!-- gear, shown when worn -->
+          <g id="d-Armor" class="gear-layer">
+            <path d="M38 44 Q60 36 82 44 L85 90 Q60 97 35 90 Z"/>
+            <path d="M34 42 Q40 36 48 40 L44 52 Z M86 42 Q80 36 72 40 L76 52 Z"/>
+            <path class="trim" d="M60 42 L60 94 M40 70 L80 70"/>
+          </g>
+          <g id="d-Helm" class="gear-layer">
+            <path d="M46 24 Q46 8 60 8 Q74 8 74 24 L74 28 L68 28 L68 22 L52 22 L52 28 L46 28 Z"/>
+            <path class="trim" d="M60 8 L60 22"/>
+          </g>
+          <g id="d-Boots" class="gear-layer">
+            <path d="M48 132 L58 132 L58 150 L64 152 L64 158 L46 158 Z"/>
+            <path d="M72 132 L62 132 L62 150 L56 152 L56 158 L74 158 Z"/>
+          </g>
+          <g id="d-Trinket" class="gear-layer">
+            <path class="trim" d="M52 38 Q60 50 68 38"/>
+            <circle cx="60" cy="50" r="4.5"/>
+          </g>
+          <g id="d-Weapon" class="gear-layer"></g>
+        </svg>
+        <ul id="gear" class="gear"><li class="empty">Enter the realm to see your gear</li></ul>
+      </div>
+      <div class="bag-head"><span id="bag-name">Belt Pouch</span> <small id="gear-pack"></small></div>
+      <div id="bag" class="bag"></div>
+      <div class="gear-hint">Change gear with Info &rsaquo; Gear &middot; bigger bags at trading posts</div>
     </section>
 
     <section class="panel players-panel">
