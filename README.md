@@ -78,6 +78,25 @@ from `/api/artifacts`). Gear is kept in `data/gear` and artifact holders in
 turned into equal "Worn" gear the first time they play. The player guide
 is `public_html/gear.html`.
 
+### Ruling the realm (`src/royal.c`)
+
+Holding a title is now worth fighting for:
+
+| | Steward | King / Queen | Valar |
+| --- | --- | --- | --- |
+| **Regalia** (worn on top of gear, grows with level) | The Steward's Seal: +15% energy, +8% strength, Fortune and Mending | The King's / Queen's Crown: +30% energy, +15% strength, Crushing Blows and Warding | The Halo of the Valar: +25% energy, +15% strength, Arcana and Wellspring |
+| **Experience / gold from fights** | +25% / +25% | +50% / +50% | +50% / +25% |
+| **Gear drops** | 1.5x as often, Fine or better | 2x as often, Fine or better | 2x as often, Masterwork or better |
+| **Treasury** | 10% of the Steward's coffers every 10 minutes (max 2,000) | 2% of the King's coffers every 10 minutes (max 20,000) | – |
+| **New decree** | Enact › Feed the Poor: everyone is healed and cured, and half the Steward's coffers are shared out (every 30 minutes) | Decree › Call an Event: start a 15-minute Gold Rush, Champion Hunt or Blood Moon (every 3 hours) | Command › Bless › Whole Realm: everyone gains 25% more experience for 10 minutes (every 2 hours) |
+
+The regalia percentages are of the energy and strength the holder's level
+gives them. 10% of everything spent at trading posts, armories and bag
+shops now flows into the royal coffers, and collecting taxes no longer adds
+sin. Players can type `/court` to see who rules, the coffers and any
+blessing in effect. Wizards can hand out titles from Administrate › Send
+Event (Make Steward, Make King / Queen, Make Valar, Take their throne).
+
 ### Wizards (admins)
 
 The easiest way is the `PHANTASIA_WIZARDS` variable above, for example

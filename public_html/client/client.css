@@ -333,6 +333,11 @@ kbd {
 .doll .gear-layer.on { display: inline; }
 .doll .gear-layer .trim { fill: none; stroke: rgba(0, 0, 0, 0.45); stroke-width: 1.4; }
 .doll .gear-layer.art { filter: url(#glow); }
+.doll .gear-layer.regal { fill: #f0cd7a; stroke: #7a5212; stroke-width: 0.8; filter: url(#glow); cursor: default; }
+.doll .gear-layer.regal.halo ellipse { stroke: #fff2b0; }
+.doll .gear-layer.regal:hover { filter: url(#glow); }
+.gear li.regalia { cursor: default; }
+.gear li.regalia .slot { color: #f0cd7a; }
 .doll-row .gear { flex: 1; min-width: 0; }
 .doll-row .gear li { padding: 2px 0; }
 .doll-row .gear li .slot { width: 50px; font-size: 11px; }

@@ -88,6 +88,8 @@ Init_server(struct server_t *s)
     Do_init_mutex(&s->realm.quest_lock);
     Do_init_mutex(&s->realm.gear_lock);
     s->realm.worldEvent = WE_NONE;
+    s->realm.feedReady = s->realm.royalCallReady = 0;
+    s->realm.valarBlessReady = s->realm.valarBlessingEnds = 0;
     s->realm.worldEventEnds = 0;
     s->realm.nextWorldEvent = 0;
     s->realm.numExtraMonsters = 0;

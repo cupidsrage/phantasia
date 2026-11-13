@@ -310,7 +310,8 @@ double Do_treasure_chance_factor(struct client_t *c)
 	/* multiplier for gold found in treasure */
 double Do_gold_find_factor(struct client_t *c)
 {
-    return Do_current_world_event(c) == WE_GOLD_RUSH ? 2.0 : 1.0;
+    return (Do_current_world_event(c) == WE_GOLD_RUSH ? 2.0 : 1.0) *
+	    Do_reign_gold_factor(c);
 }
 
 
@@ -857,6 +858,10 @@ int Do_chat_command(struct client_t *c, char *text)
 	    c->wizard >= 2) {
 	Do_ceremony_chat(c, text + 9);
     }
+    else if (strncasecmp(text, "/court", 6) == 0 ||
+	    strncasecmp(text, "/treasury", 9) == 0) {
+	Do_court_chat(c);
+    }
     else if (strncasecmp(text, "/gear", 5) == 0) {
 
 	Do_gear_chat(c);
@@ -879,6 +884,7 @@ int Do_chat_command(struct client_t *c, char *text)
 	Do_send_chat_self(c, "/gear - list your gear (Info > Gear to change it)\n");
 	Do_send_chat_self(c, "/artifacts - who holds each artifact\n");
 	Do_send_chat_self(c, "/filter - turn the chat filter on or off\n");
+	Do_send_chat_self(c, "/court - who rules, the royal coffers and the Valar's blessing\n");
 	if (c->wizard >= 3) {
 	    Do_send_chat_self(c, "Wizards: /event start blood|gold|hunt|random [minutes], /event stop\n");
 	    Do_send_chat_self(c, "Wizards: Administrate > Realm Tools for artifacts, gear, bags, quests, champions, ceremonies\n");
@@ -1032,6 +1038,10 @@ static const struct {
     { "Change gender",                  "change",              SEX_CHANGE_EVENT, 0,          ASK_NONE,       FALSE },
     { "Make them rest",                 "rest",                REST_EVENT,       0,          ASK_NONE,       FALSE },
     { "Save their game",                "save",                SAVE_EVENT,       0,          ASK_NONE,       FALSE },
+    { "Make Steward",                   "make Steward",        STEWARD_EVENT,    0,          ASK_NONE,       FALSE },
+    { "Make King / Queen",              "crown",               KING_EVENT,       0,          ASK_NONE,       FALSE },
+    { "Make Valar (or end their Valar)", "raise to the Valar",  VALAR_EVENT,      0,          ASK_NONE,       FALSE },
+    { "Take their throne (Steward/King)", "dethrone",          DETHRONE_EVENT,   0,          ASK_NONE,       FALSE },
     { "Advanced: event by number...",   NULL,                  0,                0,          ASK_RAW,        FALSE },
 };
 
@@ -1438,6 +1448,11 @@ void Do_wizard_tools(struct client_t *c)
 void Do_announce_ceremony(struct client_t *c, int kind)
 {
     struct event_t *event_ptr;
+
+	/* a new title: put on the regalia straight away */
+    if (kind >= CEREMONY_STEWARD) {
+	Do_royal_refresh(c);
+    }
 
     event_ptr = (struct event_t *) Do_create_event();
     event_ptr->type = WIZARD_ARRIVAL_EVENT;

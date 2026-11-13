@@ -601,6 +601,10 @@ Do_play_loop(struct client_t *c)
 		/* If no events, start a new turn */
 	    Do_game_turn(c);
 
+		/* rulers are paid from the treasury as they reign, even
+		   on the throne (and their regalia keep up with them) */
+	    Do_royal_turn(c);
+
 	        /* check for monsters, guru's, etc. */
 	    if (!c->player.cloaked 
                 && (c->wizard < 3) 
@@ -986,6 +990,7 @@ Do_random_events(struct client_t *c)
 
 	/* Mending gear heals as you travel */
     Do_gear_turn(c);
+
 
         /* to shred "backups" */
         if ((c->player.quickness == 0)

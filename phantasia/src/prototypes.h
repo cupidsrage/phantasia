@@ -368,3 +368,20 @@ void Do_gear_chat(struct client_t *c);
 void Do_artifacts_chat(struct client_t *c);
 
 #endif /* PHANTASIA_PROTOTYPES_H */
+	/* royal.c */
+int Do_reign_title(struct client_t *c);
+double Do_reign_xp_factor(struct client_t *c);
+double Do_reign_gold_factor(struct client_t *c);
+double Do_reign_gear_factor(struct client_t *c);
+int Do_reign_min_tier(struct client_t *c);
+int Do_regalia(struct client_t *c, struct gear_item_t *item, char *name);
+double Do_regalia_ability(struct client_t *c, int ability);
+void Do_royal_tithe(struct client_t *c, double spent);
+void Do_royal_turn(struct client_t *c);
+int Do_royal_refresh(struct client_t *c);
+void Do_royal_feed(struct client_t *c);
+void Do_royal_call_event(struct client_t *c);
+void Do_valar_bless_realm(struct client_t *c);
+void Do_royal_gift(struct client_t *c, struct event_t *the_event);
+void Do_court_chat(struct client_t *c);
+

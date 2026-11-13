@@ -824,21 +824,25 @@ Do_handle_event(struct client_t *c, struct event_t *the_event)
     case VALAR_EVENT:
 
 	Do_valar(c);
+	Do_royal_refresh(c);
 	break;
 
     case KING_EVENT:
 
 	Do_king(c);
+	Do_royal_refresh(c);
 	break;
 
     case STEWARD_EVENT:
 
 	Do_steward(c);
+	Do_royal_refresh(c);
 	break;
 
     case DETHRONE_EVENT:
 
 	Do_dethrone(c);
+	Do_royal_refresh(c);
 	break;
 
     case RELOCATE_EVENT:
@@ -1054,6 +1058,10 @@ Do_handle_event(struct client_t *c, struct event_t *the_event)
     case WIZ_CHAMPION_EVENT:
 
 	Do_wizard_event(c, the_event);
+	break;
+
+    case ROYAL_GIFT_EVENT:
+	Do_royal_gift(c, the_event);
 	break;
 
     default:

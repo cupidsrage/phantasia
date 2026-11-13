@@ -2037,6 +2037,7 @@ float ftemp;
     strcpy(buttons.button[4], "Collect Taxes\n");
     strcpy(buttons.button[5], "Throw Smurf\n");
     Do_clear_buttons(&buttons, 6);
+    strcpy(buttons.button[6], "Feed the Poor\n");
     strcpy(buttons.button[7], "Cancel\n");
 
     if (c->player.gender == MALE) 
@@ -2167,10 +2168,11 @@ float ftemp;
             Do_check_weight(c);
         }
 
-	if (c->wizard < 3)
-	    Do_sin(c, .25);
-
         return;
+
+    case 6:   /* open the granary to everyone */
+	Do_royal_feed(c);
+	return;
 
     case 5:
 	event_ptr = (struct event_t *) Do_create_event();
@@ -2303,6 +2305,7 @@ float ftemp;
     strcpy(buttons.button[4], "Knight\n");
     strcpy(buttons.button[5], "Tax\n");
     Do_clear_buttons(&buttons, 6);
+    strcpy(buttons.button[6], "Call an Event\n");
     strcpy(buttons.button[7], "Cancel\n");
 
     Do_send_line(c, "What would you like done, your Majesty?\n");
@@ -2313,6 +2316,10 @@ float ftemp;
 
     Do_send_clear(c);
     switch(answer) {
+
+    case 6:   /* call a world event */
+	Do_royal_call_event(c);
+	return;
 
     case 0:   /* oust someone */
 	event_ptr = (struct event_t *) Do_create_event();
@@ -2368,9 +2375,6 @@ float ftemp;
             Do_gold(c, 0, TRUE);
             Do_check_weight(c);
         }
-
-	if (c->wizard < 3)
-	    Do_sin(c, .25);
 
         return;
 
@@ -2867,7 +2871,33 @@ double dtemp;
         strcpy(string_buffer2, "restore");
         break;
 
-    case 4:   /* bless another */
+    case 4:   /* bless another, or the whole realm */
+	{
+	    struct button_t which;
+	    long pick;
+
+	    Do_send_line(c, "Whom will you bless?\n");
+	    Do_clear_buttons(&which, 0);
+	    strcpy(which.button[0], "One Player\n");
+	    strcpy(which.button[1], "Whole Realm\n");
+	    strcpy(which.button[7], "Cancel\n");
+	    if (Do_buttons(c, &pick, &which) != S_NORM || pick < 0 ||
+		    pick > 1) {
+		free((void *)event_ptr);
+		Do_send_clear(c);
+		return;
+	    }
+	    Do_send_clear(c);
+	    if (pick == 1) {
+		free((void *)event_ptr);
+		if (c->wizard < 3 &&
+			c->realm->valarBlessReady <= time(NULL)) {
+		    Do_mana(c, -manaCost, FALSE);
+		}
+		Do_valar_bless_realm(c);
+		return;
+	    }
+	}
         if (c->wizard < 3) {
 
 	      /* with blessings, pull lives */
@@ -4145,6 +4175,7 @@ Do_trading_post(struct client_t *c)
                     else {
                         cheat = 0;
 			Do_gold(c, -cost, FALSE);
+			Do_royal_tithe(c, cost);
                         spent += cost;
 
 			sprintf(string_buffer, "%s, %s, purchased %lf mana\n",
@@ -4194,6 +4225,7 @@ Do_trading_post(struct client_t *c)
                     else {
                         cheat = 0;
 			Do_gold(c, -cost, FALSE);
+			Do_royal_tithe(c, cost);
                         spent += cost;
 
                         sprintf(string_buffer, "%s, %s, purchased %lf books\n",
@@ -4235,6 +4267,7 @@ Do_trading_post(struct client_t *c)
                     else {
                         cheat = 0;
                         Do_gold(c, -cost, FALSE);
+                        Do_royal_tithe(c, cost);
                         spent += cost;
 
                         sprintf(string_buffer,
@@ -4284,6 +4317,7 @@ Do_trading_post(struct client_t *c)
                         else {
                             cheat = 0;
                             Do_gold(c, -blessingcost, FALSE);
+                            Do_royal_tithe(c, blessingcost);
                             spent += cost;
 
                             sprintf(string_buffer,
