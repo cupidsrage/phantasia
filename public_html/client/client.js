@@ -674,40 +674,141 @@
     eventTimer = setInterval(tick, 1000);
   }
 
-  /* ------------------------------------------------------- a wizard arrives */
+  /* ------------------------------------------------------- ceremonies */
+
+  /* gilded corner flourish (one corner; mirrored by CSS) */
+  var CORNER = '<svg viewBox="0 0 74 74" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
+    '<path d="M4 70 V18 Q4 4 18 4 H70"/><path d="M12 62 V24 Q12 12 24 12 H62" stroke-width="1"/>' +
+    '<path d="M18 4 Q30 16 18 28 Q8 16 18 4Z" fill="currentColor" stroke="none" opacity=".85"/>' +
+    '<circle cx="4" cy="70" r="3" fill="currentColor"/><circle cx="70" cy="4" r="3" fill="currentColor"/>' +
+    '<path d="M28 28 q10 -14 22 -6 M28 28 q-14 10 -6 22" stroke-width="1.3"/></svg>';
+
+  function card(rank, name, what) {
+    return '<div class="card">' +
+      ['tl', 'tr', 'bl', 'br'].map(function (k) { return '<span class="corner ' + k + '">' + CORNER + '</span>'; }).join("") +
+      '<div class="rank"><span class="orn">❧</span><span class="r"></span><span class="orn flip">❧</span></div>' +
+      '<div class="who"></div>' +
+      '<div class="rule"><span></span>✦<span></span></div>' +
+      '<div class="what"></div></div>';
+  }
+
+  function fillCard(el, rank, name, what) {
+    el.querySelector(".r").textContent = rank;
+    var who = el.querySelector(".who");
+    who.textContent = name;
+    who.setAttribute("data-name", name);
+    el.querySelector(".what").textContent = what;
+  }
+
+  /* a silk banner on a gilded rod */
+  var PENNANT = '<svg class="pennant SIDE" viewBox="0 0 190 470">' +
+    '<defs><linearGradient id="silkSIDE" x1="0" x2="1">' +
+    '<stop offset="0" stop-color="#0c3a1f"/><stop offset=".22" stop-color="#1f6b3c"/><stop offset=".45" stop-color="#11482a"/>' +
+    '<stop offset=".7" stop-color="#22743f"/><stop offset="1" stop-color="#0c3a1f"/></linearGradient>' +
+    '<linearGradient id="goldSIDE" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff0b4"/>' +
+    '<stop offset=".5" stop-color="#d9a640"/><stop offset="1" stop-color="#8a5c14"/></linearGradient></defs>' +
+    '<rect x="0" y="6" width="190" height="12" rx="6" fill="url(#goldSIDE)"/>' +
+    '<circle cx="6" cy="12" r="10" fill="url(#goldSIDE)"/><circle cx="184" cy="12" r="10" fill="url(#goldSIDE)"/>' +
+    '<path d="M18 18 H172 V400 L95 450 L18 400 Z" fill="url(#silkSIDE)" stroke="url(#goldSIDE)" stroke-width="7"/>' +
+    '<path d="M34 34 H156 V392 L95 432 L34 392 Z" fill="none" stroke="#d9a640" stroke-width="1.5" stroke-dasharray="2 6" opacity=".8"/>' +
+    '<text x="95" y="250" text-anchor="middle" font-size="120" fill="url(#goldSIDE)" font-family="serif">⚜</text>' +
+    '<path d="M95 400 v40" stroke="url(#goldSIDE)" stroke-width="3"/>' +
+    '<path d="M86 438 h18 l-4 28 h-10z" fill="url(#goldSIDE)"/></svg>';
+
+  /* a jewelled crown with a velvet cap */
+  var CROWN = '<svg class="crown" viewBox="0 0 230 170">' +
+    '<defs><linearGradient id="cg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff3bf"/>' +
+    '<stop offset=".45" stop-color="#e6b445"/><stop offset=".75" stop-color="#b07a1c"/><stop offset="1" stop-color="#f2cd6a"/></linearGradient>' +
+    '<radialGradient id="ruby" cx=".35" cy=".35"><stop offset="0" stop-color="#ffd2cc"/><stop offset=".35" stop-color="#e5352c"/><stop offset="1" stop-color="#6a0d08"/></radialGradient>' +
+    '<radialGradient id="sapph" cx=".35" cy=".35"><stop offset="0" stop-color="#d6e6ff"/><stop offset=".35" stop-color="#3b6fd0"/><stop offset="1" stop-color="#0d235a"/></radialGradient>' +
+    '<radialGradient id="emer" cx=".35" cy=".35"><stop offset="0" stop-color="#d4ffd9"/><stop offset=".35" stop-color="#2fa457"/><stop offset="1" stop-color="#0b3f1d"/></radialGradient>' +
+    '<linearGradient id="vel" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#a3141f"/><stop offset="1" stop-color="#4a050b"/></linearGradient></defs>' +
+    '<path d="M42 110 Q115 18 188 110 Z" fill="url(#vel)"/>' +
+    '<path d="M22 132 L30 52 L66 92 L92 34 L115 78 L138 34 L164 92 L200 52 L208 132 Z" fill="url(#cg)" stroke="#7a5210" stroke-width="3" stroke-linejoin="round"/>' +
+    '<circle cx="30" cy="48" r="9" fill="url(#cg)" stroke="#7a5210" stroke-width="2"/><circle cx="200" cy="48" r="9" fill="url(#cg)" stroke="#7a5210" stroke-width="2"/>' +
+    '<circle cx="92" cy="30" r="8" fill="url(#cg)" stroke="#7a5210" stroke-width="2"/><circle cx="138" cy="30" r="8" fill="url(#cg)" stroke="#7a5210" stroke-width="2"/>' +
+    '<path d="M115 2 v24 M105 12 h20" stroke="url(#cg)" stroke-width="7" stroke-linecap="round"/>' +
+    '<rect x="18" y="124" width="194" height="34" rx="6" fill="url(#cg)" stroke="#7a5210" stroke-width="3"/>' +
+    '<ellipse cx="115" cy="141" rx="13" ry="11" fill="url(#ruby)"/>' +
+    '<ellipse cx="68" cy="141" rx="10" ry="9" fill="url(#sapph)"/><ellipse cx="162" cy="141" rx="10" ry="9" fill="url(#sapph)"/>' +
+    '<ellipse cx="34" cy="141" rx="7" ry="7" fill="url(#emer)"/><ellipse cx="196" cy="141" rx="7" ry="7" fill="url(#emer)"/>' +
+    '<ellipse cx="115" cy="86" rx="9" ry="12" fill="url(#ruby)"/>' +
+    '<path d="M24 130 H206" stroke="#fff6cf" stroke-width="2" opacity=".6"/></svg>';
+
+  /* a ring of glowing runes */
+  function runeRing(cls, glyphs) {
+    var id = "rp-" + cls.replace(/\s+/g, "-");
+    return '<svg class="' + cls + '" viewBox="0 0 400 400" fill="none" stroke="currentColor">' +
+      '<defs><path id="' + id + '" d="M200 200 m-160 0 a160 160 0 1 1 320 0 a160 160 0 1 1 -320 0"/></defs>' +
+      '<circle cx="200" cy="200" r="185" stroke-width="1.5"/><circle cx="200" cy="200" r="178" stroke-width="0.6"/>' +
+      '<circle cx="200" cy="200" r="136" stroke-width="1"/>' +
+      '<text font-size="22" fill="currentColor" stroke="none" letter-spacing="7"><textPath href="#' + id + '">' + glyphs + '</textPath></text>' +
+      '<path d="M200 15 L360 292 L40 292 Z M200 385 L40 108 L360 108 Z" stroke-width="0.8" opacity=".6"/></svg>';
+  }
+  var RUNES = "ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ";
+  var RUNES2 = RUNES + RUNES;
 
   var BOLT = '<svg class="bolt" viewBox="0 0 140 600" preserveAspectRatio="none">' +
     '<path d="M78 0 L52 170 L84 176 L40 330 L76 336 L30 600 L110 300 L74 296 L112 150 L80 146 L100 0 Z" fill="#eef4ff"/></svg>';
 
-  var CROWN = '<svg class="crown" viewBox="0 0 170 110"><path d="M10 95 L18 30 L52 62 L85 12 L118 62 L152 30 L160 95 Z" ' +
-    'fill="#f2c14e" stroke="#8a5f12" stroke-width="4"/><rect x="10" y="88" width="150" height="16" rx="4" fill="#d6a032" stroke="#8a5f12" stroke-width="3"/>' +
-    '<circle cx="85" cy="12" r="8" fill="#e8453c"/><circle cx="18" cy="30" r="6" fill="#4f86c6"/><circle cx="152" cy="30" r="6" fill="#4f86c6"/>' +
-    '<circle cx="50" cy="96" r="5" fill="#5fa35a"/><circle cx="85" cy="96" r="6" fill="#e8453c"/><circle cx="120" cy="96" r="5" fill="#5fa35a"/></svg>';
+  function sparks(el, count, delay, reach) {
+    for (var i = 0; i < count; i++) {
+      var s = document.createElement("span");
+      s.className = "spark";
+      var a = Math.random() * Math.PI * 2, r = 120 + Math.random() * reach;
+      s.style.setProperty("--dx", Math.cos(a) * r + "px");
+      s.style.setProperty("--dy", Math.sin(a) * r + "px");
+      s.style.animationDelay = delay + Math.random() * 0.4 + "s";
+      el.appendChild(s);
+    }
+  }
+
+  function shake() {
+    var app = $("app");
+    app.classList.remove("shake"); void app.offsetWidth; app.classList.add("shake");
+    setTimeout(function () { app.classList.remove("shake"); }, 1000);
+  }
+
+  function showCeremony(cls, scenery, rank, name, what) {
+    var old = document.querySelector(".arrival");
+    if (old) old.remove();
+    var el = document.createElement("div");
+    el.className = "arrival " + cls;
+    el.setAttribute("role", "status");
+    el.innerHTML = scenery + card();
+    fillCard(el, rank, name, what);
+    var done = function () { if (el.parentNode) el.remove(); };
+    el.addEventListener("click", done);
+    document.body.appendChild(el);
+    setTimeout(done, 6200);
+    return el;
+  }
 
   /* someone won a title: Steward 101, King 102, Queen 103, Valar 104 */
   function ceremony(kind, name) {
+    var el;
     if (kind < 100) { wizardArrives(name, kind); return; }
-    var old = document.querySelector(".arrival");
-    if (old) old.remove();
 
-    var look = { 101: ["steward", "Steward", "has become Steward of the realm"],
-                 102: ["king", "Long live the King", "has claimed the throne!"],
-                 103: ["king", "Long live the Queen", "has claimed the throne!"],
-                 104: ["valar", "Behold the new Valar", "ascends to the Valar!"] }[kind];
-    if (!look) return;
-
-    var el = document.createElement("div");
-    el.className = "arrival " + look[0];
-    el.setAttribute("role", "status");
-    el.innerHTML = (look[0] === "steward" ? '<div class="banner">\u269C</div>' :
-      look[0] === "king" ? '<div class="rays"></div>' + CROWN : '<div class="rays"></div>') +
-      '<div class="card"><div class="rank"></div><div class="who"></div><div class="what"></div></div>';
-    el.querySelector(".rank").textContent = look[1];
-    el.querySelector(".who").textContent = name;
-    el.querySelector(".what").textContent = look[2];
-
-    if (look[0] === "valar") {           /* the heavens open: stars */
-      for (var i = 0; i < 60; i++) {
+    if (kind === 101) {
+      showCeremony("steward", PENNANT.replace(/SIDE/g, "left") + PENNANT.replace(/SIDE/g, "right"),
+        "Steward", name, "has become Steward of the realm");
+    }
+    else if (kind === 102 || kind === 103) {
+      el = showCeremony("king", '<div class="rays"></div>' + CROWN,
+        kind === 102 ? "Long live the King" : "Long live the Queen", name, "has claimed the throne!");
+      for (var i = 0; i < 46; i++) {          /* gold leaf tumbling down */
+        var leaf = document.createElement("span");
+        leaf.className = "leaf";
+        leaf.style.left = Math.random() * 100 + "%";
+        leaf.style.animationDuration = 3 + Math.random() * 3 + "s";
+        leaf.style.animationDelay = 0.8 + Math.random() * 2 + "s";
+        el.appendChild(leaf);
+      }
+    }
+    else if (kind === 104) {
+      el = showCeremony("valar", '<div class="pillar"></div>' + runeRing("runes", RUNES2),
+        "Behold the new Valar", name, "ascends to the Valar!");
+      for (var j = 0; j < 70; j++) {          /* the heavens: stars */
         var st = document.createElement("span");
         st.className = "star";
         st.style.left = Math.random() * 100 + "%";
@@ -715,67 +816,23 @@
         st.style.animationDelay = -Math.random() * 1.6 + "s";
         el.appendChild(st);
       }
-    }
-    if (look[0] === "king") {            /* a shower of gold */
-      for (var j = 0; j < 40; j++) {
-        var s = document.createElement("span");
-        s.className = "spark";
-        var a = Math.random() * Math.PI * 2, r = 150 + Math.random() * 420;
-        s.style.setProperty("--dx", Math.cos(a) * r + "px");
-        s.style.setProperty("--dy", Math.sin(a) * r + "px");
-        s.style.animationDelay = 0.9 + Math.random() * 0.4 + "s";
-        el.appendChild(s);
-      }
-    }
-
-    var done = function () { if (el.parentNode) el.remove(); };
-    el.addEventListener("click", done);
-    document.body.appendChild(el);
-    setTimeout(done, 5600);
-
-    if (kind === 104) {                  /* the realm trembles */
-      var app = $("app");
-      app.classList.remove("shake"); void app.offsetWidth; app.classList.add("shake");
-      setTimeout(function () { app.classList.remove("shake"); }, 1000);
+      shake();
     }
   }
 
+  /* a wizard (3-4) or apprentice (2) enters the realm */
   function wizardArrives(name, level) {
-    var old = document.querySelector(".arrival");
-    if (old) old.remove();
-
-    var big = level >= 3;
-    var el = document.createElement("div");
-    el.className = "arrival" + (big ? "" : " apprentice");
-    el.setAttribute("role", "status");
-    el.innerHTML = (big ? '<div class="flash"></div>' + BOLT : '<div class="smoke"></div>') +
-      '<div class="card"><div class="rank"></div><div class="who"></div><div class="what"></div></div>';
-    el.querySelector(".rank").textContent = big ? "Wizard" : "Apprentice";
-    el.querySelector(".who").textContent = name;
-    el.querySelector(".what").textContent = big ? "has entered the realm!" : "appears in a puff of smoke";
-
-    /* a burst of sparks */
-    for (var i = 0; i < (big ? 36 : 14); i++) {
-      var s = document.createElement("span");
-      s.className = "spark";
-      var a = Math.random() * Math.PI * 2, r = 120 + Math.random() * (big ? 380 : 180);
-      s.style.setProperty("--dx", Math.cos(a) * r + "px");
-      s.style.setProperty("--dy", Math.sin(a) * r + "px");
-      s.style.animationDelay = (big ? 0.15 : 0.3) + Math.random() * 0.3 + "s";
-      el.appendChild(s);
+    var big = level >= 3, el;
+    if (big) {
+      el = showCeremony("wizard", '<div class="flash"></div>' + runeRing("sigil", RUNES2) +
+        runeRing("sigil inner", RUNES) + BOLT, "Wizard", name, "has entered the realm!");
+      sparks(el, 40, 0.15, 400);
+      if (level >= 4) shake();
     }
-
-    var done = function () { if (el.parentNode) el.remove(); };
-    el.addEventListener("click", done);
-    document.body.appendChild(el);
-    setTimeout(done, 5600);
-
-    if (level >= 4) {
-      var app = $("app");
-      app.classList.remove("shake");
-      void app.offsetWidth;          /* restart the animation */
-      app.classList.add("shake");
-      setTimeout(function () { app.classList.remove("shake"); }, 1000);
+    else {
+      el = showCeremony("apprentice", '<div class="smoke"></div>', "Apprentice", name,
+        "appears in a puff of smoke");
+      sparks(el, 14, 0.3, 180);
     }
   }
 

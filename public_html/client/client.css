@@ -506,120 +506,153 @@ body.event-hunt .event-fx::after { right: -60px; animation-delay: 0.7s; }
   .coin { display: none; }
 }
 
-/* ---------- a wizard arrives ---------- */
+/* ---------- ceremonies: a wizard arrives, a title is won ---------- */
 
 .arrival {
   position: fixed; inset: 0; z-index: 50;
   display: grid; place-items: center;
-  background: radial-gradient(circle at 50% 45%, rgba(40, 30, 70, 0.55), rgba(3, 2, 8, 0.88) 70%);
-  animation: arrival-in 0.35s ease-out, arrival-out 0.8s ease-in 4.6s forwards;
-  cursor: pointer;
-  overflow: hidden;
+  overflow: hidden; cursor: pointer;
+  animation: arrival-in 0.4s ease-out, arrival-out 0.9s ease-in 5.2s forwards;
 }
-.arrival.apprentice { background: radial-gradient(circle at 50% 45%, rgba(60, 60, 70, 0.4), rgba(5, 5, 8, 0.75) 70%); }
-.arrival .flash {
-  position: absolute; inset: 0; background: #e8f0ff; opacity: 0;
-  animation: flash 0.9s ease-out;
+.arrival::after {                       /* vignette over everything */
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  box-shadow: inset 0 0 220px 60px rgba(0, 0, 0, 0.85);
 }
-.arrival .bolt {
-  position: absolute; top: -2%; left: 50%; width: 140px; height: 62vh; transform: translateX(-50%);
-  filter: drop-shadow(0 0 14px #9fc4ff) drop-shadow(0 0 30px #6f8cff);
-  opacity: 0; animation: bolt 1.1s ease-out;
-}
-.arrival .smoke {
-  position: absolute; left: 50%; top: 46%; width: 340px; height: 340px; margin: -170px 0 0 -170px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(200, 200, 210, 0.55), rgba(140, 140, 160, 0.15) 55%, transparent 70%);
-  animation: smoke 2.6s ease-out forwards;
-}
-.arrival .spark {
-  position: absolute; left: 50%; top: 46%; width: 6px; height: 6px; border-radius: 50%;
-  background: #fff4c2; box-shadow: 0 0 10px 3px rgba(255, 210, 120, 0.9);
-  animation: spark 1.6s ease-out forwards;
-}
+
+/* -- the title card, shared -- */
 .arrival .card {
-  position: relative; text-align: center; padding: 28px 40px;
-  animation: card-in 0.9s cubic-bezier(.2,1.4,.4,1) 0.35s both;
+  position: relative; z-index: 3; text-align: center;
+  padding: 34px 64px 30px; min-width: min(560px, 86vw);
+  animation: card-in 1s cubic-bezier(.2, 1.3, .4, 1) 0.45s both;
 }
-.arrival .card .rank {
-  font-family: "Cinzel", serif; font-size: 18px; letter-spacing: 0.4em; text-transform: uppercase;
-  color: #b9c8ff; text-shadow: 0 0 12px rgba(120, 150, 255, 0.8);
+.arrival .card::before {                /* a dark glass plate */
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 6px;
+  background: radial-gradient(ellipse at center, rgba(10, 8, 6, 0.72), rgba(10, 8, 6, 0.35) 70%, transparent);
 }
-.arrival .card .who {
-  font-family: "Cinzel", serif; font-weight: 700; font-size: clamp(40px, 8vw, 88px); line-height: 1.05;
-  color: #fff3c9; margin: 6px 0;
-  text-shadow: 0 0 18px rgba(255, 220, 140, 0.9), 0 0 50px rgba(255, 180, 60, 0.6), 0 3px 0 #6b4a12;
+.arrival .corner {                      /* gilded flourishes at the corners */
+  position: absolute; width: 74px; height: 74px; color: var(--c-metal, #d9ad52);
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.8));
 }
-.arrival .card .what { font-size: 20px; color: var(--text); font-style: italic; }
-.arrival.apprentice .card .who { font-size: clamp(30px, 5vw, 54px); }
-.arrival.apprentice .card .rank { color: #d6d6e0; text-shadow: 0 0 10px rgba(200, 200, 220, 0.7); }
-#app.shake { animation: shake 0.6s ease-in-out 0.15s; }
-
-/* titles won: Steward, King/Queen, Valar */
-.arrival.steward { background: radial-gradient(circle at 50% 45%, rgba(20, 60, 35, 0.6), rgba(3, 8, 4, 0.88) 70%); }
-.arrival .banner {
-  position: absolute; top: 0; left: 50%; width: 230px; height: 0; margin-left: -115px;
-  background: linear-gradient(90deg, #0f4a27, #1d6b3a 50%, #0f4a27);
-  border-left: 6px solid #d6a84a; border-right: 6px solid #d6a84a;
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 88%, 0 100%);
-  box-shadow: 0 0 40px rgba(214, 168, 74, 0.35);
-  animation: unfurl 1s cubic-bezier(.3,1.2,.5,1) forwards;
-  display: grid; justify-items: center; align-content: end; padding-bottom: 60px;
-  font-size: 64px; color: #f0cd7a; text-shadow: 0 0 14px rgba(240, 205, 122, 0.8);
+.arrival .corner.tl { top: -6px; left: -6px; }
+.arrival .corner.tr { top: -6px; right: -6px; transform: scaleX(-1); }
+.arrival .corner.bl { bottom: -6px; left: -6px; transform: scaleY(-1); }
+.arrival .corner.br { bottom: -6px; right: -6px; transform: scale(-1, -1); }
+.arrival .rank {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  font-family: "Cinzel", serif; font-weight: 600; font-size: 15px;
+  letter-spacing: 0.42em; text-transform: uppercase; padding-left: 0.42em;
+  color: var(--c-rank, #f0cd7a); text-shadow: 0 0 12px var(--c-glow, rgba(240, 205, 122, 0.7));
 }
-.arrival.steward .card { margin-top: 300px; }
-@keyframes unfurl { to { height: 360px; } }
-
-.arrival.king { background: radial-gradient(circle at 50% 42%, rgba(90, 64, 10, 0.55), rgba(8, 5, 1, 0.9) 70%); }
-.arrival .rays {
-  position: absolute; left: 50%; top: 42%; width: 1600px; height: 1600px; margin: -800px 0 0 -800px;
-  background: repeating-conic-gradient(rgba(255, 215, 110, 0.18) 0deg 6deg, transparent 6deg 18deg);
-  mask: radial-gradient(circle, #000 0%, transparent 60%);
-  -webkit-mask: radial-gradient(circle, #000 0%, transparent 60%);
-  animation: rays-turn 30s linear infinite, arrival-in 1s ease-out;
+.arrival .rank .orn { font-size: 22px; letter-spacing: 0; padding: 0; opacity: 0.9; }
+.arrival .rank .orn.flip { transform: scaleX(-1); display: inline-block; }
+.arrival .who {
+  font-family: "Cinzel", serif; font-weight: 700; line-height: 1.05;
+  font-size: clamp(42px, 8vw, 92px); margin: 8px 0 4px; padding: 0 0.05em;
+  background: var(--c-name, linear-gradient(180deg, #fffbe9 0%, #ffe39a 38%, #e0a83a 62%, #fff2c2 78%, #b9801f 100%));
+  background-size: 100% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(70, 45, 8, 0.9)) drop-shadow(0 0 22px var(--c-glow, rgba(255, 200, 90, 0.75)));
+  position: relative;
 }
-.arrival .crown {
-  position: absolute; left: 50%; top: 18%; width: 170px; margin-left: -85px;
-  filter: drop-shadow(0 0 18px rgba(255, 210, 90, 0.85));
-  animation: crown-down 1.3s cubic-bezier(.2,1.2,.4,1) both;
+.arrival .who::after {                  /* a shine that sweeps across the name */
+  content: attr(data-name); position: absolute; inset: 0; padding: 0 0.05em;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.95) 50%, transparent 65%);
+  background-size: 250% 100%; background-position: 130% 0;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: name-shine 2.4s ease-in-out 1.1s 2;
 }
-.arrival.king .card { margin-top: 140px; }
-@keyframes crown-down { from { transform: translateY(-260px) rotate(-8deg); opacity: 0; } to { transform: none; opacity: 1; } }
-@keyframes rays-turn { to { transform: rotate(360deg); } }
-
-.arrival.valar { background: radial-gradient(circle at 50% 40%, rgba(230, 235, 255, 0.35), rgba(30, 30, 60, 0.75) 45%, rgba(2, 2, 10, 0.93) 75%); }
-.arrival.valar .rays {
-  background: repeating-conic-gradient(rgba(255, 255, 255, 0.22) 0deg 4deg, transparent 4deg 12deg);
-  animation: rays-turn 40s linear infinite, arrival-in 1.4s ease-out;
+.arrival .rule {
+  display: flex; align-items: center; gap: 12px; justify-content: center;
+  color: var(--c-metal, #d9ad52); font-size: 16px; margin: 6px auto 10px; width: 70%;
 }
-.arrival .star {
-  position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #fff;
-  box-shadow: 0 0 6px 2px rgba(200, 220, 255, 0.9);
-  animation: twinkle 1.6s ease-in-out infinite alternate;
-}
-@keyframes twinkle { from { opacity: 0.2; transform: scale(0.6); } to { opacity: 1; transform: scale(1.3); } }
-.arrival.valar .card .who { color: #ffffff; text-shadow: 0 0 20px rgba(220, 230, 255, 1), 0 0 60px rgba(160, 190, 255, 0.8), 0 3px 0 #3a3f73; }
-.arrival.valar .card .rank, .arrival.king .card .rank, .arrival.steward .card .rank { color: #f0cd7a; text-shadow: 0 0 12px rgba(240, 205, 122, 0.8); }
-.arrival.valar .card .rank { color: #dfe7ff; text-shadow: 0 0 14px rgba(200, 215, 255, 0.95); }
-@media (prefers-reduced-motion: reduce) {
-  .arrival .rays, .arrival .star, .arrival .crown, .arrival .banner { animation: none; }
-  .arrival .banner { height: 360px; }
+.arrival .rule span { flex: 1; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c-metal, #d9ad52), transparent); }
+.arrival .what {
+  font-family: "EB Garamond", serif; font-style: italic; font-size: 22px;
+  color: #efe4c8; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9);
 }
 
 @keyframes arrival-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes arrival-out { to { opacity: 0; visibility: hidden; } }
+@keyframes card-in { from { transform: scale(0.7) translateY(20px); opacity: 0; filter: blur(6px); }
+                     to { transform: none; opacity: 1; filter: none; } }
+@keyframes name-shine { from { background-position: 130% 0; } to { background-position: -30% 0; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin-back { to { transform: rotate(-360deg); } }
+
+/* -- wizard: lightning and an arcane sigil -- */
+.arrival.wizard { background: radial-gradient(circle at 50% 46%, #2a2150 0%, #120d26 45%, #040309 80%);
+  --c-rank: #c3d2ff; --c-glow: rgba(140, 170, 255, 0.75); --c-metal: #9fb4ff; }
+.arrival.apprentice { background: radial-gradient(circle at 50% 46%, #2c2c34 0%, #121216 50%, #050506 85%);
+  --c-rank: #dcdce6; --c-glow: rgba(210, 210, 230, 0.6); --c-metal: #b9b9c8;
+  --c-name: linear-gradient(180deg, #ffffff, #d7d9e6 45%, #8f93a8 70%, #f3f4fa); }
+.arrival .flash { position: absolute; inset: 0; z-index: 4; background: #e8f0ff; opacity: 0; animation: flash 0.9s ease-out; pointer-events: none; }
+.arrival .bolt { position: absolute; z-index: 2; top: -2%; left: 50%; width: 150px; height: 64vh; transform: translateX(-50%);
+  filter: drop-shadow(0 0 14px #9fc4ff) drop-shadow(0 0 36px #6f8cff); opacity: 0; animation: bolt 1.1s ease-out; }
+.arrival .sigil { position: absolute; z-index: 1; width: min(720px, 92vw); aspect-ratio: 1;
+  color: rgba(150, 175, 255, 0.55); animation: spin 40s linear infinite, arrival-in 1.5s ease-out; }
+.arrival .sigil.inner { width: min(520px, 70vw); color: rgba(190, 210, 255, 0.4); animation: spin-back 28s linear infinite, arrival-in 1.5s ease-out; }
+.arrival .smoke { position: absolute; left: 50%; top: 46%; width: 420px; height: 420px; margin: -210px 0 0 -210px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(210, 210, 220, 0.55), rgba(140, 140, 160, 0.15) 55%, transparent 70%);
+  animation: smoke 2.6s ease-out forwards; }
+.arrival .spark { position: absolute; z-index: 2; left: 50%; top: 46%; width: 6px; height: 6px; border-radius: 50%;
+  background: #fff4c2; box-shadow: 0 0 10px 3px rgba(255, 210, 120, 0.9); animation: spark 1.6s ease-out forwards; }
 @keyframes flash { 0% { opacity: 0.95; } 15% { opacity: 0.1; } 25% { opacity: 0.7; } 100% { opacity: 0; } }
 @keyframes bolt { 0% { opacity: 1; } 12% { opacity: 0.2; } 22% { opacity: 1; } 100% { opacity: 0; } }
-@keyframes smoke { from { transform: scale(0.2); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
-@keyframes spark { from { transform: translate(0, 0) scale(1); opacity: 1; }
-                   to { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; } }
-@keyframes card-in { from { transform: scale(0.6); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes smoke { from { transform: scale(0.2); opacity: 1; } to { transform: scale(1.7); opacity: 0; } }
+@keyframes spark { from { transform: translate(0, 0) scale(1); opacity: 1; } to { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; } }
+
+/* -- steward: silk banners on gilded rods -- */
+.arrival.steward { background: radial-gradient(circle at 50% 45%, #163b25 0%, #0a1d12 45%, #030805 85%);
+  --c-glow: rgba(240, 205, 122, 0.6); }
+.arrival .pennant { position: absolute; z-index: 2; top: 0; width: min(190px, 18vw);
+  transform-origin: 50% 0; animation: drop 1.1s cubic-bezier(.3, 1.25, .5, 1) both, sway 4.5s ease-in-out 1.2s infinite alternate;
+  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.7)); }
+.arrival .pennant.left { left: 8%; }
+.arrival .pennant.right { right: 8%; animation-delay: 0.15s, 1.4s; }
+@keyframes drop { from { transform: translateY(-110%); } to { transform: none; } }
+@keyframes sway { from { transform: rotate(-1.6deg); } to { transform: rotate(1.6deg); } }
+
+/* -- king / queen: the crown and gold leaf -- */
+.arrival.king { background: radial-gradient(circle at 50% 40%, #4a3510 0%, #1d1406 45%, #070502 85%); }
+.arrival .rays { position: absolute; z-index: 1; left: 50%; top: 40%; width: 1800px; height: 1800px; margin: -900px 0 0 -900px;
+  background: repeating-conic-gradient(rgba(255, 215, 110, 0.16) 0deg 5deg, transparent 5deg 15deg);
+  -webkit-mask: radial-gradient(circle, #000 0%, transparent 58%); mask: radial-gradient(circle, #000 0%, transparent 58%);
+  animation: spin 36s linear infinite, arrival-in 1s ease-out; }
+.arrival .crown { position: absolute; z-index: 2; left: 50%; top: 9%; width: min(230px, 40vw); transform: translateX(-50%);
+  filter: drop-shadow(0 0 22px rgba(255, 205, 90, 0.8)) drop-shadow(0 10px 14px rgba(0, 0, 0, 0.6));
+  animation: crown-down 1.4s cubic-bezier(.2, 1.25, .4, 1) both; }
+.arrival.king .card { margin-top: 170px; }
+.arrival .leaf { position: absolute; z-index: 2; top: -20px; width: 10px; height: 14px; border-radius: 2px 8px;
+  background: linear-gradient(135deg, #fff1b0, #e2b13c 50%, #a8761b);
+  animation: leaf linear forwards; }
+@keyframes crown-down { from { transform: translate(-50%, -280px) rotate(-10deg); opacity: 0; } to { transform: translateX(-50%); opacity: 1; } }
+@keyframes leaf { from { transform: translateY(0) rotate(0deg); } to { transform: translateY(110vh) rotate(720deg) translateX(40px); } }
+
+/* -- valar: the heavens open -- */
+.arrival.valar { background: radial-gradient(circle at 50% 40%, #2b3266 0%, #10142f 45%, #02030a 85%);
+  --c-rank: #e6ecff; --c-glow: rgba(190, 210, 255, 0.85); --c-metal: #cdd8ff;
+  --c-name: linear-gradient(180deg, #ffffff 0%, #eef2ff 40%, #aab8f0 62%, #ffffff 78%, #7f8bc0 100%); }
+.arrival .pillar { position: absolute; z-index: 1; top: 0; left: 50%; width: 46vw; height: 100%; transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(210, 225, 255, 0.18) 55%, transparent 85%);
+  -webkit-mask: linear-gradient(90deg, transparent, #000 35%, #000 65%, transparent); mask: linear-gradient(90deg, transparent, #000 35%, #000 65%, transparent);
+  animation: pillar 1.6s ease-out both; }
+.arrival .runes { position: absolute; z-index: 1; width: min(640px, 88vw); aspect-ratio: 1; color: rgba(220, 230, 255, 0.75);
+  filter: drop-shadow(0 0 8px rgba(170, 195, 255, 0.9)); animation: spin 60s linear infinite, arrival-in 2s ease-out; }
+.arrival .star { position: absolute; z-index: 0; width: 3px; height: 3px; border-radius: 50%; background: #fff;
+  box-shadow: 0 0 6px 2px rgba(200, 220, 255, 0.9); animation: twinkle 1.6s ease-in-out infinite alternate; }
+@keyframes pillar { from { transform: translateX(-50%) scaleX(0.05); opacity: 0; } to { transform: translateX(-50%); opacity: 1; } }
+@keyframes twinkle { from { opacity: 0.2; transform: scale(0.6); } to { opacity: 1; transform: scale(1.3); } }
+
+#app.shake { animation: shake 0.6s ease-in-out 0.15s; }
 @keyframes shake {
   0%, 100% { transform: none; } 20% { transform: translate(-6px, 3px); } 40% { transform: translate(5px, -4px); }
   60% { transform: translate(-4px, 2px); } 80% { transform: translate(3px, -2px); }
 }
+
 @media (prefers-reduced-motion: reduce) {
-  .arrival .flash, .arrival .bolt, .arrival .spark, .arrival .smoke { display: none; }
+  .arrival *, .arrival::after { animation: none !important; }
+  .arrival .flash, .arrival .bolt, .arrival .spark, .arrival .smoke, .arrival .leaf { display: none; }
   #app.shake { animation: none; }
 }
 
