@@ -1,25 +1,26 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
-<HTML>
-<HEAD>
- <TITLE>The Steward</TITLE>
- <META NAME="generator" CONTENT="BBEdit 5.0">
-</HEAD>
-<BODY BACKGROUND="graphics/mis6b.jpg" TEXT="#BBBB66" LINK="#996699" ALINK="#BB3333" VLINK="#BB3333">
-
-<TABLE WIDTH="100%" CELLPADDING="0">
- <TR>
-  <TD WIDTH=90></TD>
-  <TD>
-
-<CENTER>
-
-</CENTER>
-
-<CENTER>
-<IMG SRC="graphics/steward.jpeg" ALT="The Steward" WIDTH="100" HEIGHT="26">
-</CENTER>
-
-   <P>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Steward · Phantasia Reimagined</title>
+<meta name="description" content="Phantasia Reimagined: The Steward">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+</head>
+<body class="page-steward">
+<header class="site-head">
+  <a class="logo" href="index.html">Phantasia<span>Reimagined</span></a>
+  <nav class="site-nav" aria-label="Site"><a href="whatsnew.html">What's New</a><a href="intro.html" class="here">Guide</a><a href="legends.html">Legends</a><a href="info.html">About</a><a class="play" href="play.html">Play</a></nav>
+</header>
+<main class="wrap with-side">
+<aside class="side panel"><details open><summary>Guide</summary><div class="side-inner"><h3>Getting started</h3><ul><li><a href="intro.html">Introduction</a></li><li><a href="characters.html">Characters</a></li><li><a href="stats.html">Statistics</a></li><li><a href="interface.html">The Game Screen</a></li><li><a href="commands.html">Commands</a></li><li><a href="tips.html">Tips</a></li></ul><h3>Adventuring</h3><ul><li><a href="realm.html">The Realm</a></li><li><a href="combat.html">Combat</a></li><li><a href="itcombat.html">Player Combat</a></li><li><a href="spells.html">Spells</a></li><li><a href="monsters.html">Monsters</a></li><li><a href="treasure.html">Treasure</a></li></ul><h3>Gear</h3><ul><li><a href="gear.html">Gear and Artifacts</a></li><li><a href="equipment.html">Equipment</a></li></ul><h3>Rulers</h3><ul><li><a href="steward.html" class="here">The Steward</a></li><li><a href="king.html">The King or Queen</a></li><li><a href="valar.html">The Valar</a></li><li><a href="council.html">The Council of the Wise</a></li></ul></div></details></aside><script>if (window.innerWidth < 860) document.querySelector(".side details").removeAttribute("open");</script>
+<article class="content">
+<h1>The Steward</h1><div class="rule"></div>
+<P>
 The Steward is the caretaker for the realm when there is no king or queen.
 A player can only be steward with a staff at 0,0, after level 10, before level
 200 and if there is no king or queen. Staves are dropped by monsters of
@@ -34,7 +35,7 @@ anywhere for free and also has other powers under an "enact" menu.  They are:
    <P>
    <H5>Transport</H5>
 - This is done to another player.  It may move the affected player to a
-position further away from 0,0.  A <A HREF="treasure.html#blessing">blessing</A>
+position further away from 0,0.  A <A HREF="treasure.html">blessing</A>
 protects from steward transports.
    </P>
 
@@ -43,14 +44,14 @@ protects from steward transports.
 - This is done to another player. It inflicts half a point of
 <A HREF="stats.html#poison">poison</A> and knocks
 <A HREF="stats.html#energy">energy level</A> down 20%. A
-<A HREF="treasure.html#charm">charm</A> protects from steward curses.
+<A HREF="treasure.html">charm</A> protects from steward curses.
    </P>
 
    <P>
    <H5>Energy void</H5>
 - The steward may put a number of these scattered about his/her kingdom
 as he/she pleases. If a player hits one, his/her maximum <A HREF="stats.html#energy">energy</A> is
-degraded as well as losing <A HREF="stats.html#mana">mana</A>, <A HREF="stats.html#energy">energy</A>, and <A HREF="equipment.html#gold">gold</A>. The energy void
+degraded as well as losing <A HREF="stats.html">mana</A>, <A HREF="stats.html#energy">energy</A>, and <A HREF="equipment.html#gold">gold</A>. The energy void
 disappears after being hit.
    </P>
 
@@ -68,27 +69,39 @@ regardless of the existence of a steward, king or queen.  A steward collects
 a small share of the accrued taxes with this option .
    </P>
 
-   <CENTER>
-   <P>
-   <A HREF="treasure.html"><IMG SRC="graphics/previous.jpeg" ALT="" WIDTH="109" HEIGHT="18"></A>
-   <A HREF="king.html"><IMG SRC="graphics/next.jpeg" ALT="" WIDTH="73" HEIGHT="18"></A>
-   </P>
+   <div class="center">
+   
 
    <HR>
 
-   <P>
-   <A HREF="index.html">Home</A>
- |
-   <A HREF="play.html">The Game</A>
- |
-   <A HREF="intro.html">The Rules</A>
- |
-   <A HREF="info.html">Game Info</A>
-   </P>
-   </CENTER>
+   
+   </div>
+<h2 id="rewards">Rewards of the stewardship</h2>
+<p>Holding the stewardship is now worth the trouble:</p>
+<ul>
+  <li><b>The Steward's Seal.</b> Worn on top of your gear while you hold the title (you
+  keep your own trinket). It adds 15% to the energy and 8% to the strength your level
+  gives you, plus <i>Fortune</i> (more gold from treasure) and <i>Mending</i> (heal as you
+  travel). It grows as you level up.</li>
+  <li><b>Richer fighting.</b> 25% more experience and gold, and gear drops half again as
+  often, always Fine or better.</li>
+  <li><b>A stipend.</b> Every 10 minutes the royal treasurer brings you 10% of the
+  Steward's coffers (up to 2,000 gold). A tenth of everything spent at trading posts
+  flows into the coffers, and collecting taxes no longer adds sin.</li>
+  <li><b>Feed the Poor</b> (a new <i>enact</i> power, once every 30 minutes). Every
+  player in the realm is healed and cured, and half the Steward's coffers are shared
+  out among them.</li>
+</ul>
+<p>Type <code>/court</code> in chat to see who rules and how full the coffers are.</p>
 
-   </TD>
-   </TR>
-  </TABLE>
- </BODY>
-</HTML>
+<nav class="pager" aria-label="Guide pages"><a class="prev" href="equipment.html"><small>Previous</small>&lsaquo; Equipment</a><a class="next" href="king.html"><small>Next</small>The King or Queen &rsaquo;</a></nav>
+</article>
+</main>
+<footer class="site-foot">
+  <a class="logo" href="index.html">Phantasia<span>Reimagined</span></a>
+  <nav aria-label="Footer"><a href="play.html">Play</a><a href="whatsnew.html">What's New</a><a href="intro.html">Guide</a><a href="legends.html">Legends</a><a href="info.html">About</a><a href="credits.html">Credits</a></nav>
+  <div>Built on <i>Phantasia</i> by Edward Estes and <i>Phantasia 4</i> by Brian Kelly.</div>
+</footer>
+<script src="event-banner.js"></script>
+</body>
+</html>

@@ -14,7 +14,7 @@
     if (!look || !(ev.secondsLeft > 0)) return;
     var bar = document.createElement("div");
     bar.style.cssText = "position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;align-items:center;" +
-      "justify-content:center;gap:10px;padding:10px 16px;font:16px Georgia,serif;color:#f3e6c8;" +
+      "justify-content:center;gap:10px;padding:10px 16px;font:17px \"EB Garamond\",Georgia,serif;color:#f3e6c8;" +
       "background:" + look.bg + ";border-bottom:2px solid " + look.edge + ";box-shadow:0 0 18px " + look.edge;
     var mins = Math.max(1, Math.round(ev.secondsLeft / 60));
     bar.innerHTML = '<span style="font-size:22px">' + look.icon + '</span>' +

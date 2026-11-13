@@ -114,8 +114,8 @@ public class pClient extends Panel implements KeyListener, constants {
 
 	String address = (String) javax.swing.JOptionPane.showInputDialog(null,
 		"Enter the game server address (host:port), as shown\n" +
-		"on the Phantasia website's \"The Game\" page:",
-		"Phantasia v4", javax.swing.JOptionPane.QUESTION_MESSAGE,
+		"on the Phantasia Reimagined website's \"The Game\" page:",
+		"Phantasia Reimagined", javax.swing.JOptionPane.QUESTION_MESSAGE,
 		null, null, last);
 
 	if (address == null) {
@@ -160,7 +160,7 @@ public class pClient extends Panel implements KeyListener, constants {
     Thread mainThread = null;
 
 	/* Window components */
-    Frame f = new Frame("Phantasia v4");
+    Frame f = new Frame("Phantasia Reimagined");
     statusPne status = new statusPne(this);
     buttonPne buttons = new buttonPne(this);
     msgPne messages = new msgPne(this);

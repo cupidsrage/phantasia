@@ -1,27 +1,27 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
-<HTML>
-<HEAD>
-	<TITLE>Phantasia 4 - New in the Realm</TITLE>
-	<META NAME="viewport" CONTENT="width=device-width, initial-scale=1">
-	<STYLE>
-		td { max-width: 820px; }
-		code { background: #222211; color: #EEEE99; padding: 1px 5px; }
-		h3 { color: #DDCC77; }
-		table.nums th, table.nums td { padding: 3px 12px; text-align: left; }
-		table.nums th { color: #DDCC77; }
-	</STYLE>
-</HEAD>
-<BODY BACKGROUND="graphics/mis6b.jpg" TEXT="#BBBB66" LINK="#996699" ALINK="#BB3333" VLINK="#BB3333">
-
-<TABLE WIDTH="100%" CELLPADDING="0">
- <TR>
-  <TD WIDTH=90></TD>
-  <TD>
-
-   <CENTER>
-   <H2>New in the Realm</H2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New in the Realm · Phantasia Reimagined</title>
+<meta name="description" content="Phantasia Reimagined: New in the Realm">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+</head>
+<body class="page-whatsnew">
+<header class="site-head">
+  <a class="logo" href="index.html">Phantasia<span>Reimagined</span></a>
+  <nav class="site-nav" aria-label="Site"><a href="whatsnew.html" class="here">What's New</a><a href="intro.html">Guide</a><a href="legends.html">Legends</a><a href="info.html">About</a><a class="play" href="play.html">Play</a></nav>
+</header>
+<main class="wrap">
+<article class="content">
+<h1>New in the Realm</h1><div class="rule"></div>
+<div class="center">
    <P>Gear and artifacts, daily quests, champions, world events and new monsters.</P>
-   </CENTER>
+   </div>
 
    <P>
    <A HREF="#gear">Gear &amp; artifacts</A> |
@@ -62,22 +62,22 @@ you enter the realm, and you can check it any time by typing
 shown in chat as you go.
    </P>
 
-   <TABLE CLASS="nums">
+   <div class="table-scroll"><TABLE CLASS="nums">
     <TR><TH>Quest</TH><TH>Goal</TH><TH>How often</TH></TR>
     <TR><TD>Slay monsters</TD><TD>Slay 6 to 12 monsters</TD><TD>30%</TD></TR>
     <TR><TD>Slay deep</TD><TD>Slay 4 to 8 monsters at least 1 to 3 circles beyond where you stood when the quest was given</TD><TD>25%</TD></TR>
     <TR><TD>Journey</TD><TD>Reach a circle 3 to 6 beyond where you stood when the quest was given (at least circle 3)</TD><TD>20%</TD></TR>
     <TR><TD>Treasure hunt</TD><TD>Discover treasure 3 to 5 times</TD><TD>17%</TD></TR>
     <TR><TD>Champion slayer</TD><TD>Defeat a <A HREF="#champions">champion</A></TD><TD>8%</TD></TR>
-   </TABLE>
+   </TABLE></div>
 
    <P>Rewards, based on your level when you finish.  Half of all quests, and
    every champion quest, also give a piece of <A HREF="gear.html#getting">gear</A>.</P>
-   <TABLE CLASS="nums">
+   <div class="table-scroll"><TABLE CLASS="nums">
     <TR><TH></TH><TH>Gold</TH><TH>Gems</TH></TR>
     <TR><TD>Most quests</TD><TD>200 + 60 &times; level</TD><TD>1 + level &divide; 25</TD></TR>
     <TR><TD>Champion slayer</TD><TD>3 &times; (200 + 60 &times; level)</TD><TD>2 &times; (1 + level &divide; 25)</TD></TR>
-   </TABLE>
+   </TABLE></div>
    <P>
 For example, a level 10 character earns 800 gold and 1 gem, or 2,400 gold
 and 2 gems for slaying a champion.  The whole realm hears when you complete
@@ -98,14 +98,14 @@ champions, and champions never flock.  The whole realm is told when a
 champion appears and when one is slain.
    </P>
 
-   <TABLE CLASS="nums">
+   <div class="table-scroll"><TABLE CLASS="nums">
     <TR><TH>Compared with the ordinary monster</TH><TH></TH></TR>
     <TR><TD>Strength</TD><TD>&times; 2</TD></TR>
     <TR><TD>Energy</TD><TD>&times; 3</TD></TR>
     <TR><TD>Brains</TD><TD>&times; 1.5</TD></TR>
     <TR><TD>Experience</TD><TD>&times; 5</TD></TR>
     <TR><TD>Treasure type</TD><TD>+2 (at least 2, at most 13)</TD></TR>
-   </TABLE>
+   </TABLE></div>
 
    <P>
 Defeating a champion also wins its hoard: <B>250 to 500 gold per size</B>
@@ -126,12 +126,12 @@ what is happening and how long is left.  Events only start while someone is
 playing.
    </P>
 
-   <TABLE CLASS="nums">
+   <div class="table-scroll"><TABLE CLASS="nums">
     <TR><TH>Event</TH><TH>Effect</TH></TR>
     <TR><TD>Blood Moon</TD><TD>Random monster encounters rise from 20% to <B>32%</B> of turns, and every monster is worth <B>double experience</B>.</TD></TR>
     <TR><TD>Gold Rush</TD><TD>Treasure is found <B>3 times as often</B>, and gold found in treasure is <B>doubled</B>.</TD></TR>
     <TR><TD>Champion Hunt</TD><TD>The chance of a monster being a <A HREF="#champions">champion</A> rises from 3% to <B>15%</B>.</TD></TR>
-   </TABLE>
+   </TABLE></div>
    <P>Each event is equally likely.</P>
 
    <HR>
@@ -148,33 +148,21 @@ they live in are on the <A HREF="monsters.html#new">Monsters page</A>.
    <A NAME="commands"></A>
    <H3>Chat commands</H3>
    <P>Type these into the chat box. Only you see the answer.</P>
-   <TABLE CLASS="nums">
+   <div class="table-scroll"><TABLE CLASS="nums">
     <TR><TD><CODE>/quest</CODE></TD><TD>Today's quest and your progress</TD></TR>
     <TR><TD><CODE>/event</CODE></TD><TD>The current world event and how long it lasts</TD></TR>
     <TR><TD><CODE>/gear</CODE></TD><TD>List your gear (change it with Info &rsaquo; Gear)</TD></TR>
     <TR><TD><CODE>/artifacts</CODE></TD><TD>Who holds each artifact</TD></TR>
     <TR><TD><CODE>/filter</CODE></TD><TD>Turn the chat filter on or off (it used to be in the Info menu)</TD></TR>
     <TR><TD><CODE>/help</CODE></TD><TD>List the commands</TD></TR>
-   </TABLE>
-
-   <HR>
-   <BR>
-
-   <CENTER>
-   <P>
-   <A HREF="index.html">Home</A>
- |
-   <A HREF="play.html">The Game</A>
- |
-   <A HREF="intro.html">The Rules</A>
- |
-   <A HREF="info.html">Game Info</A>
-   </P>
-   </CENTER>
-
-  </TD>
- </TR>
-</TABLE>
-<SCRIPT SRC="event-banner.js"></SCRIPT>
-</BODY>
-</HTML>
+   </TABLE></div>
+</article>
+</main>
+<footer class="site-foot">
+  <a class="logo" href="index.html">Phantasia<span>Reimagined</span></a>
+  <nav aria-label="Footer"><a href="play.html">Play</a><a href="whatsnew.html">What's New</a><a href="intro.html">Guide</a><a href="legends.html">Legends</a><a href="info.html">About</a><a href="credits.html">Credits</a></nav>
+  <div>Built on <i>Phantasia</i> by Edward Estes and <i>Phantasia 4</i> by Brian Kelly.</div>
+</footer>
+<script src="event-banner.js"></script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 /*
- * Phantasia IV - 3D ceremonies (three.js / WebGL).
+ * Phantasia Reimagined - 3D ceremonies (three.js / WebGL).
  *
  * play(kind, host) renders a ceremony behind the title card inside the
  * .arrival overlay `host` and returns { dispose }.

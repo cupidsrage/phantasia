@@ -341,7 +341,7 @@ Do_account_signup(struct client_t *c)
 
     Do_more(c);
     Do_send_clear(c);
-    Do_send_line(c, "Welcome to Phantasia, and good luck in the realm.\n");
+    Do_send_line(c, "Welcome to Phantasia Reimagined, and good luck in the realm.\n");
     Do_more(c);
     Do_send_clear(c);
     return;

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Phantasia website + browser-client bridge.
+"""Phantasia Reimagined website + browser-client bridge.
 
 Serves the static website from WEB_DIR and, at /ws, accepts WebSocket
 connections from the browser client and bridges each one to the game
