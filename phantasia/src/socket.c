@@ -229,6 +229,11 @@ int Do_accept_connections(struct server_t *s)
 	client_ptr->battle.rounds = 0;
 	client_ptr->battle.timeouts = 0;
 	client_ptr->previousName[0] = '\0';
+	client_ptr->championFight = FALSE;
+	client_ptr->questLoaded = FALSE;
+	client_ptr->gearLoaded = FALSE;
+	client_ptr->numGear = 0;
+	client_ptr->isBrowser = FALSE;
 	client_ptr->wizaccount[0] = '\0';
 	client_ptr->wizIP[0] = '\0';
 

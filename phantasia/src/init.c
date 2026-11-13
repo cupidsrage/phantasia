@@ -86,6 +86,7 @@ Init_server(struct server_t *s)
     Do_init_mutex(&s->realm.hack_lock);
     Do_init_mutex(&s->realm.connections_lock);
     Do_init_mutex(&s->realm.quest_lock);
+    Do_init_mutex(&s->realm.gear_lock);
     s->realm.worldEvent = WE_NONE;
     s->realm.worldEventEnds = 0;
     s->realm.nextWorldEvent = 0;
@@ -122,6 +123,7 @@ Init_server(struct server_t *s)
 	/* load the monsters into the realm array */
     Do_load_monster_file(&s->realm);
     Do_load_extra_monsters(&s->realm);
+    Do_load_artifacts(&s->realm);
 
 	/* load the charstats into the realm array */
     Do_load_charstats_file(&s->realm);

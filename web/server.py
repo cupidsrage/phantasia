@@ -7,6 +7,9 @@ server's TCP port.  Uses only the Python standard library.
 
     server.py --port 8080 --dir /app/public_html --game-port 43302
 
+/api/artifacts returns who holds each one-of-a-kind artifact, for the
+website's Legends page.
+
 The bridge performs the game's connection handshake itself, sending the
 player's real address (from X-Forwarded-For, set by Railway's proxy) so
 the game's per-address limits apply to each player, not to the bridge.
@@ -16,6 +19,7 @@ import argparse
 import asyncio
 import base64
 import hashlib
+import json
 import mimetypes
 import os
 import struct
@@ -229,6 +233,34 @@ async def bridge(reader, writer, headers, game_port):
             pass
 
 
+# ------------------------------------------------------------- live data
+
+def artifact_holders(data_dir):
+    """[{id, holder}] from the game's artifact file (holder "" if lost)."""
+    holders = {i: "" for i in range(1, 11)}
+    try:
+        with open(os.path.join(data_dir, "artifacts"), encoding="latin-1") as f:
+            for line in f:
+                parts = line.split()
+                if len(parts) >= 2 and parts[0].isdigit():
+                    n = int(parts[0])
+                    if n in holders and parts[1] != "-":
+                        holders[n] = parts[1]
+    except OSError:
+        pass
+    return [{"id": n, "holder": h} for n, h in sorted(holders.items())]
+
+
+async def send_json(writer, data):
+    body = json.dumps(data).encode()
+    writer.write(response_head(200, "OK", [
+        ("Content-Type", "application/json"),
+        ("Content-Length", str(len(body))),
+        ("Cache-Control", "no-cache"),
+        ("Connection", "close")]) + body)
+    await writer.drain()
+
+
 # ---------------------------------------------------------------- main
 
 async def handle(reader, writer, args):
@@ -238,6 +270,8 @@ async def handle(reader, writer, args):
 
         if path == "/ws" and headers.get("upgrade", "").lower() == "websocket":
             await bridge(reader, writer, headers, args.game_port)
+        elif path == "/api/artifacts":
+            await send_json(writer, artifact_holders(args.data_dir))
         elif method in ("GET", "HEAD"):
             await serve_file(writer, method, target, args.dir)
         else:
@@ -259,6 +293,7 @@ async def main():
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--dir", default="/app/public_html")
     parser.add_argument("--game-port", type=int, default=43302)
+    parser.add_argument("--data-dir", default="/app/phantasia/data")
     args = parser.parse_args()
 
     server = await asyncio.start_server(

@@ -983,6 +983,9 @@ Do_random_events(struct client_t *c)
     Do_world_event_tick(c);
     Do_quest_check_location(c);
 
+	/* Mending gear heals as you travel */
+    Do_gear_turn(c);
+
         /* to shred "backups" */
         if ((c->player.quickness == 0)
              && (RND() >= .1 * c->player.degenerated)) {
@@ -1033,7 +1036,7 @@ Do_random_events(struct client_t *c)
 	    Do_send_self_event(c, TAX_EVENT);
 	}
 
-        if (RND() <= 0.015 * Do_treasure_chance_factor(c)) {
+        if (RND() <= 0.015 * Do_treasure_chance_factor(c) * Do_gear_treasure_factor(c)) {
 	    event_ptr = (struct event_t *)Do_create_event();
 	    event_ptr->type = TREASURE_EVENT;
 	    event_ptr->arg1 = c->player.circle;
@@ -1041,7 +1044,7 @@ Do_random_events(struct client_t *c)
 	    Do_file_event(c, event_ptr);
         }
 
-        if (RND() <= 0.0075 * Do_treasure_chance_factor(c)) {
+        if (RND() <= 0.0075 * Do_treasure_chance_factor(c) * Do_gear_treasure_factor(c)) {
 	    event_ptr = (struct event_t *)Do_create_event();
 	    event_ptr->type = TREASURE_EVENT;
 	    event_ptr->arg1 = c->player.circle;

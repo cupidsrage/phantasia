@@ -138,6 +138,9 @@ Do_treasure(struct client_t *c, struct event_t *the_event)
 		/* a Gold Rush doubles gold finds */
 	    gold = floor(gold * Do_gold_find_factor(c));
 
+		/* Fortune gear finds more */
+	    gold = floor(gold * Do_gear_gold_factor(c));
+
                 /* avoid single gold pieces */
             if (gold == 1.0) {
                 gold = 2.0;
@@ -313,25 +316,7 @@ Do_treasure(struct client_t *c, struct event_t *the_event)
                 case 2:
                     dtemp = floor((.5 + RND()) * 15 * the_event->arg1);
 
-                    sprintf(string_buffer, "You've found a +%.0lf buckler.\n",
-			    dtemp);
-
-		    Do_send_line(c, string_buffer);
-
-                    if (dtemp >= c->player.shield) {
-
-		        Do_more(c);
-
-			Do_energy(c, c->player.energy - c->player.shield +
-				dtemp, c->player.max_energy, dtemp, 0, FALSE);
-		    }
-                    else {
-
-                        Do_send_line(c,
-			       "But you already have something better.\n");
-
-		        Do_more(c);
-		    }
+                    Do_gear_treasure_find(c, SLOT_HELM, dtemp, the_event->arg1);
                     break;
 
                 case 3:
@@ -412,24 +397,8 @@ Do_treasure(struct client_t *c, struct event_t *the_event)
                         dtemp = 1;
                     }
 
-                    sprintf(string_buffer,
-			    "You've found a +%.0lf short sword!\n", dtemp);
-
-		    Do_send_line(c, string_buffer);
-                    if (dtemp >= c->player.sword) {
-
-		        Do_more(c);
-
-			Do_strength(c, c->player.max_strength, dtemp, 0,
-				FALSE);
-		    }
-                    else {
-
-                        Do_send_line(c,
-				"But you already have something better.\n");
-
-		        Do_more(c);
-		    }
+                    Do_gear_treasure_find(c, SLOT_WEAPON, dtemp, the_event->arg1);
+                    break;
                 }
 
                     /* end treasure type 3 */
@@ -550,24 +519,7 @@ Do_treasure(struct client_t *c, struct event_t *the_event)
 
                     dtemp = floor((.5 + RND()) * 50.0 * the_event->arg1);
 
-                    sprintf(string_buffer, "You've found a +%.0lf shield!\n",
-			    dtemp);
-
-		    Do_send_line(c, string_buffer);
-                    if (dtemp >= c->player.shield) {
-
-		        Do_more(c);
-
-			Do_energy(c, c->player.energy - c->player.shield +
-				dtemp, c->player.max_energy, dtemp, 0, FALSE);
-		    }
-                    else {
-
-                        Do_send_line(c,
-			        "But you already have something better.\n");
-
-		        Do_more(c);
-		    }
+                    Do_gear_treasure_find(c, SLOT_ARMOR, dtemp, the_event->arg1);
                     break;
 
                 case 3:
@@ -656,24 +608,7 @@ Do_treasure(struct client_t *c, struct event_t *the_event)
 
                     dtemp = floor((.5 + RND()) * 2 * the_event->arg1);
 
-                    sprintf(string_buffer,
-			    "You've found a +%.0lf long sword!\n", dtemp);
-
-		    Do_send_line(c, string_buffer);
-                    if (dtemp >= c->player.sword) {
-
-		        Do_more(c);
-
-			Do_strength(c, c->player.max_strength, dtemp, 0,
-				FALSE);
-		    }
-                    else {
-
-                        Do_send_line(c,
-				"But you already have something better.\n");
-
-		        Do_more(c);
-		    }
+                    Do_gear_treasure_find(c, SLOT_WEAPON, dtemp, the_event->arg1);
                     break;
 		}
 
@@ -835,21 +770,7 @@ Do_treasure(struct client_t *c, struct event_t *the_event)
 		        dtemp = 1;
 		    }
 
-                    sprintf(string_buffer,
-		      "You have discovered some +%.0lf quicksilver!\n", dtemp);
-
-		    Do_send_line(c, string_buffer);
-                    if (dtemp >= c->player.quicksilver) {
-		        Do_more(c);
-			Do_speed(c, c->player.max_quickness, dtemp, 0, FALSE);
-		    }
-                    else {
-
-                        Do_send_line(c,
-			           "But you already have something better.\n");
-
-		        Do_more(c);
-		    }
+                    Do_gear_treasure_find(c, SLOT_BOOTS, dtemp, the_event->arg1);
 		    break;
 		}
 
@@ -1267,38 +1188,12 @@ Do_corpse(struct client_t *c, struct event_t *the_event)
     }
 
     the_player->sword = floor(the_player->sword / 2);
-    if (the_player->sword > c->player.sword) {
-
-	sprintf(string_buffer, "You find a %.0lf strength sword.\n",
-		the_player->sword);
-
-	Do_send_line(c, string_buffer);
-	Do_strength(c, c->player.max_strength, the_player->sword, 0, FALSE);
-    }
-
     the_player->shield = floor(the_player->shield / 2);
-    if (the_player->shield > c->player.shield) {
-
-	sprintf(string_buffer, "You find a %.0lf strength shield.\n",
-		the_player->shield);
-
-	Do_send_line(c, string_buffer);
-
-	Do_energy(c, c->player.energy - c->player.shield +
-		the_player->shield, c->player.max_energy,
-		the_player->shield, 0, FALSE);
-    }
-
     the_player->quicksilver = floor(the_player->quicksilver / 4);
-    if (the_player->quicksilver > c->player.quicksilver) {
 
-	sprintf(string_buffer, "You find %.0f quicksilver.\n",
-		the_player->quicksilver);
-
-	Do_send_line(c, string_buffer);
-	Do_speed(c, c->player.max_quickness, the_player->quicksilver, 0,
-		FALSE);
-     }
+	/* the fallen character's gear, battered by the fall */
+    Do_gear_corpse_find(c, the_player->sword, the_player->shield,
+	    the_player->quicksilver);
 
      if (the_player->holywater > 0) {
 
@@ -1660,17 +1555,17 @@ Do_smith(struct client_t *c, struct event_t *the_event)
         answer = FALSE;
 
 	if (c->player.shield > 0) {
-            strcpy(buttons.button[0], "Shield\n");
+            strcpy(buttons.button[0], "Armor\n");
 	    answer = TRUE;
 	}
 
 	if (c->player.sword > 0) {
-            strcpy(buttons.button[1], "Sword\n");
+            strcpy(buttons.button[1], "Weapon\n");
 	    answer = TRUE;
 	}
 
 	if (c->player.quicksilver > 0) {
-            strcpy(buttons.button[2], "Quicksilver\n");
+            strcpy(buttons.button[2], "Boots\n");
 	    answer = TRUE;
 	}
 
@@ -1708,9 +1603,8 @@ Do_smith(struct client_t *c, struct event_t *the_event)
 		dtemp = 1;
 	    }
 
-		/* award the bonus */
-	    Do_energy(c, c->player.energy, c->player.max_energy,
-		    c->player.shield + dtemp, 0, FALSE);
+		/* enchant the worn armor */
+	    Do_gear_enchant(c, 0, dtemp);
 
             break;
 
@@ -1727,9 +1621,8 @@ Do_smith(struct client_t *c, struct event_t *the_event)
 		dtemp = 1;
 	    }
 
-		/* award the bonus */
-	    Do_strength(c, c->player.max_strength, c->player.sword + dtemp,
-		    0, FALSE);
+		/* enchant the worn weapon */
+	    Do_gear_enchant(c, 1, dtemp);
 
 	    break;
 
@@ -1746,9 +1639,8 @@ Do_smith(struct client_t *c, struct event_t *the_event)
 		dtemp = 1;
 	    }
 
-		/* award the bonus */
-	    Do_speed(c, c->player.max_quickness, c->player.quicksilver + dtemp,
-		    0, FALSE);
+		/* enchant the worn boots */
+	    Do_gear_enchant(c, 2, dtemp);
 
 	    break;
 

@@ -20,7 +20,7 @@
     NAME: 40, LOCATION: 41, ENERGY: 42, STRENGTH: 43, SPEED: 44,
     SHIELD: 45, SWORD: 46, QUICKSILVER: 47, MANA: 48, LEVEL: 49,
     GOLD: 50, GEMS: 51, CLOAK: 52, BLESSING: 53, CROWN: 54,
-    PALANTIR: 55, RING: 56, VIRGIN: 57
+    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60
   };
 
   /* ---- client -> server ---- */
@@ -169,6 +169,7 @@
         case P.DEACTIVATE_CHAT: setChat(false); break;
         case P.PLAYER_INFO: await showExamine(); break;
         case P.CONNECTION_DETAIL: await showDetail(); break;
+        case P.GEAR: await readGear(); break;
         default:
           if (type >= P.NAME && type <= P.VIRGIN) await updateStatus(type);
           else console.warn("Unknown packet", type);
@@ -491,6 +492,41 @@
       ]);
     showModal("Connection details: " + title, html,
       [{ label: "Close", primary: true, cancel: true, action: hideModal }]);
+  }
+
+  /* ------------------------------------------------------- gear */
+
+  var SLOTS = ["Weapon", "Armor", "Helm", "Boots", "Trinket"];
+  var TIERS = ["Worn", "Common", "Fine", "Masterwork", "Enchanted", "Artifact"];
+
+  async function readGear() {
+    var n = await nextInt(), items = [];
+    for (var i = 0; i < n; i++) {
+      items.push({ slot: await next(), name: await next(), stats: await next(),
+        equipped: (await next()) === "1", tier: parseInt(await next(), 10) || 0,
+        ab1: await next(), ab2: await next() });
+    }
+    var ul = $("gear");
+    ul.innerHTML = "";
+    SLOTS.forEach(function (slot) {
+      var it = items.filter(function (x) { return x.equipped && x.slot === slot; })[0];
+      var li = document.createElement("li");
+      li.innerHTML = "<span class='slot'></span><span class='gname'></span>";
+      li.querySelector(".slot").textContent = slot;
+      var span = li.querySelector(".gname");
+      if (it) {
+        span.textContent = it.name;
+        span.className = "gname t" + it.tier;
+        li.title = it.name + " (" + TIERS[it.tier] + ")\n" + it.stats +
+          (it.ab1 ? "\nAbility: " + it.ab1 : "") + (it.ab2 ? ", " + it.ab2 : "");
+      } else {
+        span.textContent = "—";
+        span.className = "gname t0";
+      }
+      ul.appendChild(li);
+    });
+    var pack = items.filter(function (x) { return !x.equipped; }).length;
+    $("gear-pack").textContent = "(backpack " + pack + "/6)";
   }
 
   /* ------------------------------------------------------- players */

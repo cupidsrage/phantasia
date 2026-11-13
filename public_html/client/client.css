@@ -319,6 +319,23 @@ kbd {
   background: #0b0907;
 }
 
+/* ---------- gear ---------- */
+
+.gear { list-style: none; margin: 0; padding: 0; font-size: 14px; }
+.gear li { display: flex; gap: 8px; padding: 3px 0; align-items: baseline; }
+.gear li .slot { color: var(--muted); width: 58px; flex: none; font-size: 12px;
+  text-transform: uppercase; letter-spacing: 0.06em; }
+.gear li .gname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gear li.empty { color: var(--muted); font-style: italic; }
+.gear .t0 { color: #9c9182; }                       /* worn */
+.gear .t1 { color: var(--text); }                   /* common */
+.gear .t2 { color: #7fc97a; }                       /* fine */
+.gear .t3 { color: #6aa6e8; }                       /* masterwork */
+.gear .t4 { color: #c58cf0; }                       /* enchanted */
+.gear .t5 { color: var(--gold-2); font-weight: 600;
+  text-shadow: 0 0 10px rgba(214, 168, 74, 0.5); }  /* artifact */
+.gear-hint { margin-top: 6px; font-size: 12px; color: var(--muted); }
+
 /* ---------- modal ---------- */
 
 .modal {

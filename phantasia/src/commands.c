@@ -368,6 +368,11 @@ Do_death(struct client_t *c, struct event_t *the_event)
 	/* check if the person can be saved from this death */
     if (save_flag) {
 
+	    /* the Phoenix Amulet */
+	if (Do_gear_phoenix(c)) {
+	    return;
+	}
+
 	    /* if the player has a good ring in use */
 	if (c->battle.ring_in_use && (c->player.ring_type == R_DLREG ||
 		c->player.ring_type == R_NAZREG)) {
@@ -465,6 +470,9 @@ Do_death(struct client_t *c, struct event_t *the_event)
         }
              
     }
+
+	/* artifacts return to the realm and gear is lost */
+    Do_gear_death(c);
 
 	/* chat no more */
     Do_send_int(c, DEACTIVATE_CHAT_PACKET);
@@ -1061,15 +1069,20 @@ Do_degenerate(struct client_t *c, int counts)
         ++c->player.degenerated;
     }
 
-	/* degenerate speed and quicksilver */
+	/* degenerate speed, energy and strength */
     Do_speed(c, c->player.max_quickness * 0.975,
-	    c->player.quicksilver * 0.93, c->battle.speedSpell, FALSE);
+	    c->player.quicksilver, c->battle.speedSpell, FALSE);
 
     Do_energy(c, c->player.energy, c->player.max_energy * 0.97,
-	    c->player.shield * 0.93, c->battle.force_field, FALSE);
+	    c->player.shield, c->battle.force_field, FALSE);
 
     Do_strength(c, c->player.max_strength * 0.97,
-	    c->player.sword * 0.93, c->battle.strengthSpell, FALSE);
+	    c->player.sword, c->battle.strengthSpell, FALSE);
+
+	/* and gear wears (artifacts don't) */
+    Do_gear_wear(c, 2, 0.93);
+    Do_gear_wear(c, 0, 0.93);
+    Do_gear_wear(c, 1, 0.93);
 
     c->player.brains *= 0.95;
     c->player.magiclvl *= 0.97;
@@ -3989,7 +4002,8 @@ Do_trading_post(struct client_t *c)
 
     for (loop = 0; loop < size; ++loop) {
 
-        sprintf(string_buffer, "%s\n", c->realm->shop_item[loop].item);
+        sprintf(string_buffer, "%s\n", loop == 1 ? "Armor" : loop == 4 ?
+		"Weapons" : loop == 5 ? "Boots" : c->realm->shop_item[loop].item);
 	strcpy(theItems.button[loop], string_buffer);
     }
 
@@ -4008,6 +4022,11 @@ Do_trading_post(struct client_t *c)
             else
                 cost = c->realm->shop_item[loop].cost;
 
+	    if (loop == 1 || loop == 4 || loop == 5) {
+		sprintf(string_buffer, "%-12s: see the armory\n",
+			loop == 1 ? "Armor" : loop == 4 ? "Weapons" : "Boots");
+	    }
+	    else
 	    sprintf(string_buffer, "%-12s: %6.0f\n",
 	            c->realm->shop_item[loop].item, cost);
 
@@ -4044,6 +4063,7 @@ Do_trading_post(struct client_t *c)
 	strcpy(theButtons.button[1], "Sell Gems\n");
 	strcpy(theButtons.button[2], "Leave\n");
 	Do_clear_buttons(&theButtons, 3);
+	strcpy(theButtons.button[3], "Armory\n");
 
 	if (Do_buttons(c, &itemp, &theButtons) != S_NORM) {
 	    Do_send_clear(c);
@@ -4055,6 +4075,10 @@ Do_trading_post(struct client_t *c)
 
         case 2:           /* leave */
             return;
+
+        case 3:           /* browse gear of every kind */
+	    Do_gear_armory(c, -1);
+	    break;
 
         case 0:           /* make purchase */
 
@@ -4116,60 +4140,8 @@ Do_trading_post(struct client_t *c)
                     break;
 
                 case 1:
-
-                    sprintf(string_buffer, "Shields are %.0f gold per +1.\n",
-			    c->realm->shop_item[1].cost);
-
-		    Do_send_line(c, "Each plus will add to your energy.\n");
-
-                    sprintf(string_buffer,
-			    "How strong a shield do you want (%.0f max)?\n",
-			    floor(c->player.gold /
-			    c->realm->shop_item[1].cost));
-
-		    if (Do_double_dialog(c, &numitems, string_buffer)) {
-			Do_send_clear(c);
-			break;
-		    }
-
-		    Do_send_clear(c);
-                    cost = numitems * c->realm->shop_item[1].cost;
-
-                    if (numitems == 0.0)
-                        break;
-                    else if (cost > c->player.gold || numitems < 0)
-                        ++cheat;
-                    else if (numitems < c->player.shield) {
-
-                        Do_send_line(c,
-			     "That's no better than what you already have.\n");
-
-			Do_more(c);
-			Do_send_clear(c);
-		    }
-                    else {
-                        cheat = 0;
-			Do_gold(c, -cost, FALSE);
-                        spent += cost;
-
-                        sprintf(string_buffer, "%s, %s, purchased %lf shield\n",
-                                c->player.lcname,
-                                c->realm->charstats[c->player.type].class_name,
-                                numitems);
-
-                        Do_log(PURCHASE_LOG, &string_buffer);
-
-                        if ((c->player.level < 20) && 
-                             (RND() < 1 -
-                                      (c->player.level * 350 + 150) / spent) )
-                            thief = TRUE;
-                        else if (RND() < 0.02) 
-                            dishonest = TRUE;
-                        else
-			    Do_energy(c, c->player.energy - c->player.shield
-				    + numitems, c->player.max_energy, numitems,
-				    0, FALSE);
-                    }
+		    /* gear is sold at the armory now */
+		    Do_gear_armory(c, SLOT_ARMOR);
                     break;
 
                 case 2:
@@ -4260,110 +4232,13 @@ Do_trading_post(struct client_t *c)
                     break;
 
                 case 4:
-
-		    sprintf(string_buffer, "Swords are %.0f gold per +1.\n",
-			    c->realm->shop_item[3].cost);
-
-		    Do_send_line(c, "Each plus will improve your fighting ability.\n");
-		    
-                    sprintf(string_buffer,
-			    "How strong a sword do you want (%.0f max)?\n",
-            		    floor(c->player.gold /
-                            c->realm->shop_item[4].cost));
-
-		    if (Do_double_dialog(c, &numitems, string_buffer)) {
-			Do_send_clear(c);
-			break;
-		    }
-
-		    Do_send_clear(c);
-                    cost = numitems * c->realm->shop_item[4].cost;
-
-                    if (numitems == 0.0)
-                        break;
-                    else if (cost > c->player.gold || numitems < 0)
-                        ++cheat;
-                    else if (numitems < c->player.sword) {
-
-                        Do_send_line(c,
-			     "That's no better than what you already have.\n");
-
-			Do_more(c);
-			Do_send_clear(c);
-		    }
-                    else {
-                        cheat = 0;
-                        Do_gold(c, -cost, FALSE);
-                        spent += cost;
-
-                        sprintf(string_buffer, "%s, %s, purchased %lf sword\n",
-                                c->player.lcname,
-                                c->realm->charstats[c->player.type].class_name,
-                                numitems);
-
-                        Do_log(PURCHASE_LOG, &string_buffer);
-
-                        if ((c->player.level < 20) && 
-                             (RND() < 1 -
-                                      (c->player.level * 350 + 150) / spent) )
-                            thief = TRUE;
-                        else if (RND() < 0.02) 
-                            dishonest = TRUE;
-                        else
-			    Do_strength(c, c->player.max_strength, numitems, 0,
-				    FALSE);
-                    }
+		    /* gear is sold at the armory now */
+		    Do_gear_armory(c, SLOT_WEAPON);
                     break;
 
                 case 5:
-                    sprintf(string_buffer,
-	"Quicksilver is %.0f gp per +1.  How many + do you want (%.0f max)?\n",
-        c->realm->shop_item[5].cost, floor(c->player.gold /
-	c->realm->shop_item[5].cost));
-
-		    if (Do_double_dialog(c, &numitems, string_buffer)) {
-		        Do_send_clear(c);
-			break;
-		    }
-
-		    Do_send_clear(c);
-                    cost = numitems * c->realm->shop_item[5].cost;
-
-                    if (numitems == 0.0)
-                        break;
-                    else if (cost > c->player.gold || numitems < 0)
-                        ++cheat;
-                    else if (numitems < c->player.quicksilver) {
-
-                        Do_send_line(c,
-			     "That's no better than what you already have.\n");
-
-			Do_more(c);
-		        Do_send_clear(c);
-		    }
-                    else {
-                        cheat = 0;
-                        Do_gold(c, -cost, FALSE);
-                        spent += cost;
-
-                        sprintf(string_buffer,
-				"%s, %s, purchased %lf quicksilver\n",
-                                c->player.lcname,
-                                c->realm->charstats[c->player.type].class_name,
-                                numitems);
-
-                        Do_log(PURCHASE_LOG, &string_buffer);
-
-                        if ((c->player.level < 20) && 
-                             (RND() < 1 -
-                                      (c->player.level * 350 + 150) / spent) )
-                            thief = TRUE;
-                        else if (RND() < 0.02) 
-                            dishonest = TRUE;
-                        else
-			    Do_speed(c, c->player.max_quickness, numitems, 0,
-				    FALSE);
-                    }
+		    /* gear is sold at the armory now */
+		    Do_gear_armory(c, SLOT_BOOTS);
                     break;
 
                 case 6:

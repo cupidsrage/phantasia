@@ -1,0 +1,184 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+	<TITLE>Phantasia 4 - Gear and Artifacts</TITLE>
+	<META NAME="viewport" CONTENT="width=device-width, initial-scale=1">
+	<STYLE>
+		td { max-width: 860px; }
+		code { background: #222211; color: #EEEE99; padding: 1px 5px; }
+		h3 { color: #DDCC77; }
+		table.nums th, table.nums td { padding: 3px 12px; text-align: left; vertical-align: top; }
+		table.nums th { color: #DDCC77; }
+		.t2 { color: #7fc97a; } .t3 { color: #6aa6e8; } .t4 { color: #c58cf0; } .t5 { color: #f0cd7a; font-weight: bold; }
+	</STYLE>
+</HEAD>
+<BODY BACKGROUND="graphics/mis6b.jpg" TEXT="#BBBB66" LINK="#996699" ALINK="#BB3333" VLINK="#BB3333">
+
+<TABLE WIDTH="100%" CELLPADDING="0">
+ <TR>
+  <TD WIDTH=90></TD>
+  <TD>
+
+   <CENTER>
+   <H2>Gear and Artifacts</H2>
+   <P>Shields, swords and quicksilver have become real equipment.</P>
+   </CENTER>
+
+   <P>
+   <A HREF="#slots">Slots</A> |
+   <A HREF="#tiers">Tiers</A> |
+   <A HREF="#abilities">Abilities</A> |
+   <A HREF="#getting">Getting gear</A> |
+   <A HREF="#wear">Wear and loss</A> |
+   <A HREF="#artifacts">Artifacts</A> |
+   <A HREF="legends.html">Legends (who holds what)</A>
+   </P>
+
+   <HR>
+
+   <A NAME="slots"></A>
+   <H3>Slots</H3>
+   <P>
+You wear one item in each of five slots and carry up to <B>6</B> more in your
+backpack.  Open <B>Info &rsaquo; Gear</B> in the game to equip, take off or
+throw away items, or type <CODE>/gear</CODE> in chat for a list.  Your
+equipped items add together into the numbers the game has always used:
+<I>energy</I> (once the shield), <I>damage</I> (once the sword) and
+<I>quicksilver</I> (speed).
+   </P>
+
+   <P>Each item's bonus grows with the <A HREF="realm.html#circle">circle</A>
+   (C) it comes from, times its tier's quality (q):</P>
+   <TABLE CLASS="nums">
+    <TR><TH>Slot</TH><TH>Bonus</TH></TR>
+    <TR><TD>Weapon</TD><TD>+1.6 &times; C &times; q damage</TD></TR>
+    <TR><TD>Armor</TD><TD>+40 &times; C &times; q energy</TD></TR>
+    <TR><TD>Helm</TD><TD>+15 &times; C &times; q energy</TD></TR>
+    <TR><TD>Boots</TD><TD>+0.6 &times; (C &minus; 3) &times; q quicksilver (at least circle 1)</TD></TR>
+    <TR><TD>Trinket</TD><TD>+6 &times; C &times; q energy and +0.3 &times; C &times; q damage</TD></TR>
+   </TABLE>
+   <P>Each item rolls within &plusmn;15% of these values.</P>
+
+   <A NAME="tiers"></A>
+   <H3>Tiers</H3>
+   <TABLE CLASS="nums">
+    <TR><TH>Tier</TH><TH>Quality q</TH><TH>Ability</TH><TH>Ability strength</TH><TH>Found from a monster, circle 1</TH></TR>
+    <TR><TD>Worn</TD><TD>&ndash;</TD><TD>none</TD><TD>&ndash;</TD><TD>old shield/sword/quicksilver, scavenged</TD></TR>
+    <TR><TD>Common</TD><TD>0.7</TD><TD>none</TD><TD>&ndash;</TD><TD>50%</TD></TR>
+    <TR><TD CLASS="t2">Fine</TD><TD>1.0</TD><TD>40% chance</TD><TD>&times;1</TD><TD>32%</TD></TR>
+    <TR><TD CLASS="t3">Masterwork</TD><TD>1.4</TD><TD>always</TD><TD>&times;1.5</TD><TD>14%</TD></TR>
+    <TR><TD CLASS="t4">Enchanted</TD><TD>1.9</TD><TD>always</TD><TD>&times;2</TD><TD>4%</TD></TR>
+    <TR><TD CLASS="t5">Artifact</TD><TD>2.6</TD><TD>two, special</TD><TD>&times;3</TD><TD>one of a kind</TD></TR>
+   </TABLE>
+   <P>
+The farther out you are, the better the odds: every 16 circles shifts about
+10% of finds up a tier, to a maximum of 25% by circle 40.
+   </P>
+
+   <A NAME="abilities"></A>
+   <H3>Abilities</H3>
+   <P>
+Abilities work against monsters, not other players.  The same ability on
+several items adds up.  &quot;Strength&quot; is 1 for Fine, 1.5 for
+Masterwork, 2 for Enchanted and 3 for an artifact.
+   </P>
+   <TABLE CLASS="nums">
+    <TR><TH>Ability</TH><TH>Item name</TH><TH>Effect per point of strength</TH></TR>
+    <TR><TD>Evasion</TD><TD>&hellip; of Evasion</TD><TD>5% chance to dodge a monster's normal hit (at most 40%)</TD></TR>
+    <TR><TD>Lifesteal</TD><TD>&hellip; of the Leech</TD><TD>heal 8% of the damage you deal</TD></TR>
+    <TR><TD>Swiftness</TD><TD>&hellip; of Swiftness</TD><TD>you always strike first</TD></TR>
+    <TR><TD>Crushing Blows</TD><TD>&hellip; of Crushing</TD><TD>7% chance to deal double damage</TD></TR>
+    <TR><TD>Thorns</TD><TD>&hellip; of Thorns</TD><TD>monsters take 10% of the damage they deal you</TD></TR>
+    <TR><TD>Fortune</TD><TD>&hellip; of Fortune</TD><TD>+15% gold from treasure</TD></TR>
+    <TR><TD>Warding</TD><TD>&hellip; of Warding</TD><TD>&minus;20% poison (never below 20%)</TD></TR>
+    <TR><TD>Mending</TD><TD>&hellip; of Mending</TD><TD>regain 1.5% of your full energy every turn</TD></TR>
+    <TR><TD>Prospecting</TD><TD>&hellip; of Prospecting</TD><TD>+20% chance of finding treasure</TD></TR>
+   </TABLE>
+
+   <A NAME="getting"></A>
+   <H3>Getting gear</H3>
+   <TABLE CLASS="nums">
+    <TR><TH>Source</TH><TH>What you get</TH></TR>
+    <TR><TD>Monsters</TD><TD>7% chance of an item after each kill</TD></TR>
+    <TR><TD><A HREF="whatsnew.html#champions">Champions</A></TD><TD>always drop Masterwork or Enchanted gear (as if 2 circles farther out), with an 8% chance of an artifact instead</TD></TR>
+    <TR><TD>Treasure</TD><TD>finds that were once shields, bucklers, swords and quicksilver now give armor, helms, weapons and boots with the same bonus; 2% of them are an artifact instead</TD></TR>
+    <TR><TD><A HREF="whatsnew.html#quests">Daily quests</A></TD><TD>half of all quests, and every champion quest, also reward Fine or Masterwork gear (30% Masterwork) with an ability</TD></TR>
+    <TR><TD>Trading posts</TD><TD>the <B>Armory</B> sells 6 pieces a day for your circle: 2 Common, 3 Fine, 1 Masterwork.  Price: energy &times; 5 + damage &times; 500 + quicksilver &times; 2000 gold, &times; 1.5 with an ability.  It buys backpack items for 40% of that.</TD></TR>
+    <TR><TD>Fallen adventurers</TD><TD>a corpse yields Worn gear: half its weapon and armor, a quarter of its quicksilver</TD></TR>
+   </TABLE>
+   <P>When you find an item you see it beside what you are wearing and can
+   <B>Equip</B> it, <B>Stow</B> it in your backpack, or <B>Leave</B> it.  The
+   guru's blessing and the smith now enchant the armor, weapon or boots you
+   are wearing.</P>
+
+   <A NAME="wear"></A>
+   <H3>Wear and loss</H3>
+   <TABLE CLASS="nums">
+    <TR><TD>Growing old</TD><TD>each time age catches up with you, worn gear loses 7%</TD></TR>
+    <TR><TD>Titans</TD><TD>each blow wears 1% off your armor and helm</TD></TR>
+    <TR><TD>The Jabberwock</TD><TD>drinks half the quicksilver from your boots</TD></TR>
+    <TR><TD>Cerberus</TD><TD>takes your worn weapon, armor and helm</TD></TR>
+    <TR><TD>Death</TD><TD>your gear is lost with your character</TD></TR>
+   </TABLE>
+   <P>Artifacts never wear down.</P>
+
+   <HR>
+
+   <A NAME="artifacts"></A>
+   <H3>Artifacts</H3>
+   <P>
+<B>Only one of each artifact exists.</B>  Each has two abilities at triple
+strength, and its bonus is rolled at quality 2.6 for the circle where it is
+found.  The whole realm hears when one is found or lost, and the
+<A HREF="legends.html">Legends page</A> shows who holds each one right now.
+An artifact can only be found once you reach the circle listed.
+   </P>
+   <TABLE CLASS="nums">
+    <TR><TH>Artifact</TH><TH>Slot</TH><TH>Abilities</TH><TH>From circle</TH></TR>
+    <TR><TD CLASS="t5">The Ring of Hoarding</TD><TD>Trinket</TD><TD>Fortune, Prospecting</TD><TD>3</TD></TR>
+    <TR><TD CLASS="t5">The Phoenix Amulet</TD><TD>Trinket</TD><TD><B>Phoenix</B>: saves you from death once, leaving you at half energy, then flies away; Mending</TD><TD>5</TD></TR>
+    <TR><TD CLASS="t5">The Helm of Ages</TD><TD>Helm</TD><TD>Mending, Warding</TD><TD>6</TD></TR>
+    <TR><TD CLASS="t5">Gwaihir's Feather</TD><TD>Boots</TD><TD>Swiftness, Evasion</TD><TD>8</TD></TR>
+    <TR><TD CLASS="t5">Mourneblade</TD><TD>Weapon</TD><TD>Crushing Blows, Lifesteal</TD><TD>10</TD></TR>
+    <TR><TD CLASS="t5">The Mantle of Shadows</TD><TD>Armor</TD><TD>Evasion, Thorns</TD><TD>12</TD></TR>
+    <TR><TD CLASS="t5">The Dragonscale Aegis</TD><TD>Armor</TD><TD>Thorns, Warding</TD><TD>15</TD></TR>
+    <TR><TD CLASS="t5">The Wind-lord's Boots</TD><TD>Boots</TD><TD>Evasion, Mending</TD><TD>18</TD></TR>
+    <TR><TD CLASS="t5">The Crown of the Deep</TD><TD>Helm</TD><TD><B>Seafarer</B>: water monsters will not fight you; Warding</TD><TD>20</TD></TR>
+    <TR><TD CLASS="t5">Wyrmslayer</TD><TD>Weapon</TD><TD><B>Dragonbane</B>: double damage to dragons, drakes, wyrms and the Jabberwock; Swiftness</TD><TD>25</TD></TR>
+   </TABLE>
+
+   <P>An artifact goes back into the realm, for someone else to find, when:</P>
+   <TABLE CLASS="nums">
+    <TR><TD>its holder dies</TD><TD>(the Phoenix Amulet saves you once instead)</TD></TR>
+    <TR><TD>a thief steals it</TD><TD>each normal hit has a chance: Smeagol 15%, Saruman 10%, champions 3%, most other monsters 0.2% (Morons and Idiots never notice).  The thief vanishes with it.</TD></TR>
+    <TR><TD>Cerberus takes it</TD><TD>with the rest of your metal</TD></TR>
+    <TR><TD>you offer it to the Valar</TD><TD>from Info &rsaquo; Gear &rsaquo; Offer Artifact, for one boon:
+      <B>Might</B> (+10% maximum strength, forever),
+      <B>Vigor</B> (+10% maximum energy, forever), or
+      <B>Riches</B> (3,000 &times; (level + 5) gold and 5 + level &divide; 4 gems)</TD></TR>
+    <TR><TD>you leave it or throw it away</TD><TD></TD></TR>
+    <TR><TD>its holder is not seen for 14 days</TD><TD></TD></TR>
+   </TABLE>
+
+   <HR>
+   <BR>
+
+   <CENTER>
+   <P>
+   <A HREF="index.html">Home</A>
+ |
+   <A HREF="play.html">The Game</A>
+ |
+   <A HREF="whatsnew.html">New in the Realm</A>
+ |
+   <A HREF="legends.html">Legends</A>
+ |
+   <A HREF="info.html">Game Info</A>
+   </P>
+   </CENTER>
+
+  </TD>
+ </TR>
+</TABLE>
+</BODY>
+</HTML>
