@@ -39,11 +39,27 @@ circle it was encountered in.
 
    <P>
    <A NAME="post"><H5>Trading Posts</H5></A>
-- These are located at certain coordinates.  In order to find a post, take
-any number and multiply it to itself, then multiply it by 100.  A post will
-be at that coordinate number.  For example: 1*1*100 = 100, so a post is at 
-(+/- 100, +/- 100).  2*2*100 = 400, so another post is at (+/- 400, +/- 400).
-Then there are posts at 900, 1600, 2500 ...  Trading
+- Trading posts stand along the eight roads that run out from the throne at 0,0: the four
+diagonals and the four main roads (north, south, east and west), so every region has them.
+Take any whole number, multiply it by itself and then by 100: a post stands that far out along
+every road. For example 3*3*100 = 900, so there are posts at (900, 900), (-900, 900),
+(900, -900) and (-900, -900) on the diagonals, and at (900, 0), (-900, 0), (0, 900) and
+(0, -900) on the main roads. When you enter a region the game tells you where its nearest post
+is, and <code>/realm</code> in chat tells you again.
+   </P>
+   <div class="table-scroll"><table>
+     <tr><th>Rank</th><th>Along the road</th><th>On a main road (distance, circle)</th><th>On a diagonal (distance, circle)</th></tr>
+     <tr><td>1</td><td>100</td><td>100, circle 1</td><td>141, circle 2</td></tr>
+     <tr><td>2</td><td>400</td><td>400, circle 4</td><td>566, circle 5</td></tr>
+     <tr><td>3</td><td>900</td><td>900, circle 8</td><td>1,273, circle 11</td></tr>
+     <tr><td>4</td><td>1,600</td><td>1,600, circle 13</td><td>2,263, circle 19</td></tr>
+     <tr><td>5</td><td>2,500</td><td>2,500, circle 21</td><td>3,536, circle 29</td></tr>
+     <tr><td>6</td><td>3,600</td><td>3,600, circle 29</td><td>5,091, circle 41</td></tr>
+     <tr><td>7</td><td>4,900</td><td>4,900, circle 40</td><td>6,930, circle 56</td></tr>
+     <tr><td>8+</td><td>6,400, 8,100, 10,000 &hellip;</td><td colspan="2">and so on, farther apart the farther out you go</td></tr>
+   </table></div>
+   <P>
+Trading
 posts sell <A HREF="equipment.html">equipment</A> for large quantities of
 <A HREF="equipment.html#gems">gems</A> and
 <A HREF="equipment.html#gold">gold</A>.  Farther out posts have more things for
@@ -75,8 +91,8 @@ spells do not work for locations inside the Marshes.
 - This is surrounded by the Dead Marshes and cannot be reached by teleport.  
 The monsters here are extremely tough and improve as the player improves.  
 Players are warned not to spend too much time in here unless they enjoy a 
-significant risk of death!  However, the post in the Plateau is the only post
-in the game that sells blessings....
+significant risk of death!  However, the diagonal posts in the Plateau (rank 5) are the only posts
+in the game that sell blessings....
    </P>
 
    <P>

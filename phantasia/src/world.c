@@ -140,6 +140,39 @@ static const char *Cap(const char *s, char *buf)
 / time, places
 *************************************************************************/
 
+/*
+ * Trading posts stand along the eight compass roads out from 0,0: on the
+ * diagonals (as in the original game) and on the axes, at 100 x n * n
+ * along the road (100, 400, 900, 1600, ...), so every region has them.
+ * Returns n (the post's rank, 1 = nearest the throne), or 0 if (x, y) is
+ * not a post.  *diagonal says which kind of road it is on.
+ */
+int Do_trading_post_rank(double x, double y, int *diagonal)
+{
+    double ax = fabs(x), ay = fabs(y), d, n;
+
+    if (diagonal) *diagonal = FALSE;
+    if (ax == 0 && ay == 0) return 0;
+    if (ax == ay) { d = ax; if (diagonal) *diagonal = TRUE; }
+    else if (ax == 0) d = ay;
+    else if (ay == 0) d = ax;
+    else return 0;
+    n = sqrt(d / 100.0);
+    return floor(n) == n ? (int) n : 0;
+}
+
+	/* the post nearest (x, y) on its region's road */
+static void Do_nearest_post(int r, double x, double y, double *px, double *py)
+{
+    static const int dx[NUM_REGIONS] = { 1, 1, 0, -1, -1, -1, 0, 1 };
+    static const int dy[NUM_REGIONS] = { 0, 1, 1, 1, 0, -1, -1, -1 };
+    double t = MAX(fabs(x), fabs(y));
+    double n = MAX(1.0, floor(sqrt(t / 100.0) + 0.5));
+
+    *px = dx[r] * 100.0 * n * n;
+    *py = dy[r] * 100.0 * n * n;
+}
+
 int Do_world_is_night(void)
 {
     return (time(NULL) / 60) % NIGHT_CYCLE >= NIGHT_CYCLE - NIGHT_LENGTH;
@@ -648,9 +681,11 @@ void Do_world_turn(struct client_t *c)
 		    Do_world_throne_overrun() ? ", overrun by monsters" : "");
 	}
 	else {
-	    sprintf(line, "You enter %s (%s, %.0f%% Shadow). The town of %s is %s.\n",
+	    double px, py;
+	    Do_nearest_post(r, c->player.x, c->player.y, &px, &py);
+	    sprintf(line, "You enter %s (%s, %.0f%% Shadow). The town of %s is %s; its nearest trading post is at %.0f, %.0f.\n",
 		    regionNames[r], Do_region_state(r), W.region[r].shadow,
-		    townNames[r], Do_town_tier(r));
+		    townNames[r], Do_town_tier(r), px, py);
 	}
 	Do_send_line(c, Cap(line, line));
     }
@@ -1168,6 +1203,13 @@ void Do_world_chat(struct client_t *c)
 		Do_region_state(i), W.region[i].shadow, townNames[i], Do_town_tier(i));
 	Do_send_chat_self(c, line);
     }
+    if (Do_player_region(c) != HEARTLANDS) {
+	double px, py;
+	Do_nearest_post(Do_player_region(c), c->player.x, c->player.y, &px, &py);
+	sprintf(line, "The nearest trading post of %s is at %.0f, %.0f.\n",
+		townNames[Do_player_region(c)], px, py);
+	Do_send_chat_self(c, line);
+    }
     if (time(NULL) < W.overrunUntil) Do_send_chat_self(c, "The Lord's Chamber is overrun by monsters!\n");
     if (W.project < NUM_PROJECTS) {
 	sprintf(line, "Realm project: %s - gold %.0f/%.0f, monsters %ld/%ld (then %s).\n",
@@ -1214,7 +1256,8 @@ void Do_world_test(struct client_t *c, char *what)
 	c->player.max_energy = 200000;
 	Do_energy(c, 200000, 200000, c->player.shield, 0, TRUE);
     }
-    if (!strncmp(what, "gotonorth", 9)) Do_location(c, 60, 900, TRUE);	/* the Northern Reach */
+    if (!strncmp(what, "posteast", 8)) Do_location(c, 900, 0, TRUE);	/* an axis post */
+    else if (!strncmp(what, "gotonorth", 9)) Do_location(c, 60, 900, TRUE);	/* the Northern Reach */
     else if (!strncmp(what, "goto", 4)) Do_location(c, 900, 120, TRUE);	/* the Eastern Marches */
     if (!strncmp(what, "doom", 4)) {
 	c->forceChampion = TRUE;

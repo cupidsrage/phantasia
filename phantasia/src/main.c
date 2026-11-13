@@ -673,15 +673,11 @@ Do_game_turn(struct client_t *c)
 
 	/* see if the player is on a trading post  and not cloaked */
     postFlag = FALSE;
-    if (fabs(c->player.x) == fabs(c->player.y) && c->player.location !=
-                PL_THRONE && !c->player.cloaked) {
+    if (c->player.location != PL_THRONE && !c->player.cloaked &&
+	    Do_trading_post_rank(c->player.x, c->player.y, NULL)) {
 
-        dtemp = sqrt(fabs(c->player.x)/100.0);
-
-        if (floor(dtemp) == dtemp) {
-	    postFlag = TRUE;
-	    Do_send_line(c, "You stand in front of a trading post.\n");
-        }
+	postFlag = TRUE;
+	Do_send_line(c, "You stand in front of a trading post.\n");
     }
 
     Do_clear_buttons(&buttons, 0);

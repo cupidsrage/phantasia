@@ -3312,11 +3312,8 @@ Do_leaving_character(struct client_t *c)
         Do_dethrone(c);
     }
 
-    ftemp = pow(fabs(c->player.x) / 100, .5);
-
     /* if the character is on a post, boot him off */
-    if ((fabs(c->player.x) == fabs(c->player.y)) &&
-        (floor(ftemp) == ftemp)) {
+    if (Do_trading_post_rank(c->player.x, c->player.y, NULL)) {
 
 	/* if the player can not leave the chamber now, return */
         if (c->stuck) {
