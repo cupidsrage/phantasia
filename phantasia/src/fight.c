@@ -375,7 +375,7 @@ Do_monster(struct client_t *c, struct event_t *the_event)
     c->battle.opponent->experience *= Do_reign_xp_factor(c);
 
 	/* and the account's deeds add their share */
-    c->battle.opponent->experience *= Do_deeds_xp_factor(c);
+    c->battle.opponent->experience *= Do_deeds_xp_factor(c) * Do_world_war_factor(c);
 
 	/* region, night, season; nemeses and rare creatures */
     if (Do_world_shape_monster(c)) {

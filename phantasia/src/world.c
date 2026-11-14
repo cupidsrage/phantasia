@@ -71,6 +71,14 @@ struct nemesis_t {
 };
 struct news_t { time_t when; char text[160]; };
 
+	/* the War of the Seasons: each full rotation of the four seasons (4
+	   weeks) the realm must build all its projects; who helped, and the
+	   bonus the winners carry through the next war */
+#define MAX_WAR		300
+#define WAR_DAYS	28
+struct warpart_t { char acct[SZ_NAME], who[SZ_NAME]; double gold; long kills; };
+struct warbonus_t { char acct[SZ_NAME]; double pct; };
+
 static struct {
     time_t lastTick, nextSiege, overrunUntil, lastRoam;
     int callRegion;			/* the Call to Arms, or -1 */
@@ -87,9 +95,20 @@ static struct {
     double abundance[NUM_SPECIES];
     struct news_t news[MAX_NEWS];
     int numNews;
+    long war;				/* which war this is */
+    time_t warStart;			/* when it began here (the first may be short) */
+    int lastWar;			/* the war before: 1 won, 0 lost, -1 none */
+    struct warpart_t part[MAX_WAR];
+    int numPart;
+    struct warbonus_t bonus[MAX_WAR];	/* from the last war won */
+    int numBonus;
 } W;
 
 static pthread_mutex_t world_lock = PTHREAD_MUTEX_INITIALIZER;
+
+static time_t Do_war_ends(void);
+static time_t siegeOpenedAt = 0;	/* not saved: after a restart, 0 */
+static double Do_war_share_locked(int i);
 static int worldLoaded = FALSE;
 static int forceNemesis = FALSE;	/* test builds */
 
@@ -323,6 +342,19 @@ static void Do_world_load_locked(void)
 		}
 	    }
 	}
+	else if (!strcmp(word, "war")) {
+	    long ws = 0;
+	    sscanf(rest, "%ld %d %ld", &W.war, &W.lastWar, &ws);
+	    W.warStart = ws;
+	}
+	else if (!strcmp(word, "warpart") && W.numPart < MAX_WAR) {
+	    struct warpart_t *p = &W.part[W.numPart];
+	    if (sscanf(rest, "%32s %32s %lf %ld", p->acct, p->who, &p->gold, &p->kills) == 4) ++W.numPart;
+	}
+	else if (!strcmp(word, "warbonus") && W.numBonus < MAX_WAR) {
+	    struct warbonus_t *b = &W.bonus[W.numBonus];
+	    if (sscanf(rest, "%32s %lf", b->acct, &b->pct) == 2) ++W.numBonus;
+	}
 	else if (!strcmp(word, "news")) {
 	    long when;
 	    int k = 0;
@@ -358,6 +390,14 @@ static void Do_world_save_locked(void)
 		(long) W.lastRoam, W.siegeId, W.lastSiegeId, W.lastSiegeWon,
 		W.army, W.armyMax, W.project, W.projectGold, W.projectKills);
 	fprintf(f, "call %d %ld\n", W.callRegion, (long) W.callUntil);
+	fprintf(f, "war %ld %d %ld\n", W.war, W.lastWar, (long) W.warStart);
+	for (i = 0; i < W.numPart; i++) {
+	    fprintf(f, "warpart %s %s %.0f %ld\n", W.part[i].acct, W.part[i].who,
+		    W.part[i].gold, W.part[i].kills);
+	}
+	for (i = 0; i < W.numBonus; i++) {
+	    fprintf(f, "warbonus %s %.3f\n", W.bonus[i].acct, W.bonus[i].pct);
+	}
 	for (i = 0; i < NUM_REGIONS; i++) {
 	    fprintf(f, "region %d %.3f %.3f %d\n", i, W.region[i].shadow,
 		    W.region[i].prosperity, W.region[i].fallen);
@@ -416,6 +456,21 @@ static void Do_world_save_locked(void)
     fprintf(f, ",\"siege\":{\"active\":%s,\"army\":%.0f,\"armyMax\":%.0f,\"lastWon\":%s,\"fought\":%s},",
 	    W.siegeId > W.lastSiegeId ? "true" : "false", W.army, W.armyMax,
 	    W.lastSiegeWon ? "true" : "false", W.lastSiegeId > 0 ? "true" : "false");
+	/* the War of the Seasons, with its five biggest helpers */
+    {
+	int order[MAX_WAR], k, m, n = W.numPart;
+	for (k = 0; k < n; k++) order[k] = k;
+	for (k = 0; k < n; k++) for (m = k + 1; m < n; m++)
+	    if (Do_war_share_locked(order[m]) > Do_war_share_locked(order[k])) { int t = order[k]; order[k] = order[m]; order[m] = t; }
+	fprintf(f, "\"war\":{\"index\":%ld,\"endsAt\":%ld,\"lastWar\":%d,\"participants\":%d,\"top\":[",
+		W.war, (long) Do_war_ends(), W.lastWar, n);
+	for (k = 0; k < n && k < 5; k++) {
+	    fprintf(f, "%s{\"name\":", k ? "," : "");
+	    Do_json_str(f, W.part[order[k]].who);
+	    fprintf(f, ",\"share\":%.3f}", Do_war_share_locked(order[k]));
+	}
+	fprintf(f, "]},");
+    }
     fprintf(f, "\"project\":{\"index\":%d,\"total\":%d", W.project, NUM_PROJECTS);
     if (W.project < NUM_PROJECTS) {
 	fprintf(f, ",\"name\":");
@@ -466,9 +521,122 @@ static void Do_world_save_locked(void)
     rename(TEMP_WORLD_JSON_FILE, WORLD_JSON_FILE);
 }
 
+static long Do_war_index(void)
+{
+    return ((long) (time(NULL) / 86400) + 3) / WAR_DAYS;	/* starts with Bloom, on a Monday */
+}
+
+static time_t Do_war_ends(void)
+{
+    return (time_t) ((Do_war_index() + 1) * WAR_DAYS - 3) * 86400;
+}
+
 static void Do_world_ensure_locked(void)
 {
-    if (!worldLoaded) Do_world_load_locked();
+    if (!worldLoaded) {
+	Do_world_load_locked();
+	if (W.war == 0) { W.war = Do_war_index(); W.lastWar = -1; W.warStart = time(NULL); }
+    }
+}
+
+	/* someone helped this war's projects: gold given, or a monster slain */
+static void Do_war_help_locked(struct client_t *c, double gold, long kills)
+{
+    int i;
+
+    if (!c->lcaccount[0] || W.project >= NUM_PROJECTS) return;
+    for (i = 0; i < W.numPart && strcmp(W.part[i].acct, c->lcaccount); i++) ;
+    if (i == W.numPart) {
+	if (W.numPart >= MAX_WAR) return;
+	memset(&W.part[i], 0, sizeof W.part[i]);
+	snprintf(W.part[i].acct, SZ_NAME, "%s", c->lcaccount);
+	++W.numPart;
+    }
+    snprintf(W.part[i].who, SZ_NAME, "%s", c->player.lcname[0] ? c->player.lcname : "-");
+    W.part[i].gold += gold;
+    W.part[i].kills += kills;
+}
+
+	/* a share of the war's effort: half the gold given, half the kills */
+static double Do_war_share_locked(int i)
+{
+    double g = 0, k = 0;
+    int j;
+
+    for (j = 0; j < W.numPart; j++) { g += W.part[j].gold; k += W.part[j].kills; }
+    if (g <= 0 && k <= 0) return 0;
+    if (g <= 0) return W.part[i].kills / k;
+    if (k <= 0) return W.part[i].gold / g;
+    return 0.5 * W.part[i].gold / g + 0.5 * W.part[i].kills / k;
+}
+
+	/* the bonus a share earns if the war is won: +0.5% for any help, up
+	   to +3% for the one who did the most */
+static double Do_war_bonus_for_locked(int i)
+{
+    double top = 0, sh = Do_war_share_locked(i);
+    int j;
+
+    for (j = 0; j < W.numPart; j++) top = MAX(top, Do_war_share_locked(j));
+    return top > 0 ? 0.5 + 2.5 * sh / top : 0;
+}
+
+	/* the four seasons have turned: was the war won? */
+static void Do_war_end_locked(void)
+{
+    char msg[SZ_LINE];
+    int i, won = W.project >= NUM_PROJECTS;
+	/* a war that began part way through the seasons (the first one) is
+	   too short to lose: it can be won, but losing it costs nothing */
+    int shortWar = W.warStart > 0 && Do_war_ends() - W.warStart < 21 * 86400 &&
+	    time(NULL) - W.warStart < 21 * 86400;
+
+    W.numBonus = 0;
+    if (won) {
+	for (i = 0; i < W.numPart && W.numBonus < MAX_WAR; i++) {
+	    snprintf(W.bonus[W.numBonus].acct, SZ_NAME, "%s", W.part[i].acct);
+	    W.bonus[W.numBonus].pct = Do_war_bonus_for_locked(i);
+	    ++W.numBonus;
+	}
+	sprintf(msg, "The War of the Seasons is won! Every realm project stands. %d adventurer%s a bonus of up to 3%% more experience and gold through the next war.",
+		W.numPart, W.numPart == 1 ? " carries" : "s carry");
+    }
+    else if (shortWar) {
+	sprintf(msg, "The short first War of the Seasons ends with %d of %d realm projects built. No harm done: the real war starts now.",
+		W.project, NUM_PROJECTS);
+    }
+    else {
+	sprintf(msg, "The War of the Seasons is lost: only %d of %d realm projects were built. For the next war monsters are 10%% stronger, the Shadow spreads faster and shops cost more.",
+		W.project, NUM_PROJECTS);
+    }
+    Do_world_news_locked(msg, TRUE);
+
+	/* a new war: the projects start over */
+    W.lastWar = won ? 1 : (shortWar ? -1 : 0);
+    W.war = Do_war_index();
+    W.warStart = time(NULL);
+    W.numPart = 0;
+    W.project = 0; W.projectGold = 0; W.projectKills = 0;
+    memset(W.donors, 0, sizeof W.donors);
+    sprintf(msg, "A new War of the Seasons begins: build all %d realm projects before the seasons turn again!", NUM_PROJECTS);
+    Do_world_news_locked(msg, TRUE);
+}
+
+	/* the last war's outcome, for this one */
+static int Do_war_lost_locked(void) { return W.lastWar == 0; }
+
+double Do_world_war_factor(struct client_t *c)
+{
+    double f = 1.0;
+    int i;
+
+    pthread_mutex_lock(&world_lock);
+    Do_world_ensure_locked();
+    for (i = 0; i < W.numBonus; i++) {
+	if (!strcmp(W.bonus[i].acct, c->lcaccount)) { f = 1.0 + W.bonus[i].pct / 100.0; break; }
+    }
+    pthread_mutex_unlock(&world_lock);
+    return f;
 }
 
 /************************************************************************
@@ -511,8 +679,11 @@ static int Do_count_online(struct client_t *c)
 static void Do_world_minutes_locked(double minutes)
 {
     int i, j;
-    double growth = SHADOW_PER_MINUTE * (Do_project_done(0) ? 0.75 : 1.0);
+    double growth = SHADOW_PER_MINUTE * (Do_project_done(0) ? 0.75 : 1.0) *
+	    (Do_war_lost_locked() ? 1.25 : 1.0);	/* a lost war: the Shadow spreads faster */
     char msg[SZ_LINE], cap[64];
+
+    if (Do_war_index() != W.war) Do_war_end_locked();
 
     for (i = 0; i < NUM_REGIONS; i++) {
 	struct region_t *r = &W.region[i];
@@ -650,6 +821,7 @@ void Do_world_start_siege(struct client_t *c, int players)
     pthread_mutex_lock(&world_lock);
     Do_world_ensure_locked();
     W.siegeId = W.lastSiegeId + 1;
+    siegeOpenedAt = time(NULL);
     W.armyMax = W.army = army;
     W.nextSiege = time(NULL) + (time_t) (hours * 3600 * (0.6 + 0.8 * RND()));
     sprintf(msg, "A monster army %.0f strong marches on the throne!", W.armyMax);
@@ -739,6 +911,21 @@ void Do_world_turn(struct client_t *c)
     int won;
 
     Do_world_tick(c);
+
+	/* a siege still open with no siege under way (the server restarted
+	   during one, and the world event was forgotten): the army has gone,
+	   at no one's cost */
+    if (Do_current_world_event(c) != WE_SIEGE) {
+	pthread_mutex_lock(&world_lock);
+	Do_world_ensure_locked();
+	if (W.siegeId > W.lastSiegeId && time(NULL) - siegeOpenedAt > 60) {
+	    W.lastSiegeId = W.siegeId;
+	    W.army = 0;
+	    Do_world_news_locked("The besieging army has melted away into the hills.", FALSE);
+	    Do_world_save_locked();
+	}
+	pthread_mutex_unlock(&world_lock);
+    }
 
 	/* Bloom: wounds mend as you travel */
     if (season == 0 && c->player.energy < c->player.max_energy + c->player.shield &&
@@ -876,6 +1063,7 @@ void Do_world_kill(struct client_t *c)
 	/* the realm project */
     if (W.project < NUM_PROJECTS) {
 	W.projectKills++;
+	Do_war_help_locked(c, 0, 1);
 	if (W.projectGold >= projects[W.project].gold && W.projectKills >= projects[W.project].kills) {
 	    sprintf(msg, "The realm has completed %s! From now on, %s.",
 		    projects[W.project].name, projects[W.project].effect);
@@ -1097,6 +1285,7 @@ int Do_world_shape_monster(struct client_t *c)
 
     pthread_mutex_lock(&world_lock);
     Do_world_ensure_locked();
+    if (Do_war_lost_locked()) str *= 1.1;	/* a lost war: monsters 10% stronger */
     if (r == HEARTLANDS) {
 	if (time(NULL) < W.overrunUntil) { str *= 1.3; xp *= 1.3; }
     }
@@ -1194,8 +1383,9 @@ double Do_world_price_factor(struct client_t *c)
     double f = Do_project_done(1) ? 0.95 : 1.0;
     const char *tier;
 
-    if (r == HEARTLANDS) return f;
     pthread_mutex_lock(&world_lock);
+    if (Do_war_lost_locked()) f *= 1.1;		/* a lost war: shops cost more */
+    if (r == HEARTLANDS) { pthread_mutex_unlock(&world_lock); return f; }
     tier = Do_town_tier(r);
     if (!strcmp(tier, "Struggling")) f *= 1.1;
     else if (!strcmp(tier, "Thriving")) f *= 0.95;
@@ -1272,6 +1462,7 @@ void Do_world_donate(struct client_t *c)
     pthread_mutex_lock(&world_lock);
     if (W.project < NUM_PROJECTS) {
 	W.projectGold += gold;
+	Do_war_help_locked(c, gold, 0);
 	for (i = 0; i < MAX_DONORS && W.donors[i].name[0] &&
 		strcmp(W.donors[i].name, c->modifiedName); i++) ;
 	if (i < MAX_DONORS) {
@@ -1379,6 +1570,20 @@ void Do_world_test(struct client_t *c, char *what)
     Do_world_save_locked();
     pthread_mutex_unlock(&world_lock);
     if (!strncmp(what, "meet", 4)) forceNemesis = TRUE;
+    if (!strncmp(what, "warbuild", 8)) {	/* test builds: finish the projects */
+	pthread_mutex_lock(&world_lock);
+	Do_world_ensure_locked();
+	Do_war_help_locked(c, 1000, 10);
+	W.project = NUM_PROJECTS;
+	pthread_mutex_unlock(&world_lock);
+    }
+    if (!strncmp(what, "warend", 6)) {	/* test builds: the seasons turn now */
+	pthread_mutex_lock(&world_lock);
+	Do_world_ensure_locked();
+	Do_war_end_locked();
+	pthread_mutex_unlock(&world_lock);
+	Do_world_flush(c);
+    }
     if (!strncmp(what, "pickscroll", 10)) {	/* test builds: a pick-your-monster scroll */
 	struct event_t *ev = (struct event_t *) Do_create_event();
 	ev->type = TREASURE_EVENT;
@@ -1416,3 +1621,53 @@ void Do_world_test(struct client_t *c, char *what)
     Do_send_chat_self(c, "World test done.\n");
 }
 #endif
+
+
+/************************************************************************
+/
+/ FUNCTION NAME: Do_world_war_chat(struct client_t *c)
+/
+/ FUNCTION: /war in chat: how the War of the Seasons stands
+/
+/************************************************************************/
+
+void Do_world_war_chat(struct client_t *c)
+{
+    char line[SZ_LINE];
+    double days, mine = 0, bonus = 0, have = 0;
+    int i, me = -1;
+
+    pthread_mutex_lock(&world_lock);
+    Do_world_ensure_locked();
+    days = (Do_war_ends() - time(NULL)) / 86400.0;
+    sprintf(line, "The War of the Seasons: build all %d realm projects before the seasons turn (%.1f days left). %d of %d built so far.\n",
+	    NUM_PROJECTS, MAX(0.0, days), MIN(W.project, NUM_PROJECTS), NUM_PROJECTS);
+    Do_send_chat_self(c, line);
+    if (W.project < NUM_PROJECTS) {
+	sprintf(line, "Now building %s: %.0f of %.0f gold, %ld of %ld monsters slain.\n",
+		projects[W.project].name, W.projectGold, projects[W.project].gold,
+		W.projectKills, projects[W.project].kills);
+	Do_send_chat_self(c, line);
+    }
+    for (i = 0; i < W.numPart; i++) if (!strcmp(W.part[i].acct, c->lcaccount)) me = i;
+    if (me >= 0) {
+	mine = Do_war_share_locked(me);
+	bonus = Do_war_bonus_for_locked(me);
+	sprintf(line, "Your account has given %.0f gold and slain %ld monsters for the projects: %.1f%% of the effort. If the war is won you'll carry +%.1f%% experience and gold through the next one.\n",
+		W.part[me].gold, W.part[me].kills, 100 * mine, bonus);
+    }
+    else {
+	sprintf(line, "Your account hasn't helped this war yet: give gold to the realm project at any trading post, or slay monsters.\n");
+    }
+    Do_send_chat_self(c, line);
+    for (i = 0; i < W.numBonus; i++) if (!strcmp(W.bonus[i].acct, c->lcaccount)) have = W.bonus[i].pct;
+    if (W.lastWar == 1) {
+	sprintf(line, have > 0 ? "The last war was won: you carry +%.1f%% experience and gold until this one ends.\n" :
+		"The last war was won (you didn't take part, so you carry no bonus).\n", have);
+	Do_send_chat_self(c, line);
+    }
+    else if (W.lastWar == 0) {
+	Do_send_chat_self(c, "The last war was lost: until this one ends, monsters are 10% stronger, the Shadow spreads 25% faster and shops cost 10% more.\n");
+    }
+    pthread_mutex_unlock(&world_lock);
+}

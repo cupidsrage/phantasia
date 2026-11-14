@@ -329,7 +329,7 @@ double Do_treasure_chance_factor(struct client_t *c)
 double Do_gold_find_factor(struct client_t *c)
 {
     return (Do_current_world_event(c) == WE_GOLD_RUSH ? 2.0 : 1.0) *
-	    Do_reign_gold_factor(c) * Do_deeds_gold_factor(c) *
+	    Do_reign_gold_factor(c) * Do_deeds_gold_factor(c) * Do_world_war_factor(c) *
 	    Do_world_gold_factor(c);
 }
 
@@ -901,6 +901,9 @@ int Do_chat_command(struct client_t *c, char *text)
     else if (strncasecmp(text, "/realm", 6) == 0) {
 	Do_world_chat(c);
     }
+    else if (strncasecmp(text, "/war", 4) == 0) {
+	Do_world_war_chat(c);
+    }
     else if (strncasecmp(text, "/deeds", 6) == 0) {
 	Do_deeds_chat(c);
     }
@@ -933,6 +936,7 @@ int Do_chat_command(struct client_t *c, char *text)
 	Do_send_chat_self(c, "/court - who rules, the royal coffers and the Valar's blessing\n");
 	Do_send_chat_self(c, "/deeds - your account's deeds and the bonuses they give all your characters\n");
 	Do_send_chat_self(c, "/realm - the state of the realm: regions, towns, the season, projects and nemeses\n");
+	Do_send_chat_self(c, "/war - the War of the Seasons: the realm projects, your part, and the bonus at stake\n");
 	if (c->wizard >= 3) {
 	    Do_send_chat_self(c, "Wizards: /event start blood|gold|hunt|random [minutes], /event stop\n");
 	    Do_send_chat_self(c, "Wizards: Administrate > Realm Tools for artifacts, gear, bags, quests, champions, ceremonies\n");

@@ -48,6 +48,9 @@ nearest post is; <code>/realm</code> in chat tells you again.</p>
 posts that sell blessings. Posts go on farther out, at 100 &times; n &times; n along the
 diagonals. <a href="realm.html#post">More about trading posts &rsaquo;</a></p>
 
+<h2 id="war">The War of the Seasons</h2>
+<div id="war-box" class="panel project-box"></div>
+
 <h2>The realm project</h2>
 <div id="project" class="panel project-box"></div>
 
@@ -187,6 +190,24 @@ someone brings them down.</p>
       row.insertCell(-1).innerHTML = reg.shadow + "%" + '<div class="bar red" style="width:120px"><i style="width:' + reg.shadow + '%"></i></div>';
       row.insertCell(-1).innerHTML = esc(reg.town) + "<br><span class=\"st-" + reg.townState.toLowerCase() + "\">" + esc(reg.townState) + "</span>";
     });
+
+    /* the War of the Seasons */
+    var w = d.war, wh = "";
+    if (w) {
+      var left = Math.max(0, (w.endsAt * 1000 - Date.now()) / 86400000);
+      wh += "<h3>Build all " + d.project.total + " realm projects before the seasons turn</h3>" +
+        "<p><b>" + Math.min(d.project.index, d.project.total) + " of " + d.project.total + "</b> built, with <b>" +
+        (left >= 1 ? left.toFixed(1) + " days" : Math.round(left * 24) + " hours") + "</b> left in this war. " +
+        "Win, and everyone who helped carries up to <b>+3% experience and gold</b> through the next war, more for those who did more. " +
+        "Lose, and the next war is fought with monsters 10% stronger, the Shadow spreading faster and dearer shops.</p>" +
+        '<div class="bar"><i style="width:' + Math.min(100, 100 * Math.min(d.project.index, d.project.total) / d.project.total) + '%"></i></div>';
+      if (w.top.length) wh += "<p><b>Leading the effort:</b> " + w.top.map(function (x) { return esc(x.name) + " (" + Math.round(x.share * 100) + "%)"; }).join(", ") +
+        " &middot; " + w.participants + " helping</p>";
+      if (w.lastWar === 1) wh += '<p class="muted">The last war was <b>won</b>: its heroes carry their bonus until this one ends.</p>';
+      else if (w.lastWar === 0) wh += '<p class="muted"><b class="st-blighted">The last war was lost:</b> monsters are 10% stronger, the Shadow spreads 25% faster and shops cost 10% more until this war ends.</p>';
+      wh += '<p class="muted">Type <b>/war</b> in the game to see your own part. <a href="living.html#war">How the war works</a>.</p>';
+    }
+    el("war-box").innerHTML = wh;
 
     var p = d.project, html = "";
     if (p.name) {
