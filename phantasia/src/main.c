@@ -693,6 +693,9 @@ Do_game_turn(struct client_t *c)
 	Do_send_line(c, "I would strongly advise going no further.'\n");
     }
 
+	/* the Banner of the Seasons, for the last won war's greatest helper */
+    Do_gear_banner(c);
+
 	/* artifacts grow with their bearer (level and depth) */
     {
 	int grew = 0;

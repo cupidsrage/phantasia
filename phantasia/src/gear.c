@@ -59,7 +59,7 @@ static const char *abilityNames[NUM_ABILITIES] = {
     "Soulreaper", "Execution", "Radiance", "Tideward", "Eagle's Flight",
     "Tailwind", "Dragonscale", "Fireborn", "Hoard", "Midas Touch",
     "First Blood", "Shadowmeld", "Unseen", "Timeless", "Sage's Wisdom",
-    "Windwalker", "Gale", "Archmage", "Manafont"
+    "Windwalker", "Gale", "Archmage", "Manafont", "Conqueror's Due", "Call the Muster"
 };
 
 static const char *abilitySuffix[NUM_ABILITIES] = {
@@ -67,7 +67,7 @@ static const char *abilitySuffix[NUM_ABILITIES] = {
     "of Thorns", "of Fortune", "of Warding", "of Mending",
     "of Prospecting", "", "", "", "of Insight", "of Arcana",
     "of the Wellspring", "of Focus",
-    "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""
+    "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""
 };
 
 static const char *abilityHelp[NUM_ABILITIES] = {
@@ -106,7 +106,9 @@ static const char *abilityHelp[NUM_ABILITIES] = {
     "your steps carry you twice as far",
     "monsters are half as quick against you",
     "your spells are half again as strong",
-    "your spells cost half the mana"
+    "your spells cost half the mana",
+    "you gain a tenth more experience and gold",
+    "once a day, /muster calls the Muster: for an hour the realm project counts double and everyone gains 25% more experience"
 };
 
 struct artifact_def {
@@ -216,6 +218,10 @@ void Do_gear_name(struct gear_item_t *item, char *buffer)
 
     if (item->artifact > 0 && item->artifact <= NUM_ARTIFACTS) {
 	strcpy(buffer, artifacts[item->artifact].name);
+	return;
+    }
+    if (item->ability == AB_CONQUEROR) {
+	strcpy(buffer, "The Banner of the Seasons");
 	return;
     }
 
@@ -1426,7 +1432,7 @@ void Do_gear_wear(struct client_t *c, int stat, double factor)
     for (i = 0; i < c->numGear; i++) {
 	struct gear_item_t *g = &c->gear[i];
 
-	if (!g->equipped || g->artifact > 0) {
+	if (!g->equipped || g->artifact > 0 || g->ability == AB_CONQUEROR) {	/* artifacts and the Banner never wear */
 	    continue;
 	}
 	if (stat == 0)
@@ -2645,4 +2651,68 @@ int Do_gear_artifact_grow(struct client_t *c, int *grew)
     }
     if (grew) *grew = grown;
     return changed;
+}
+
+
+/************************************************************************
+/
+/ FUNCTION NAME: Do_gear_banner(struct client_t *c)
+/
+/ FUNCTION: the Banner of the Seasons, for the war's greatest helper
+/
+/ DESCRIPTION:
+/	The top contributor to a won War of the Seasons holds the Banner
+/	until the next war ends: every one of that account's characters
+/	carries it (new ones included), worn as a trinket, its bonus sized
+/	to the character's level at the artifact tier's quality.  It can't
+/	be found, stolen or offered; any other character loses it.  Checked
+/	each turn.
+/
+/************************************************************************/
+
+void Do_gear_banner(struct client_t *c)
+{
+    char holder[SZ_NAME], line[SZ_LINE];
+    struct gear_item_t item;
+    double circle;
+    int i, have = -1;
+
+    if (!c->gearLoaded || !c->lcaccount[0]) return;
+    Do_world_banner_holder(holder);
+
+    for (i = 0; i < c->numGear; i++) if (c->gear[i].ability == AB_CONQUEROR) have = i;
+
+    if (have >= 0 && strcmp(holder, c->lcaccount) != 0) {
+	Do_gear_remove(c, have);
+	Do_gear_apply(c, FALSE);
+	Do_gear_save(c);
+	Do_send_line(c, "The Banner of the Seasons leaves you, to fly over a new war.\n");
+	return;
+    }
+    if (strcmp(holder, c->lcaccount) != 0) return;
+
+    circle = MIN(30000.0, 1.0 + floor(c->player.level / 4.0));
+    if (have >= 0) {
+	if (c->gear[have].circle != (short) circle) {	/* grows with the bearer */
+	    Do_gear_set_stats(&c->gear[have], circle, Do_tier_quality(TIER_ARTIFACT));
+	    Do_gear_apply(c, FALSE);
+	    Do_gear_save(c);
+	}
+	return;
+    }
+    if (c->numGear >= MAX_GEAR) return;
+
+    memset(&item, 0, sizeof item);
+    item.slot = SLOT_TRINKET;
+    item.tier = TIER_ARTIFACT;
+    item.base = 7;
+    item.ability = AB_CONQUEROR;
+    item.ability2 = AB_RALLY;
+    Do_gear_set_stats(&item, circle, Do_tier_quality(TIER_ARTIFACT));
+    c->gear[c->numGear++] = item;
+    Do_gear_equip(c, c->numGear - 1);
+    Do_gear_apply(c, TRUE);
+    Do_gear_save(c);
+    sprintf(line, "You carry the Banner of the Seasons, won as the greatest helper in the War of the Seasons!\n");
+    Do_send_line(c, line);
 }
