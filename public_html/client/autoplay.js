@@ -53,6 +53,7 @@ window.PhantasiaAutoplay = function (host) {
     fights: 0, startLevel: null, kills: 0,
     plan: [], visit: null, trip: null, lastShopFight: -999, badPosts: {},
     spells: {}, spellsAt: -1, noMana: {}, moveScale: 1,
+    sinceStep: 0, spin: 1,
     quest: null, callRegion: -1, fallen: {}, worldAt: 0, blessed: false, amulets: 0, unknown: 0
   };
   try { st.speed = localStorage.getItem("phantasia-autoplay-speed") || "normal"; } catch (e) {}
@@ -72,7 +73,40 @@ window.PhantasiaAutoplay = function (host) {
   function circleAt(x, y) { return Math.floor(Math.hypot(x, y) / 125) + 1; }
   function circle() { return circleAt(st.x, st.y); }
   /* how far out a character of this level belongs (fights decide within it) */
-  function cap() { return Math.max(1, 1 + Math.floor(st.level / 2.5)); }
+  /* How hard an average monster hits at each circle: the server's own
+     table (Do_gear_threat).  A character belongs as far out as monsters
+     hit for no more than a sixth of its energy; fights decide within that. */
+  var THREAT = [[1, 7], [5, 31], [10, 70], [15, 200], [20, 400], [25, 1000], [30, 1450],
+    [40, 2250], [50, 2900], [75, 4400], [100, 5800]];
+  function threat(c) {
+    for (var i = 1; i < THREAT.length; i++) {
+      if (c <= THREAT[i][0]) {
+        var a = THREAT[i - 1], b = THREAT[i];
+        return a[1] + (b[1] - a[1]) * (c - a[0]) / (b[0] - a[0]);
+      }
+    }
+    return THREAT[THREAT.length - 1][1];
+  }
+  /* The server works out, from the real encounter rules and this
+     character's might, quickness and energy, what an average fight costs
+     at each circle and how many monsters there could nearly kill it.  A
+     character belongs as far out as every circle on the way costs no more
+     than a fifth of full energy a fight, with under one monster in ten
+     that dangerous. */
+  function cap() {
+    if (st.circles && st.circles.length) {
+      var best = 1;
+      for (var i = 0; i < st.circles.length; i++) {
+        var k = st.circles[i];
+        if (k.loss > 0.2 * st.emax || k.bad > 0.1) break;
+        best = k.circle;
+      }
+      return best;
+    }
+    var c = 1;
+    while (c < 100 && threat(c + 1) <= st.emax / 6) c++;
+    return c;
+  }
   function recent(n) { return st.lines.slice(-n).join("\n"); }
   function frac() { return st.e / (st.emax || 1); }
   function reserve() { return Math.floor(60 + st.level * 25); }   /* for medics */
@@ -208,7 +242,13 @@ window.PhantasiaAutoplay = function (host) {
     }).catch(function () {});
   }
 
+  function backpackFull() {
+    return gear().items.filter(function (g) { return !g.equipped; }).length >= gear().capacity;
+  }
+
   function wantsToShop() {
+    /* a full bag of spares: go and sell them */
+    if (backpackFull() && spareGear().length) return true;
     if (st.fights - st.lastShopFight < 15 && load() < 0.8 * capacity()) return false;
     var spend = st.gold + Math.min(st.gems, st.level * st.level + 1) * 1000 - reserve();
     var nb = nextBag();
@@ -222,7 +262,8 @@ window.PhantasiaAutoplay = function (host) {
     var p = nearestPost();
     if (!p) return false;
     /* only when the walk is reasonable */
-    if (p.d / maxMove() > 45 && load() < 0.9 * capacity()) return false;
+    var steps = p.d / maxMove();
+    if (steps > 45 && load() < 0.9 * capacity() && !(backpackFull() && steps <= 160)) return false;
     st.trip = p;
     return true;
   }
@@ -356,7 +397,7 @@ window.PhantasiaAutoplay = function (host) {
       st.target = Math.max(1, Math.min(st.target, circle()) - 1);
       st.easy = 0;
     } else if (st.fightKilled && lost < 0.15 && left > 0.75) {
-      if (++st.easy >= 4) { st.target = Math.min(cap(), st.target + 1); st.easy = 0; }
+      if (++st.easy >= 3) { st.target = Math.min(cap(), st.target + 1); st.easy = 0; }
     } else st.easy = 0;
   }
 
@@ -424,8 +465,19 @@ window.PhantasiaAutoplay = function (host) {
 
     if (lastCompass && c < want) { say("Heading out to circle " + want + " (now " + c + ").", "on"); return pressCompass(outward()); }
     if (lastCompass && c > want) { say("Pulling back toward circle " + want + " (now " + c + ").", "on"); return pressCompass(stepToward(-st.x, -st.y)); }
+    /* wander along the circle now and then, as players do: new ground
+       turns up treasure, villages and gurus as well as monsters */
+    if (lastCompass && ++st.sinceStep >= 3) {
+      st.sinceStep = 0;
+      if (Math.random() < 0.15) st.spin = -st.spin;
+      var r = Math.hypot(st.x, st.y) || 1;
+      say("Exploring circle " + c + ".", "on");
+      return pressCompass(stepToward(-st.y / r * st.spin, st.x / r * st.spin));
+    }
     if (has("Hunt") >= 0) {
-      say("Hunting in circle " + c + ". Fights " + st.fights + ", levels gained " +
+      var here = st.circles && st.circles[c - 1];
+      say("Hunting in circle " + c + (here ? " (a fight costs about " + here.loss + " energy, for " + here.exp + " experience)" : "") +
+        ". Fights " + st.fights + ", levels gained " +
         Math.max(0, Math.floor(st.level - (st.startLevel || 0))) + ", gold " + Math.floor(st.gold) + ".", "on");
       return press(has("Hunt"));
     }
@@ -514,14 +566,41 @@ window.PhantasiaAutoplay = function (host) {
     var risky = pDie > 0.02 || st.e - pick.cost < worst;
     if (risky) {
       st.fightDanger = true;
-      var luck = opts.filter(function (o) { return o.label === "Luckout"; })[0];
+      /* Out of trouble by the best chance of living through it, worked out
+         action by action: before each action of ours the monster lands k
+         hits in a row with chance q^k, so with energy e and hits averaging
+         h we fall before acting with chance q^ceil(e/h); each action costs
+         about D energy on average. */
+      var h = Math.max(1, (F.str + 1) / 2);
+      var pFall = function (en) { return en <= 0 ? 1 : Math.pow(q, Math.ceil(en / h)); };
+      var liveThrough = function (en, actions) {
+        var alive = 1;
+        for (var i = 0; i < Math.min(actions, 80); i++) { alive *= 1 - pFall(en); en -= D; }
+        return alive;
+      };
+      var choices = [{ label: "Melee", live: liveThrough(st.e, n), why: "Fighting on" }];
+      var ev = has("Evade") >= 0 ? F.evade : 0;
+      if (ev > 0) {
+        var got = 0, still = 1, en2 = st.e;
+        for (var t = 0; t < 12; t++) { var f = pFall(en2); got += still * (1 - f) * ev; still *= (1 - f) * (1 - ev); en2 -= D; }
+        choices.push({ label: "Evade", live: got, why: "Getting away (" + Math.round(ev * 100) + "% a try)" });
+      }
+      if (F.luck > 0 && has("Luckout") >= 0) {
+        var first = 1 - pFall(st.e);
+        choices.push({ label: "Luckout", live: first * (F.luck + (1 - F.luck) * liveThrough(st.e - D, n)),
+          why: "Luckout (" + Math.round(F.luck * 100) + "%, brains " + F.brains + " to beat)" });
+      }
       var heal = opts.filter(function (o) { return o.label === "Mending Light"; })[0];
-      var evade = has("Evade") >= 0 ? F.evade : 0;
-      var hopeless = st.e < pick.cost;   /* we expect to lose this fight */
-      if (heal && heal.heal > 1.5 * D && st.e > worst && !hopeless) pick = heal;
-      else if (luck && F.luck >= evade && (F.luck >= 0.2 || hopeless)) pick = luck;
-      else if (evade >= 0.2 || (hopeless && evade > 0)) pick = { label: "Evade", why: "Getting away: " + Math.round(evade * 100) + "%" };
-      else if (luck && hopeless) pick = luck;
+      if (heal) {
+        choices.push({ label: heal.label, spell: true, live: (1 - pFall(st.e)) * liveThrough(st.e + heal.heal - D, n),
+          why: "Healing (+" + Math.round(heal.heal) + ")" });
+      }
+      opts.filter(function (o) { return o.spell && o.label !== "Mending Light"; }).forEach(function (o) {
+        choices.push({ label: o.label, spell: true, live: liveThrough(st.e, o.acts), why: o.why });
+      });
+      choices.sort(function (a, b) { return b.live - a.live; });
+      var best = choices[0];
+      pick = { label: best.label, spell: best.spell, why: best.why + ": " + Math.round(best.live * 100) + "% to live" };
     }
     say((risky ? "In danger (" + Math.round(pDie * 100) + "% risk). " : "") + pick.why + ". Energy " + Math.round(e * 100) + "%.", risky ? "warn" : "on");
     if (pick.spell) { castPlan(pick.label); return runPlan(); }
@@ -743,6 +822,7 @@ window.PhantasiaAutoplay = function (host) {
       var r = /Journey to circle (\d+)/.exec(m[1]);
       st.quest = { text: m[1], reach: r ? +r[1] : 0, done: /complete!/.test(m[1]) };
     },
+    circles: function (list) { st.circles = window.PhantasiaAutoplayCircles = list; if (st.target > cap()) st.target = cap(); },
     odds: function (F) { st.odds = F; F.spells.forEach(function (sp) { st.spells[sp.name] = true; }); F.spellsFromServer = true; },
     buttons: function (labels, compass) {
       lastLabels = labels; lastCompass = compass;

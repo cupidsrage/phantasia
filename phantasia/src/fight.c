@@ -3526,3 +3526,92 @@ void Do_fight_odds(struct client_t *c)
     strcat(line, "\n");
     Do_send_string(c, line);
 }
+
+
+/************************************************************************
+/
+/ FUNCTION NAME: Do_autoplay_circles(struct client_t *c)
+/
+/ FUNCTION: tell autoplay what an average fight costs at each circle
+/
+/ DESCRIPTION:
+/	Uses the encounter rules of Do_monster: which monsters each circle
+/	picks from, their size (the circle, or a share of the level in
+/	Gorgoroth), strength (1 + size/2) x base, energy size x base and
+/	base speed.  For this character's might and quickness, each
+/	monster takes n = energy / (1.15 x might) blows to kill, while it
+/	acts first with chance q per tick, landing q/(1-q) hits of
+/	(strength + 1)/2 per blow of ours.  Per circle (1 to 50) it sends
+/	the average energy a fight costs, the share of monsters that would
+/	cost more than 60% of full energy, and the average experience,
+/	a line each (a message must fit the 1024-byte output buffer).
+/	Only sent when the character's stats have changed.
+/
+/************************************************************************/
+
+static int Do_circle_monster(double circle, double u1, double u2)
+{
+    int t;
+
+    if (circle >= 36) t = 14 + (int) (86 * u1);
+    else if (circle == 27 || circle == 28) { t = 50 + (int) (50 * u1); if (t < 52) t = 15; }
+    else if (circle < 31 && circle > 24) { t = (int) (50 + 25 * u1) + (int) (26 * u2); if (t < 52) t = 15; }
+    else if (circle > 19) t = (int) (17 * u1);
+    else if (circle > 15) t = (int) (50 * u1) + (int) (14 + 37 * u2);
+    else if (circle > 9) t = (int) ((-8 + circle * 4) * u1) + (int) (14 + 26 * u2);
+    else if (circle > 7) t = (int) (14 + (18 + circle * 4) * u1);
+    else if (circle > 4) t = (int) (14 + 46 * u1);
+    else if (circle == 4) t = (int) (14 + 38 * u1);
+    else t = (int) (14 + (17 + circle * 4) * u1);
+    if (t >= NUM_MONSTERS) t = 15;
+    return MAX(0, t);
+}
+
+void Do_autoplay_circles(struct client_t *c)
+{
+    char part[64];
+    double cost[50][4];
+    int k = 0;
+    double might, quick, top, key, circle, size, str, en, q, n, loss, sumLoss, sumExp, bad;
+    int i, j, t, samples, G = 20;
+    struct monster_t *m;
+
+    might = MAX(1.0, c->player.max_strength * (1 + sqrt(c->player.sword) * N_SWORDPOWER));
+    quick = MAX(0.0, c->player.quickness);
+    top = c->player.max_energy + c->player.shield;
+
+    key = might * 7.0 + quick * 131.0 + top * 0.37 + c->player.level;
+    if (key == c->circlesSent) return;
+    c->circlesSent = key;
+
+    for (circle = 1; circle <= 50; circle++) {
+	sumLoss = sumExp = bad = 0;
+	samples = 0;
+	for (i = 0; i < G; i++) for (j = 0; j < G; j++) {
+	    t = Do_circle_monster(circle, (i + 0.5) / G, (j + 0.5) / G);
+	    m = &c->realm->monster[t];
+	    size = circle;
+	    if (circle == 27 || circle == 28) size = MAX(circle, 0.225 * c->player.level);
+	    else if (circle < 31 && circle > 24) size = MAX(circle, 0.1 * c->player.level);
+	    str = (1.0 + size / 2.0) * m->strength;
+	    en = size * m->energy;
+	    q = MIN(0.95, Do_odds(m->speed, quick));
+	    n = MAX(1.0, ceil(en / (1.15 * might)));
+	    loss = n * q / (1.0 - q) * (str + 1.0) / 2.0;
+	    sumLoss += loss;
+	    sumExp += size * m->experience;
+	    if (loss > 0.6 * top) bad++;
+	    samples++;
+	}
+	cost[k][0] = circle; cost[k][1] = sumLoss / samples;
+	cost[k][2] = bad / samples; cost[k][3] = sumExp / samples;
+	k++;
+    }
+	/* a line per circle (one message must fit the output buffer) */
+    Do_send_int(c, CIRCLES_PACKET);
+    Do_send_int(c, k);
+    for (i = 0; i < k; i++) {
+	sprintf(part, "%.0f:%.0f:%.3f:%.0f\n", cost[i][0], cost[i][1], cost[i][2], cost[i][3]);
+	Do_send_string(c, part);
+    }
+}
