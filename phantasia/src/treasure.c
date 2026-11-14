@@ -1067,6 +1067,13 @@ Do_cursed_treasure(struct client_t *c)
     float ftemp;
     double dtemp;
 
+	/* the Dragonscale Aegis: curses cannot touch its wearer */
+    if (Do_gear_ability(c, AB_FIREBORN) > 0) {
+	Do_send_line(c, "The curse burns away against the Dragonscale Aegis.\n");
+	Do_more(c);
+	return;
+    }
+
     if (c->player.amulets >= floor(sqrt(c->player.circle))) {
         Do_send_line(c, "But your amulets saved you!\n");
 	Do_more(c);

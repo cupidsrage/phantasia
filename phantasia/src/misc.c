@@ -3199,11 +3199,15 @@ Do_direction(struct client_t *c, double *x, double *y, char *direction)
 }
 
 int Do_maxmove(struct client_t *c) {
+    int m;
+
     if ((c->player.circle > 19) && (c->player.circle < 36)) {
-        return (int) MIN(ceil(c->player.level / 50.0) + 1.5, 10.0);
+        m = (int) MIN(ceil(c->player.level / 50.0) + 1.5, 10.0);
     } else {
-        return (int) MIN(floor((c->player.level * 1.5) + 1.5), 100.0);
+        m = (int) MIN(floor((c->player.level * 1.5) + 1.5), 100.0);
     }
+	/* the Wind-lord's Boots: twice as far */
+    return Do_gear_ability(c, AB_WINDWALK) > 0 ? 2 * m : m;
 }
 
 int Do_anglemove(struct client_t *c) {

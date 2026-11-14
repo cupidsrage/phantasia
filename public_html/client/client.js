@@ -202,7 +202,8 @@
             sin: +as[5], poison: +as[6], amulets: +as[7], charms: +as[8], blind: as[9] === "1",
             goldCap: +as[10], goldSlow: +as[11], maxMove: +as[12], maxMana: +as[13],
             nextBag: { name: as[14], price: +as[15] }, bagGold: +as[16], nextBagGold: +as[17],
-            booksWorth: +as[18] || 0 });
+            booksWorth: +as[18] || 0, huntCircle: +as[19] || 0, riskNow: +as[20] || 0,
+            age: +as[21] || 0, degenerated: +as[22] || 0 });
           break;
         }
         case P.CIRCLES: {
