@@ -311,6 +311,7 @@ typedef char bool;
 #define AUTOPLAY_PACKET		65	/* this account may use autoplay (browser only) */
 #define FIGHT_PACKET		66	/* the odds of a fight, for autoplay (browser only) */
 #define CIRCLES_PACKET		67	/* what each circle costs, for autoplay (browser only) */
+#define AUTOSTATS_PACKET	68	/* stats the screen doesn't show, for autoplay (browser only) */
 #define SELECT_PACKET		63	/* pick one from a list (browser only) */
 
 	/* ceremonies shown to browser players (wizard levels are 2-4) */

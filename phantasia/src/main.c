@@ -581,6 +581,7 @@ Do_play_loop(struct client_t *c)
     struct event_t *event_ptr;
 
 	/* let an allowed account's browser offer its autoplay switch */
+    c->walking = FALSE;		/* a new character starts standing still */
     c->autoplayOk = c->isBrowser && Do_autoplay_allowed(c);
     if (c->autoplayOk) {
 	char line[SZ_LINE];
@@ -610,7 +611,10 @@ Do_play_loop(struct client_t *c)
 
 		/* If no events, start a new turn (autoplay first hears what
 		   each circle would cost this character) */
-	    if (c->autoplayOk) Do_autoplay_circles(c);
+	    if (c->autoplayOk) {
+		Do_autoplay_circles(c);
+		Do_autoplay_stats(c);
+	    }
 	    Do_game_turn(c);
 
 		/* rulers are paid from the treasury as they reign, even
@@ -687,6 +691,52 @@ Do_game_turn(struct client_t *c)
 	   "An old wooden sign here says, 'This is the edge of the realm.\n");
 
 	Do_send_line(c, "I would strongly advise going no further.'\n");
+    }
+
+	/* walking to a place chosen with Move To: take the next step (each
+	   one a move like any other, monsters and all), and land on the very
+	   spot once it's within a step.  Stop to rest below half energy. */
+    if (c->walking) {
+	if (c->player.location != PL_REALM && c->player.location != PL_EDGE) {
+	    c->walking = FALSE;
+	}
+	else if (c->player.energy < (c->player.max_energy + c->player.shield) / 2) {
+	    c->walking = FALSE;
+	    Do_distance(c->player.x, c->walkX, c->player.y, c->walkY, &dtemp);
+	    sprintf(string_buffer, "You stop to catch your breath, %.0f from (%.0f, %.0f).  Move To there again to carry on.\n",
+		    dtemp, c->walkX, c->walkY);
+	    Do_send_line(c, string_buffer);
+	}
+	else {
+	    double step = Do_maxmove(c);
+
+	    event_ptr = (struct event_t *) Do_create_event();
+	    event_ptr->to = c->game;
+	    event_ptr->from = c->game;
+	    event_ptr->type = MOVE_EVENT;
+	    event_ptr->arg3 = A_SPECIFIC;
+	    Do_distance(c->player.x, c->walkX, c->player.y, c->walkY, &dtemp);
+	    if (dtemp <= step) {
+		event_ptr->arg1 = c->walkX;
+		event_ptr->arg2 = c->walkY;
+		c->walking = FALSE;
+		sprintf(string_buffer, "You arrive at (%.0f, %.0f).\n", c->walkX, c->walkY);
+		Do_send_line(c, string_buffer);
+	    }
+	    else {
+		double dx = c->walkX - c->player.x, dy = c->walkY - c->player.y;
+
+		    /* whole squares toward the spot, never past a step */
+		event_ptr->arg1 = c->player.x + trunc(dx * step / dtemp);
+		event_ptr->arg2 = c->player.y + trunc(dy * step / dtemp);
+		if (event_ptr->arg1 == c->player.x && event_ptr->arg2 == c->player.y) {
+		    if (fabs(dx) >= fabs(dy)) event_ptr->arg1 += dx > 0 ? 1 : -1;
+		    else event_ptr->arg2 += dy > 0 ? 1 : -1;
+		}
+	    }
+	    Do_handle_event(c, event_ptr);
+	    return;
+	}
     }
 
 	/* see if the player is on a trading post  and not cloaked */
@@ -864,10 +914,14 @@ do nothing
         Do_distance(c->player.x, event_ptr->arg1, c->player.y,
 		event_ptr->arg2, &dtemp);
 
+	    /* farther than a step: walk there, a step each turn */
         if (dtemp > Do_maxmove(c)) {
-            Do_send_line(c, "That's too far to move in 1 step.  Get closer by using the compass buttons in the lower-right corner.\n");
-	    Do_more(c);
-	    Do_send_clear(c);
+	    c->walking = TRUE;
+	    c->walkX = event_ptr->arg1;
+	    c->walkY = event_ptr->arg2;
+	    sprintf(string_buffer, "You set off for (%.0f, %.0f), %.0f away, a step at a time.\n",
+		    c->walkX, c->walkY, dtemp);
+	    Do_send_line(c, string_buffer);
 	}
         else {
 	    event_ptr->type = MOVE_EVENT;

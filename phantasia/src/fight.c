@@ -3544,8 +3544,7 @@ void Do_fight_odds(struct client_t *c)
 /	(strength + 1)/2 per blow of ours.  Per circle (1 to 50) it sends
 /	the average energy a fight costs, the share of monsters that would
 /	cost more than 60% of full energy, and the average experience,
-/	a line each (a message must fit the 1024-byte output buffer), then
-/	a line for books: brains, the brains cap and what a book adds.
+/	a line each (a message must fit the 1024-byte output buffer).
 /	Only sent when the character's stats have changed.
 /
 /************************************************************************/
@@ -3617,10 +3616,32 @@ void Do_autoplay_circles(struct client_t *c)
 	Do_send_string(c, part);
     }
 
-	/* and for books (Do_book): brains now, the level x class cap past
-	   which books give little, and what one book adds below it */
-    sprintf(part, "%.1f:%.1f:%.2f\n", c->player.brains,
-	    c->player.level * c->realm->charstats[c->player.type].max_brains,
-	    c->realm->charstats[c->player.type].brains.increase / 2.0);
-    Do_send_string(c, part);
+}
+
+
+/************************************************************************
+/
+/ FUNCTION NAME: Do_autoplay_stats(struct client_t *c)
+/
+/ FUNCTION: the stats autoplay can't see on the screen, each turn
+/
+/ DESCRIPTION:
+/	Class, brains, the level x class brains cap past which books give
+/	little (Do_book), what one book adds below it, magic level, sin,
+/	poison, amulets, charms and blindness.
+/
+/************************************************************************/
+
+void Do_autoplay_stats(struct client_t *c)
+{
+    char line[SZ_LINE];
+    struct charstats_t *cs = &c->realm->charstats[c->player.type];
+
+    Do_send_int(c, AUTOSTATS_PACKET);
+    snprintf(line, sizeof line, "%s:%.1f:%.1f:%.2f:%.1f:%.2f:%.2f:%d:%d:%d\n",
+	    cs->class_name, c->player.brains, c->player.level * cs->max_brains,
+	    cs->brains.increase / 2.0, Do_eff_magiclvl(c), c->player.sin,
+	    c->player.poison, c->player.amulets, c->player.charms,
+	    c->player.blind ? 1 : 0);
+    Do_send_string(c, line);
 }

@@ -297,6 +297,8 @@ struct client_t		/* structure for client variables */
     bool	isBrowser;		/* playing through the browser client */
     bool	autoplayOk;		/* this account may use autoplay */
     double	circlesSent;		/* stats behind the last CIRCLES packet */
+    bool	walking;		/* walking to a place chosen with Move To */
+    double	walkX, walkY;		/* where to */
     int		inCombat;		/* in a fight (no gear changes) */
     int		shownEvent;		/* world event the browser was told */
     time_t	shownEventEnds;		/* and when it ends */
