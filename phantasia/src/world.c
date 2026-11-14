@@ -606,15 +606,51 @@ static void Do_world_tick(struct client_t *c)
 / sieges
 *************************************************************************/
 
+	/* how hard a monster pushes back a siege: its size times a power for
+	   its kind (square root of its experience against a typical
+	   monster's: a Moron 0.2, most monsters about 1, the deadliest up to
+	   7); champions count triple and nemeses ten times */
+static double Do_monster_might(struct client_t *c)
+{
+    struct opponent_t *o = c->battle.opponent;
+    double base = 800, power;
+
+    if (o->type >= 0 && o->type < NUM_SPECIES) base = c->realm->monster[o->type].experience;
+    power = MAX(0.2, MIN(7.0, sqrt(MAX(1.0, base) / 800.0)));
+    power *= MAX(1.0, o->size);
+    if (c->nemesisFight >= 0) power *= 10;
+    else if (c->championFight) power *= 3;
+    return power;
+}
+
+	/* the army is sized to who is online: about 35 kills each at the
+	   depth a character of their level usually hunts */
+static double Do_siege_army_size(struct client_t *c)
+{
+    struct game_t *g;
+    double total = 0;
+
+    Do_lock_mutex(&c->realm->realm_lock);
+    for (g = c->realm->games; g != NULL; g = g->next_game) {
+	if (g->description != NULL) {
+	    total += 35.0 * (1.0 + 1.2 * sqrt(MAX(0.0, g->description->level)));
+	}
+    }
+    Do_unlock_mutex(&c->realm->realm_lock);
+    return floor(MAX(60.0, total));
+}
+
 void Do_world_start_siege(struct client_t *c, int players)
 {
     char msg[SZ_LINE];
     double hours = Do_env_minutes("PHANTASIA_SIEGE_HOURS", 8);
+    double army = Do_siege_army_size(c);
 
+    (void) players;
     pthread_mutex_lock(&world_lock);
     Do_world_ensure_locked();
     W.siegeId = W.lastSiegeId + 1;
-    W.armyMax = W.army = MIN(1500.0, 100.0 + 60.0 * MAX(1, players));
+    W.armyMax = W.army = army;
     W.nextSiege = time(NULL) + (time_t) (hours * 3600 * (0.6 + 0.8 * RND()));
     sprintf(msg, "A monster army %.0f strong marches on the throne!", W.armyMax);
     Do_world_news_locked(msg, FALSE);
@@ -622,7 +658,7 @@ void Do_world_start_siege(struct client_t *c, int players)
     pthread_mutex_unlock(&world_lock);
 
     Do_world_event_start(c, WE_SIEGE, 45);
-    Do_broadcast(c, "*** Every monster slain anywhere in the realm pushes the army back. Defend the throne! ***\n");
+    Do_broadcast(c, "*** Every monster slain anywhere pushes the army back - bigger, deadlier monsters far from the throne push hardest. Defend the throne! ***\n");
 }
 
 	/* the banner text while a siege is on */
@@ -633,7 +669,7 @@ void Do_world_siege_effect(char *out)
     pthread_mutex_lock(&world_lock);
     army = W.army; max = W.armyMax;
     pthread_mutex_unlock(&world_lock);
-    sprintf(out, "a monster army marches on the throne: %.0f of %.0f remain. Slay monsters anywhere to push it back",
+    sprintf(out, "a monster army marches on the throne: %.0f of its %.0f strength remains. Slay monsters anywhere to push it back; bigger, deadlier monsters push hardest",
 	    MAX(0.0, army), max);
 }
 
@@ -718,10 +754,13 @@ void Do_world_turn(struct client_t *c)
     pthread_mutex_unlock(&world_lock);
     if (c->siegeKills > 0 && c->siegeId == lastId && c->siegeId > 0) {
 	if (won) {
-	    pay = MIN(50000.0, floor(c->siegeKills * (100.0 + 25.0 * c->player.circle)));
+	    /* paid for your share, in keeping with your level (no more than
+	       a character of that level can comfortably carry) */
+	    pay = floor(MIN(0.6 * Do_gold_capacity(c),
+		    c->siegeKills * (30.0 + 5.0 * c->player.level)));
 	    c->player.gold += pay;
 	    Do_gold(c, 0, TRUE);
-	    sprintf(line, "For defending the throne (%.0f of the army slain), you are paid %.0f gold.\n",
+	    sprintf(line, "For defending the throne (%.0f of the army's strength cut down), you are paid %.0f gold.\n",
 		    c->siegeKills, pay);
 	    Do_send_line(c, line);
 	    Do_send_chat_self(c, line);
@@ -816,11 +855,12 @@ void Do_world_kill(struct client_t *c)
 	}
     }
 
-	/* the siege */
+	/* the siege: pushed back by the might of the monster slain */
     if (W.siegeId > W.lastSiegeId && Do_current_world_event(c) == WE_SIEGE) {
+	double might = Do_monster_might(c);
 	if (c->siegeId != W.siegeId) { c->siegeId = W.siegeId; c->siegeKills = 0; }
-	c->siegeKills += weight;
-	W.army -= weight;
+	c->siegeKills += might;
+	W.army -= might;
 	if (W.army <= 0) {
 	    Do_world_siege_won_locked(c);
 	    sprintf(msg, "%s cut down the last of the besieging army!", c->modifiedName);
@@ -1344,7 +1384,8 @@ void Do_world_test(struct client_t *c, char *what)
 	c->forceChampion = TRUE;
 	Do_energy(c, 1, c->player.max_energy, c->player.shield, 0, FALSE);
     }
-    if (!strncmp(what, "siege", 5)) {
+    if (!strncmp(what, "siegefull", 9)) Do_world_start_siege(c, 1);
+    else if (!strncmp(what, "siege", 5)) {
 	Do_world_start_siege(c, 1);
 	pthread_mutex_lock(&world_lock);
 	W.army = 3;
