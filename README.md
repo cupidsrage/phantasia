@@ -55,6 +55,9 @@ Keep the service at **one replica**: the game state lives in that one process.
 | `PHANTASIA_EVENT_LENGTH` | `20` | How many minutes a world event lasts. |
 | `PHANTASIA_WIZARDS` | – | Game admins, as `account:Character:level` separated by commas (level 1 moderator, 2 apprentice, 3 wizard, 4 full wizard; default 4). Rewrites `data/wizards` on every start. Leave unset to manage that file by hand. |
 | `PHANTASIA_AUTOPLAY` | – | Accounts allowed to use the browser client's Autoplay switch, separated by commas. Leave unset to allow only the accounts in `data/wizards` (for example from `PHANTASIA_WIZARDS`). |
+| `PHANTASIA_GITHUB_TOKEN` | – | A GitHub token allowed to write the repository's contents. With `PHANTASIA_LOG_REPO`, each autoplay record (sent when an autoplay character dies) is committed to GitHub for study. Records are always kept in `data/autoplay-logs` too. |
+| `PHANTASIA_LOG_REPO` | – | Where autoplay records go, as `owner/repo`. |
+| `PHANTASIA_LOG_BRANCH` | `autoplay-logs` | The branch records are committed to (made from the default branch the first time), so they never trigger a deploy. |
 | `PHANTASIA_MOTD` | – | Replaces the message of the day on startup. |
 | `PHANTASIA_EMAIL_CONFIRM` | unset | Set to `1` to require e-mailed confirmation codes for new accounts. This needs a working `mail` command in the image, which Railway does not provide, so leave it unset. |
 

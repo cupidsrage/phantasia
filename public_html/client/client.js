@@ -178,7 +178,7 @@
         case P.WIZARD: { var kind = await nextInt(); ceremony(kind, await next()); break; }
         case P.SELECT: await askSelect(); break;
         case P.WORLD: await readWorld(); break;
-        case P.AUTOPLAY: auto.allow((await next()) === "1"); break;
+        case P.AUTOPLAY: { var ap = (await next()).split(" "); auto.allow(ap[0] === "1", ap[1] || ""); break; }
         case P.FIGHT: auto.odds(await readFightOdds()); break;
         case P.CIRCLES: {
           var nc = await nextInt(), circ = [];
@@ -187,6 +187,8 @@
             circ.push({ circle: +f[0], loss: +f[1], bad: +f[2], exp: +f[3] });
           }
           auto.circles(circ);
+          var bk = (await next()).split(":");
+          auto.brains({ brains: +bk[0], cap: +bk[1], perBook: +bk[2] });
           break;
         }
         default:
@@ -343,6 +345,7 @@
     }
     $("arrange").addEventListener("click", function () { setArranging(!arranging); });
     $("autoplay").addEventListener("click", function () { auto.toggle(); });
+    $("autoplay-save").addEventListener("click", function () { auto.save(); });
     $("autoplay-speed").addEventListener("change", function (e) { auto.setSpeed(e.target.value); });
     $("arrange-reset").addEventListener("click", function () {
       layoutPrefs = {}; saveLayout(); placeButtons(); arrangePick = -1; drawButtons();
@@ -1346,8 +1349,8 @@
   var auto = (window.PhantasiaAutoplay || function () {
     var none = function () { return false; };
     return { allow: none, at: none, level: none, bar: none, stat: none, world: none, line: none,
-      chat: none, buttons: none, dialog: none, odds: none, circles: none, userTook: none, cancelPress: none, toggle: none,
-      setSpeed: none, pressing: false };
+      chat: none, buttons: none, dialog: none, odds: none, circles: none, brains: none, userTook: none, cancelPress: none, toggle: none,
+      setSpeed: none, save: none, pressing: false };
   })({
     pending: function () { return pending; },
     isPressing: function () { return autoPressing; },
@@ -1374,7 +1377,8 @@
     },
     gear: function () { return { items: gearItems, capacity: gearCapacity, bag: gearBag }; },
     wear: function (it) { gearClick("e", it); },
-    chat: function (text) { send(C.CHAT + text + "\0"); }
+    chat: function (text) { send(C.CHAT + text + "\0"); },
+    name: function () { return name; }
   });
 
   /* ------------------------------------------------------- misc UI */

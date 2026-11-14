@@ -1373,6 +1373,9 @@ void Do_world_test(struct client_t *c, char *what)
     Do_world_save_locked();
     pthread_mutex_unlock(&world_lock);
     if (!strncmp(what, "meet", 4)) forceNemesis = TRUE;
+    if (!strncmp(what, "level", 5)) {	/* test builds: a few levels */
+	Do_experience(c, 20000.0, FALSE);
+    }
     if (!strncmp(what, "rich", 4)) {	/* test builds: gold and gems to spend */
 	Do_gold(c, 2500.0 + 500.0 * c->player.level, FALSE);
 	Do_gems(c, 3.0, FALSE);

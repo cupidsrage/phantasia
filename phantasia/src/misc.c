@@ -3251,3 +3251,51 @@ int Do_autoplay_allowed(struct client_t *c)
     fclose(fp);
     return ok;
 }
+
+
+/************************************************************************
+/
+/ FUNCTION NAME: Do_autoplay_key(struct client_t *c)
+/
+/ FUNCTION: a key this session's autoplay can send its record with
+/
+/ DESCRIPTION:
+/	The website accepts an autoplay record (sent when the character
+/	dies, for study) only with a key listed here: a random key, the
+/	account and character, and the time, one line each.  The newest
+/	200 are kept.
+/
+/************************************************************************/
+
+const char *Do_autoplay_key(struct client_t *c)
+{
+    static __thread char key[33];
+    unsigned char raw[16];
+    char (*lines)[SZ_LINE], line[SZ_LINE];
+    FILE *fp;
+    int i, n = 0;
+
+    if ((fp = fopen("/dev/urandom", "r")) == NULL || fread(raw, 1, 16, fp) != 16) {
+	for (i = 0; i < 16; i++) raw[i] = (unsigned char) (RND() * 256);
+    }
+    if (fp) fclose(fp);
+    for (i = 0; i < 16; i++) sprintf(key + 2 * i, "%02x", raw[i]);
+
+	/* keep the newest keys, add this one */
+    if ((lines = malloc(200 * sizeof *lines)) == NULL) return key;
+    if ((fp = fopen(AUTOPLAY_KEY_FILE, "r")) != NULL) {
+	while (fgets(line, sizeof line, fp)) {
+	    if (n == 199) { memmove(lines[0], lines[1], sizeof lines[0] * 198); n = 198; }
+	    strcpy(lines[n++], line);
+	}
+	fclose(fp);
+    }
+    if ((fp = fopen(AUTOPLAY_KEY_FILE, "w")) != NULL) {
+	for (i = 0; i < n; i++) fputs(lines[i], fp);
+	fprintf(fp, "%s %s %s %ld\n", key, c->lcaccount,
+		c->player.lcname[0] ? c->player.lcname : "-", (long) time(NULL));
+	fclose(fp);
+    }
+    free(lines);
+    return key;
+}

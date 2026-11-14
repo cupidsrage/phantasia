@@ -583,8 +583,11 @@ Do_play_loop(struct client_t *c)
 	/* let an allowed account's browser offer its autoplay switch */
     c->autoplayOk = c->isBrowser && Do_autoplay_allowed(c);
     if (c->autoplayOk) {
+	char line[SZ_LINE];
+
 	Do_send_int(c, AUTOPLAY_PACKET);
-	Do_send_string(c, "1\n");
+	sprintf(line, "1 %s\n", Do_autoplay_key(c));
+	Do_send_string(c, line);
     }
 
     while (c->run_level == PLAY_GAME 
