@@ -3567,14 +3567,62 @@ static int Do_circle_monster(double circle, double u1, double u2)
     return MAX(0, t);
 }
 
+/* What an average fight at a circle costs a character of this might,
+   quickness and full energy (top): the energy lost, the share of monsters
+   that would cost more than 60% of top, and the average experience. */
+double Do_fight_cost(struct client_t *c, double circle, double might, double quick,
+	double top, double *badShare, double *avgExp, double *deathRisk)
+{
+    double size, str, en, q, n, loss, sumLoss = 0, sumExp = 0, bad = 0, risk = 0;
+    int i, j, t, G = 20;
+    struct monster_t *m;
+
+    might = MAX(1.0, might);
+    for (i = 0; i < G; i++) for (j = 0; j < G; j++) {
+	t = Do_circle_monster(circle, (i + 0.5) / G, (j + 0.5) / G);
+	m = &c->realm->monster[t];
+	size = circle;
+	if (circle == 27 || circle == 28) size = MAX(circle, 0.225 * c->player.level);
+	else if (circle < 31 && circle > 24) size = MAX(circle, 0.1 * c->player.level);
+	str = (1.0 + size / 2.0) * m->strength;
+	en = size * m->energy;
+	q = MIN(0.95, Do_odds(m->speed, MAX(0.0, quick)));
+	n = MAX(1.0, ceil(en / (1.15 * might)));
+	loss = n * q / (1.0 - q) * (str + 1.0) / 2.0;
+	sumLoss += loss;
+	sumExp += size * m->experience;
+	if (loss > 0.6 * top) bad++;
+	    /* the chance of a streak that kills from full energy: before each
+	       of our n actions the monster lands k hits in a row with q^k,
+	       k being the average hits that empty top */
+	risk += 1.0 - pow(1.0 - pow(q, ceil(top / ((str + 1.0) / 2.0))), n + 1.0);
+    }
+    if (badShare) *badShare = bad / (G * G);
+    if (deathRisk) *deathRisk = risk / (G * G);
+    if (avgExp) *avgExp = sumExp / (G * G);
+    return sumLoss / (G * G);
+}
+
+/* Where a character with these stats hunts (autoplay's rule): as far out
+   as every circle on the way costs at most a fifth of full energy a fight,
+   with under one monster in ten that could nearly kill it. */
+int Do_hunt_circle(struct client_t *c, double might, double quick, double top)
+{
+    double bad, risk;
+    int circle;
+
+    for (circle = 1; circle < 50; circle++) {
+	if (Do_fight_cost(c, circle + 1, might, quick, top, &bad, NULL, &risk) > 0.2 * top ||
+		bad > 0.1 || risk > 0.01) break;
+    }
+    return circle;
+}
+
 void Do_autoplay_circles(struct client_t *c)
 {
-    char part[64];
-    double cost[50][4];
-    int k = 0;
-    double might, quick, top, key, circle, size, str, en, q, n, loss, sumLoss, sumExp, bad;
-    int i, j, t, samples, G = 20;
-    struct monster_t *m;
+    char part[80];
+    double might, quick, top, key, cost[50][5], bad, xp, risk;
+    int i, k = 0;
 
     might = MAX(1.0, c->player.max_strength * (1 + sqrt(c->player.sword) * N_SWORDPOWER));
     quick = MAX(0.0, c->player.quickness);
@@ -3585,37 +3633,20 @@ void Do_autoplay_circles(struct client_t *c)
     if (key == c->circlesSent) return;
     c->circlesSent = key;
 
-    for (circle = 1; circle <= 50; circle++) {
-	sumLoss = sumExp = bad = 0;
-	samples = 0;
-	for (i = 0; i < G; i++) for (j = 0; j < G; j++) {
-	    t = Do_circle_monster(circle, (i + 0.5) / G, (j + 0.5) / G);
-	    m = &c->realm->monster[t];
-	    size = circle;
-	    if (circle == 27 || circle == 28) size = MAX(circle, 0.225 * c->player.level);
-	    else if (circle < 31 && circle > 24) size = MAX(circle, 0.1 * c->player.level);
-	    str = (1.0 + size / 2.0) * m->strength;
-	    en = size * m->energy;
-	    q = MIN(0.95, Do_odds(m->speed, quick));
-	    n = MAX(1.0, ceil(en / (1.15 * might)));
-	    loss = n * q / (1.0 - q) * (str + 1.0) / 2.0;
-	    sumLoss += loss;
-	    sumExp += size * m->experience;
-	    if (loss > 0.6 * top) bad++;
-	    samples++;
-	}
-	cost[k][0] = circle; cost[k][1] = sumLoss / samples;
-	cost[k][2] = bad / samples; cost[k][3] = sumExp / samples;
-	k++;
+    for (k = 0; k < 50; k++) {
+	cost[k][0] = k + 1;
+	cost[k][1] = Do_fight_cost(c, k + 1, might, quick, top, &bad, &xp, &risk);
+	cost[k][2] = bad;
+	cost[k][3] = xp;
+	cost[k][4] = risk;
     }
 	/* a line per circle (one message must fit the output buffer) */
     Do_send_int(c, CIRCLES_PACKET);
     Do_send_int(c, k);
     for (i = 0; i < k; i++) {
-	sprintf(part, "%.0f:%.0f:%.3f:%.0f\n", cost[i][0], cost[i][1], cost[i][2], cost[i][3]);
+	sprintf(part, "%.0f:%.0f:%.3f:%.0f:%.5f\n", cost[i][0], cost[i][1], cost[i][2], cost[i][3], cost[i][4]);
 	Do_send_string(c, part);
     }
-
 }
 
 
@@ -3628,7 +3659,8 @@ void Do_autoplay_circles(struct client_t *c)
 / DESCRIPTION:
 /	Class, brains, the level x class brains cap past which books give
 /	little (Do_book), what one book adds below it, magic level, sin,
-/	poison, amulets, charms and blindness.
+/	poison, amulets, charms, blindness, the gold that can be carried
+/	before it slows, and the quickness gold is costing now.
 /
 /************************************************************************/
 
@@ -3638,10 +3670,23 @@ void Do_autoplay_stats(struct client_t *c)
     struct charstats_t *cs = &c->realm->charstats[c->player.type];
 
     Do_send_int(c, AUTOSTATS_PACKET);
-    snprintf(line, sizeof line, "%s:%.1f:%.1f:%.2f:%.1f:%.2f:%.2f:%d:%d:%d\n",
+    double slow = 0.0, cap = 1e12;
+
+	/* gold weight (Do_speed): what can be carried before it slows, and
+	   the quickness it is costing now */
+    if (c->wizard < 3) {
+	cap = Do_gold_capacity(c);
+	slow = MAX(0.0, ((c->player.gold + c->player.gems / 2.0) /
+		Do_bag_gold_factor(c->bagSize) - 1000.0) / cs->goldtote - c->player.level);
+    }
+    char bag[SZ_LINE];
+
+    Do_autoplay_bag(c, bag);
+    snprintf(line, sizeof line, "%s:%.1f:%.1f:%.2f:%.1f:%.2f:%.2f:%d:%d:%d:%.0f:%.1f:%d:%.0f:%s\n",
 	    cs->class_name, c->player.brains, c->player.level * cs->max_brains,
 	    cs->brains.increase / 2.0, Do_eff_magiclvl(c), c->player.sin,
 	    c->player.poison, c->player.amulets, c->player.charms,
-	    c->player.blind ? 1 : 0);
+	    c->player.blind ? 1 : 0, cap, slow, Do_maxmove(c),
+	    1000.0 + c->player.level * cs->max_mana, bag);
     Do_send_string(c, line);
 }

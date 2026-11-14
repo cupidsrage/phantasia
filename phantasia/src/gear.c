@@ -855,6 +855,9 @@ void Do_gear_send(struct client_t *c)
 		g->ability2 ? abilityNames[g->ability2] : "");
 	Do_send_string(c, line);
     }
+
+	/* autoplay judges its gear by the fight math */
+    Do_autoplay_gear_values(c, "gear", c->gear, c->numGear);
 }
 
 static int Do_gear_backpack_count(struct client_t *c)
@@ -1047,6 +1050,7 @@ void Do_gear_offer(struct client_t *c, struct gear_item_t *item)
 	Do_send_line(c, "(Your backpack is full.  Swap wears this and leaves your old one behind.)\n");
     }
 
+    Do_autoplay_gear_values(c, "offer", item, 1);
     rc = Do_buttons(c, &answer, &buttons);
 
     if (rc == S_NORM && answer == 3 && worn >= 0 && !room) {
@@ -1886,6 +1890,7 @@ void Do_gear_armory(struct client_t *c, int slot)
 	}
 	strcpy(buttons.button[6], "Sell Gear\n");
 	strcpy(buttons.button[7], "Leave\n");
+	Do_autoplay_gear_values(c, "armory", stock, 6);
 
 	if (Do_buttons(c, &answer, &buttons) != S_NORM || answer == 7) {
 	    Do_send_clear(c);
@@ -2269,4 +2274,90 @@ void Do_artifacts_chat(struct client_t *c)
 	Do_send_chat_self(c, line);
     }
     Do_unlock_mutex(&c->realm->gear_lock);
+}
+
+
+/************************************************************************
+/
+/ FUNCTION NAME: Do_autoplay_gear_values(c, kind, items, n)
+/
+/ FUNCTION: what each item would do for this character, for autoplay
+/
+/ DESCRIPTION:
+/	Judged with the fight math (Do_fight_cost): for each item, the
+/	character's stats with it worn in its slot instead of what's there
+/	(armor and helms add to full energy, weapons to might as strength x
+/	(1 + sqrt(sword) x 0.04), boots to quickness as sqrt(quicksilver)),
+/	the share of full energy an average fight costs at the circle this
+/	character hunts in now.  Lower is better.  Sent as: the kind of list
+/	("gear", "offer" or "armory"), "huntCircle:costNow", the count, then
+/	one cost a line, in the list's order.  Abilities aren't counted.
+/
+/************************************************************************/
+
+static double Do_gear_stats_cost(struct client_t *c, int hunt, double shield,
+	double sword, double quicksilver)
+{
+    double might, quick, top;
+
+    might = c->player.max_strength * (1 + sqrt(MAX(0.0, sword)) * N_SWORDPOWER);
+    quick = c->player.quickness - sqrt(floor(MAX(0.0, c->player.quicksilver))) +
+	    sqrt(floor(MAX(0.0, quicksilver)));
+    top = MAX(1.0, c->player.max_energy + shield);
+    return Do_fight_cost(c, hunt, might, quick, top, NULL, NULL, NULL) / top;
+}
+
+void Do_autoplay_gear_values(struct client_t *c, const char *kind,
+	struct gear_item_t *items, int n)
+{
+    char line[SZ_LINE];
+    double now, might, top;
+    int hunt, i, w;
+
+    if (!c->autoplayOk) return;
+
+    might = c->player.max_strength * (1 + sqrt(MAX(0.0, c->player.sword)) * N_SWORDPOWER);
+    top = c->player.max_energy + c->player.shield;
+    hunt = Do_hunt_circle(c, might, c->player.quickness, top);
+    now = Do_gear_stats_cost(c, hunt, c->player.shield, c->player.sword, c->player.quicksilver);
+
+    Do_send_int(c, GEARVALUE_PACKET);
+    sprintf(line, "%s\n%d:%.5f\n", kind, hunt, now);
+    Do_send_string(c, line);
+    Do_send_int(c, n);
+    for (i = 0; i < n; i++) {
+	struct gear_item_t *g = &items[i];
+	double shield = c->player.shield, sword = c->player.sword, qs = c->player.quicksilver;
+
+	if (g->equipped && items == c->gear) {
+	    sprintf(line, "%.5f\n", now);
+	    Do_send_string(c, line);
+	    continue;
+	}
+	    /* take off what's in that slot, put this on */
+	w = Do_gear_equipped_in(c, g->slot);
+	if (w >= 0) {
+	    shield -= c->gear[w].shield;
+	    sword -= c->gear[w].sword;
+	    qs -= c->gear[w].quicksilver;
+	}
+	shield += g->shield;
+	sword += g->sword;
+	qs += g->quicksilver;
+	sprintf(line, "%.5f\n", Do_gear_stats_cost(c, hunt, shield, sword, qs));
+	Do_send_string(c, line);
+    }
+}
+
+/* the next bag up, at this town's prices, for autoplay */
+void Do_autoplay_bag(struct client_t *c, char *out)
+{
+    int now = Do_bag_index(c->bagSize), next = now + 1;
+
+    if (next >= NUM_BAGS) {
+	sprintf(out, "-:0:%g:%g", bagGold[now], bagGold[now]);
+	return;
+    }
+    sprintf(out, "%s:%.0f:%g:%g", bags[next].name,
+	    floor(bags[next].price * Do_world_price_factor(c)), bagGold[now], bagGold[next]);
 }
