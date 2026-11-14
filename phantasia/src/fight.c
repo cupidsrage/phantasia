@@ -3703,6 +3703,32 @@ void Do_autoplay_circles(struct client_t *c)
 /
 /************************************************************************/
 
+/* how many books in a row would each add at least one point of brains,
+   following Do_book (past level x the class cap they give less each) */
+static int Do_books_worth(struct client_t *c)
+{
+    struct charstats_t *cs = &c->realm->charstats[c->player.type];
+    double brains = c->player.brains, cap = c->player.level * cs->max_brains;
+    double inc = cs->brains.increase, over, gain, d2;
+    int n, multiple;
+
+    if (cap <= 0) return 0;
+    for (n = 0; n < 2000; n++) {
+	over = brains - cap;
+	if (over > 0) {
+	    multiple = (int) ceil(over / cap);
+	    d2 = multiple > 0 ? inc * (inc - 1) / multiple : inc * (inc - 1);
+	    gain = d2 / sqrt(over + d2);
+	}
+	else {
+	    gain = inc / 2;
+	}
+	if (gain < 1.0) break;
+	brains += gain;
+    }
+    return n;
+}
+
 void Do_autoplay_stats(struct client_t *c)
 {
     char line[SZ_LINE];
@@ -3721,11 +3747,11 @@ void Do_autoplay_stats(struct client_t *c)
     char bag[SZ_LINE];
 
     Do_autoplay_bag(c, bag);
-    snprintf(line, sizeof line, "%s:%.1f:%.1f:%.2f:%.1f:%.2f:%.2f:%d:%d:%d:%.0f:%.1f:%d:%.0f:%s\n",
+    snprintf(line, sizeof line, "%s:%.1f:%.1f:%.2f:%.1f:%.2f:%.2f:%d:%d:%d:%.0f:%.1f:%d:%.0f:%s:%d\n",
 	    cs->class_name, c->player.brains, c->player.level * cs->max_brains,
 	    cs->brains.increase / 2.0, Do_eff_magiclvl(c), c->player.sin,
 	    c->player.poison, c->player.amulets, c->player.charms,
 	    c->player.blind ? 1 : 0, cap, slow, Do_maxmove(c),
-	    1000.0 + c->player.level * cs->max_mana, bag);
+	    1000.0 + c->player.level * cs->max_mana, bag, Do_books_worth(c));
     Do_send_string(c, line);
 }

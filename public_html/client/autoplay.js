@@ -410,14 +410,15 @@ window.PhantasiaAutoplay = function (host) {
   }
 
   /* Books (Do_book): each adds half the class's brains increase until
-     brains reach level x the class's cap, then far less, so buy up to the
-     cap.  Below level 20 a visit's purchases over level x 350 + 150 gold
+     brains reach level x the class's cap, then less and less; buy while a
+     book still adds a point.  Below level 20 a visit's purchases over level x 350 + 150 gold
      risk being taken for a thief (with chance 1 - that / spent): stay at
      or under it and the risk is nil. */
   function booksWanted(price) {
-    var b = st.brainsInfo;
-    if (!b || b.perBook <= 0 || b.brains >= b.cap) return 0;
-    var need = Math.ceil((b.cap - b.brains) / b.perBook);
+    /* the server counts the books that would each still add a point of
+       brains (Do_book gives less past level x the class cap, not nothing) */
+    var need = (st.status && st.status.booksWorth) || 0;
+    if (need <= 0) return 0;
     var afford = Math.floor((st.gold - reserve()) / price);
     var safe = st.level < 20 ? Math.floor((st.level * 350 + 150 - ((st.visit && st.visit.spent) || 0)) / price) : Infinity;
     return Math.max(0, Math.min(need, afford, safe));
@@ -628,7 +629,9 @@ window.PhantasiaAutoplay = function (host) {
       /* mana is cheap at the posts, but keep enough back to heal */
       var manaCost = st.mana >= 3 * sp.mana ? 0.05 * sp.mana * (D > 0 ? 1 : 0) : 0.5 * sp.mana;
       if (sp.name === "Mending Light") {
-        if (missing < 1) return;
+        /* healing costs a turn: only when hurt (the danger check below can
+           still heal when a fight turns risky) */
+        if (missing < 1 || e >= 0.5) return;
         var h = Math.min(sp.heal, missing);
         opts.push({ label: sp.name, spell: true, cost: D + n * D - h + manaCost, acts: n + 1, heal: h,
           why: "Mending Light: +" + Math.round(h) + " energy" });
@@ -696,7 +699,11 @@ window.PhantasiaAutoplay = function (host) {
         choices.push({ label: "Luckout", live: first * (F.luck + (1 - F.luck) * liveThrough(st.e - D, n)),
           why: "Luckout (" + Math.round(F.luck * 100) + "%, brains " + F.brains + " to beat)" });
       }
-      var heal = opts.filter(function (o) { return o.label === "Mending Light"; })[0];
+      var heal = null;
+      F.spells.forEach(function (sp) {
+        if (sp.name === "Mending Light" && st.mana >= sp.mana && missing >= 1)
+          heal = { label: sp.name, heal: Math.min(sp.heal, missing) };
+      });
       if (heal) {
         choices.push({ label: heal.label, spell: true, live: (1 - pFall(st.e)) * liveThrough(st.e + heal.heal - D, n),
           why: "Healing (+" + Math.round(heal.heal) + ")" });
