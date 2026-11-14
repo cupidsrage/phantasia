@@ -36,8 +36,11 @@ window.PhantasiaAutoplay = function (host) {
     "western wastes", "sunken fens", "southern expanse", "ember coast"];
   var DEATH = /You died|You were killed by|beyond repair|disemboweled|You're dead|fatal blow|found you easy prey|dies of old age|died in glorious battle|You were turned into|failure -- you've died/;
   /* questions a careful player says yes to (everything else: no) */
-  var YES = [/frisk the body/i, /pick (them|it) up\?/i, /inspect it\?/i, /continue waiting/i,
-    /Will you read it\?/i, /still wish to move there/i];
+  /* Questions a careful player says yes to; everything else is no (rings
+     add sin, The One Ring doubles it; succumbing, sacrificing and
+     pillaging add sin).  Destroying a ring in the lava avoids 2.5 sin. */
+  var YES = [/Do you want to pick (them|it) up\?/i, /inspect it\?/i, /continue waiting/i,
+    /found a scroll\.  Will you read it\?/i, /still wish to move there/i, /destroy your ring\?/i];
 
   var st = {
     allowed: false, on: false, speed: "normal", timer: null,
@@ -328,7 +331,8 @@ window.PhantasiaAutoplay = function (host) {
     if (heavy()) return true;
     /* a full bag of spares: go and sell them */
     if (backpackFull() && spareGear().length) return true;
-    if (st.fights - st.lastShopFight < 15 && load() < 0.8 * capacity()) return false;
+    /* every step of a trip is a turn (and turns age): not too often */
+    if (st.fights - st.lastShopFight < 60 && load() < 0.8 * capacity()) return false;
     var spend = st.gold + Math.min(st.gems, st.level * st.level + 1) * 1000 - reserve();
     var nb = nextBag();
     if (load() > 0.75 * capacity()) return true;
@@ -498,11 +502,13 @@ window.PhantasiaAutoplay = function (host) {
     st.fights++;
     var lost = (st.fightStartE - st.e) / st.emax, left = frac();
     /* a fight we had to run from, or that hurt, says: closer in */
+    /* hunt at the safe limit, backing off a circle after a dangerous fight
+       and stepping back out after three easy ones */
     if (st.fightDanger || lost > 0.45 || left < 0.3) {
-      st.target = Math.max(1, Math.min(st.target, circle()) - 1);
+      st.backoff = Math.min((st.backoff || 0) + 1, Math.max(0, cap() - 1));
       st.easy = 0;
     } else if (st.fightKilled && lost < 0.15 && left > 0.75) {
-      if (++st.easy >= 3) { st.target = Math.min(cap(), st.target + 1); st.easy = 0; }
+      if (++st.easy >= 3) { st.backoff = Math.max(0, (st.backoff || 0) - 1); st.easy = 0; }
     } else st.easy = 0;
   }
 
@@ -525,8 +531,16 @@ window.PhantasiaAutoplay = function (host) {
     }
 
     /* rest until nearly full: a second monster can follow the first */
-    if (e < 0.85 || st.e < 3 * fightCost(c)) st.resting = true;
-    if (st.resting && e >= 0.98) st.resting = false;
+    /* Every turn ages the character (750 turns, one degeneration), so rest
+       only as much as the next fight needs: until a fight at its hunting
+       circle, from the energy it has now, kills under 0.5% of the time
+       (the server's figure), or it is full. */
+    var riskNow = st.status ? st.status.riskNow : null;
+    if (riskNow !== null && riskNow !== undefined) st.resting = riskNow > 0.005 && e < 0.99;
+    else {
+      if (e < 0.85 || st.e < 3 * fightCost(c)) st.resting = true;
+      if (st.resting && e >= 0.98) st.resting = false;
+    }
     if (st.resting && has("Rest") >= 0) { say("Resting: energy " + Math.round(e * 100) + "%.", "on"); return press(has("Rest")); }
 
     /* standing at a trading post */
@@ -559,6 +573,7 @@ window.PhantasiaAutoplay = function (host) {
     }
 
     /* the daily quest: a journey to a circle, if it's safe */
+    st.target = Math.max(1, cap() - (st.backoff || 0));
     var want = st.target;
     if (st.quest && st.quest.reach && !st.quest.done && st.quest.reach <= cap()) want = Math.max(want, st.quest.reach);
 
@@ -566,12 +581,18 @@ window.PhantasiaAutoplay = function (host) {
     if (lastCompass && c > want) { say("Pulling back toward circle " + want + " (now " + c + ").", "on"); return pressCompass(stepToward(-st.x, -st.y)); }
     /* wander along the circle now and then, as players do: new ground
        turns up treasure, villages and gurus as well as monsters */
-    if (lastCompass && ++st.sinceStep >= 3) {
+    if (false && lastCompass && ++st.sinceStep >= 3) {   /* wandering only ages the character */
       st.sinceStep = 0;
       if (Math.random() < 0.15) st.spin = -st.spin;
       var r = Math.hypot(st.x, st.y) || 1;
       say("Exploring circle " + c + ".", "on");
       return pressCompass(stepToward(-st.y / r * st.spin, st.x / r * st.spin));
+    }
+    /* each Hunt adds 0.001 sin (the game's price for calling a monster);
+       past 10 sin (25 to 50 can kill), find monsters by resting instead */
+    if (has("Hunt") >= 0 && st.status && st.status.sin >= 10 && has("Rest") >= 0) {
+      say("Sin is " + st.status.sin.toFixed(1) + ": waiting for monsters instead of hunting them.", "warn");
+      return press(has("Rest"));
     }
     if (has("Hunt") >= 0) {
       var here = st.circles && st.circles[c - 1];
@@ -643,6 +664,19 @@ window.PhantasiaAutoplay = function (host) {
       opts.push({ label: sp.name, spell: true, cost: ns * D - healBack + manaCost, acts: ns,
         why: sp.name + ": about " + Math.round(sp.dmg) + " damage" });
     });
+
+    /* Heal with mana instead of rest turns: a fight is one turn however
+       many rounds it lasts, while every rest is a turn (and turns age the
+       character).  When this monster barely hurts (under 1% of full energy
+       an action on average), top up with Mending Light while mana is
+       plentiful (it costs about a gold a point at the posts). */
+    var mend = F.spells.filter(function (sp) { return sp.name === "Mending Light"; })[0];
+    if (mend && has("Spell") >= 0 && D < 0.01 * st.emax && st.mana >= 3 * mend.mana &&
+        missing >= 0.8 * Math.min(mend.heal, missing) && missing >= 0.2 * st.emax) {
+      say("Healing with mana while this monster can't hurt (saves rest turns).", "on");
+      castPlan(mend.name);
+      return runPlan();
+    }
 
     opts.sort(function (a, b) { return a.cost - b.cost || a.acts - b.acts; });
     var pick = opts[0];
@@ -779,9 +813,10 @@ window.PhantasiaAutoplay = function (host) {
       var better = artifact || (o && improves(o.vals[0], o.now));
       if (better && has("Equip") >= 0) { say("Wearing an upgrade.", "on"); return press(has("Equip")); }
       if (better && has("Swap") >= 0) { say("Swapping in an upgrade.", "on"); return press(has("Swap")); }
-      /* keep spare pieces to sell while there's room */
-      if (has("Stow") >= 0 && (artifact || gear().items.filter(function (g) { return !g.equipped; }).length < gear().capacity - 1)) {
-        say(artifact ? "Keeping an artifact." : "Stowing it to sell later.", "on");
+      /* keep artifacts; selling other spares isn't worth the trips (every
+         step is a turn, and turns age the character) */
+      if (has("Stow") >= 0 && artifact) {
+        say("Keeping an artifact.", "on");
         return press(has("Stow"));
       }
       say("Leaving gear that isn't better.", "on");
@@ -800,8 +835,14 @@ window.PhantasiaAutoplay = function (host) {
     /* a yes or no question */
     if (has("Yes") >= 0 && has("No") >= 0 && n === 2) {
       if (/continue playing/i.test(text)) return stop("Autoplay stopped: your character's turn is over.", "warn");
-      var q = st.lines.slice(-3).join(" ");
-      var bm = /blessing requires a (\d+) gp/.exec(q);
+      /* the question itself: the last line asking one, not lines before it */
+      var q = "";
+      for (var qi = st.lines.length - 1; qi >= 0 && qi >= st.lines.length - 4; qi--) {
+        if (/\?\s*$/.test(st.lines[qi])) { q = st.lines[qi]; break; }
+      }
+      /* a fresh corpse is cursed 75% of the time: frisk only with amulets */
+      if (/frisk the body/.test(q)) return press(st.amulets > 0 ? has("Yes") : has("No"));
+      var bm = /blessing requires a (\d+) gp/.exec(st.lines.slice(-3).join(" "));
       if (bm) return press(st.gold - reserve() >= +bm[1] ? has("Yes") : has("No"));
       return press(YES.some(function (r) { return r.test(q); }) ? has("Yes") : has("No"));
     }
@@ -842,18 +883,18 @@ window.PhantasiaAutoplay = function (host) {
       host.answerString(String(v)); return true;
     }
     if ((m = /Mana is one per (\d+(?:\.\d+)?) gold piece.*\((\d+) max\)/.exec(prompt))) {
-      v = Math.max(0, Math.min(+m[2], manaWanted() - st.mana, Math.floor((st.gold - reserve()) / +m[1])));
+      v = Math.max(0, Math.min(+m[2], manaWanted() - st.mana, Math.floor((st.gold - reserve()) / (+m[1] + 1))));
       if (st.visit) st.visit.spent += Math.floor(v) * +m[1];
       host.answerString(String(Math.floor(v))); return true;
     }
     if ((m = /An amulet costs (\d+) gp.*\((\d+) max\)/.exec(prompt))) {
-      v = Math.max(0, Math.min(+m[2], 3 - st.amulets, Math.floor((st.gold - reserve()) / +m[1])));
+      v = Math.max(0, Math.min(+m[2], 3 - st.amulets, Math.floor((st.gold - reserve()) / (+m[1] + 1))));
       st.amulets += v;
       if (st.visit) st.visit.spent += v * +m[1];
       host.answerString(String(v)); return true;
     }
     if ((m = /A book costs (\d+) gp.*\((\d+) max\)/.exec(prompt))) {
-      v = Math.min(+m[2], booksWanted(+m[1]));
+      v = Math.min(+m[2], booksWanted(+m[1] + 1));   /* prices are shown rounded: leave a margin */
       if (st.visit) st.visit.spent += v * +m[1];
       host.answerString(String(v)); return true;
     }
@@ -908,7 +949,7 @@ window.PhantasiaAutoplay = function (host) {
   function start() {
     if (!st.allowed) return;
     st.on = true;
-    st.target = Math.min(circle(), cap());
+    st.target = cap();      /* straight to the farthest circle the math calls safe */
     st.easy = 0; st.plan = []; st.unknown = 0; st.trip = null;
     if (st.startLevel === null) st.startLevel = st.level;
     if (!st.startedAt) st.startedAt = Date.now();
@@ -1010,7 +1051,12 @@ window.PhantasiaAutoplay = function (host) {
       st.quest = { text: m[1], reach: r ? +r[1] : 0, done: /complete!/.test(m[1]) };
     },
     brains: function (b) { st.brainsInfo = b; },
-    circles: function (list) { st.circles = window.PhantasiaAutoplayCircles = list; if (st.target > cap()) st.target = cap(); },
+    circles: function (list) {
+      var before = cap();
+      st.circles = window.PhantasiaAutoplayCircles = list;
+      /* stronger now: head out to the new limit at once; weaker: pull in */
+      if (st.target > cap() || (cap() > before && st.target >= before)) st.target = cap();
+    },
     odds: function (F) {
       st.lastOdds = { m: F.name, me: F.energy, ms: F.str, q: F.q, melee: F.melee, luck: F.luck, ev: F.evade,
         br: F.brains, fl: F.flock, xp: F.exp, sp: F.special, kind: F.kind };

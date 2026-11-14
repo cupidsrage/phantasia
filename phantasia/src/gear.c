@@ -2498,3 +2498,54 @@ void Do_autoplay_bag(struct client_t *c, char *out)
     sprintf(out, "%s:%.0f:%g:%g", bags[next].name,
 	    floor(bags[next].price * Do_world_price_factor(c)), bagGold[now], bagGold[next]);
 }
+
+
+/************************************************************************
+/
+/ FUNCTION NAME: Do_gear_artifact_grow(struct client_t *c)
+/
+/ FUNCTION: artifacts grow with their bearer
+/
+/ DESCRIPTION:
+/	One of a kind should always feel like the best: an artifact's stats
+/	follow the highest of the circle it was found in, the deepest circle
+/	it has been carried to, and the circle that matches its bearer's
+/	level (1 + level / 4, about where characters of that level hunt).  It
+/	keeps its own roll against the formula, at the artifact tier's
+/	quality, which no other tier reaches.  Returns how many grew.
+/
+/************************************************************************/
+
+int Do_gear_artifact_grow(struct client_t *c)
+{
+    double q = Do_tier_quality(TIER_ARTIFACT), target;
+    struct gear_item_t was, now;
+    int i, grown = 0;
+
+    if (!c->gearLoaded) return 0;
+    for (i = 0; i < c->numGear; i++) {
+	struct gear_item_t *g = &c->gear[i];
+
+	if (g->artifact <= 0) continue;
+	target = MAX(MAX(1.0, g->circle), MAX(c->player.circle,
+		1.0 + floor(c->player.level / 4.0)));
+	target = MIN(30000.0, target);
+	if (target <= g->circle) continue;
+
+	    /* the formula at the old circle and the new, at roll 1 */
+	was = *g;
+	Do_gear_set_stats(&was, g->circle, q);
+	now = *g;
+	Do_gear_set_stats(&now, target, q);
+
+	if (was.shield >= 1) g->shield = MAX(g->shield, floor(now.shield * g->shield / was.shield));
+	else if (now.shield >= 1 && g->shield >= 1) g->shield = MAX(g->shield, now.shield);
+	if (was.sword >= 1) g->sword = MAX(g->sword, floor(now.sword * g->sword / was.sword));
+	else if (now.sword >= 1 && g->sword >= 1) g->sword = MAX(g->sword, now.sword);
+	if (was.quicksilver >= 1) g->quicksilver = MAX(g->quicksilver,
+		floor(now.quicksilver * g->quicksilver / was.quicksilver));
+	g->circle = (short) target;
+	++grown;
+    }
+    return grown;
+}

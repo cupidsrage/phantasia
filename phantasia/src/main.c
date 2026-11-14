@@ -693,6 +693,13 @@ Do_game_turn(struct client_t *c)
 	Do_send_line(c, "I would strongly advise going no further.'\n");
     }
 
+	/* artifacts grow with their bearer (level and depth) */
+    if (Do_gear_artifact_grow(c)) {
+	Do_gear_apply(c, FALSE);
+	Do_gear_save(c);
+	Do_send_line(c, "Your artifact grows in power with you.\n");
+    }
+
 	/* walking to a place chosen with Move To: take the next step (each
 	   one a move like any other, monsters and all), and land on the very
 	   spot once it's within a step.  Stop to rest below half energy. */

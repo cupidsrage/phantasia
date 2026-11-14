@@ -3756,14 +3756,21 @@ void Do_autoplay_stats(struct client_t *c)
 		Do_bag_gold_factor(c->bagSize) - 1000.0) / cs->goldtote - c->player.level);
     }
     char bag[SZ_LINE];
+    double might = Do_might(c, c->player.max_strength, c->player.sword), riskNow = 0;
+    int hunt;
 
     Do_autoplay_bag(c, bag);
-    snprintf(line, sizeof line, "%s:%.1f:%.1f:%.2f:%.1f:%.2f:%.2f:%d:%d:%d:%.0f:%.1f:%d:%.0f:%s:%d\n",
+	/* the chance a fight at its hunting circle kills it from the energy
+	   it has now (so it rests only as much as the next fight needs) */
+    hunt = Do_hunt_circle(c, might, c->player.quickness, c->player.max_energy + c->player.shield);
+    Do_fight_cost(c, hunt, might, c->player.quickness, MAX(1.0, c->player.energy), NULL, NULL, &riskNow);
+    snprintf(line, sizeof line, "%s:%.1f:%.1f:%.2f:%.1f:%.2f:%.2f:%d:%d:%d:%.0f:%.1f:%d:%.0f:%s:%d:%d:%.5f:%d:%d\n",
 	    cs->class_name, c->player.brains, c->player.level * cs->max_brains,
 	    cs->brains.increase / 2.0, Do_eff_magiclvl(c), c->player.sin,
 	    c->player.poison, c->player.amulets, c->player.charms,
 	    c->player.blind ? 1 : 0, cap, slow, Do_maxmove(c),
-	    1000.0 + c->player.level * cs->max_mana, bag, Do_books_worth(c));
+	    1000.0 + c->player.level * cs->max_mana, bag, Do_books_worth(c), hunt, riskNow,
+	    c->player.age, (int) c->player.degenerated);
     Do_send_string(c, line);
 }
 
