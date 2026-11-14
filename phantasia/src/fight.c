@@ -884,6 +884,11 @@ Do_playerhits(struct client_t *c, short *theAttack, double *theArg)
         /* see if the game is shutting down */
     Do_shutdown_check(c);
 
+	/* autoplay weighs its choices with the game's own odds */
+    if (c->autoplayOk) {
+	Do_fight_odds(c);
+    }
+
     strcpy(theButtons.button[0], "Melee\n");
     strcpy(theButtons.button[1], "Skirmish\n");
     Do_clear_buttons(&theButtons, 2);
@@ -3429,4 +3434,93 @@ Do_starting_spells(struct client_t *c)
     }
 
     return;
+}
+
+
+/************************************************************************
+/
+/ FUNCTION NAME: Do_fight_odds(struct client_t *c)
+/
+/ FUNCTION: tell autoplay the odds of this fight, from the formulas above
+/
+/ DESCRIPTION:
+/	Most rolls here are "RND() * a > RND() * b", which comes true with
+/	probability a/(2b) when a < b, else 1 - b/(2a).  Sent to accounts
+/	allowed autoplay, before each choice in a fight: the monster's
+/	energy, strength and brains, the chance it acts before the player
+/	each tick, average melee and skirmish damage, the chances of
+/	luckout and evade, and each combat spell's cost and average effect.
+/
+/************************************************************************/
+
+static double Do_odds(double a, double b)
+{
+    a = MAX(0.0, a);
+    b = MAX(0.0, b);
+    if (a <= 0.0 && b <= 0.0) return 0.5;
+    return a < b ? a / (2.0 * b) : 1.0 - b / (2.0 * a);
+}
+
+void Do_fight_odds(struct client_t *c)
+{
+    struct opponent_t *o = c->battle.opponent;
+    char line[SZ_LINE * 2], part[SZ_LINE];
+    double might, q, luck, evade, ml, top, brains = Do_eff_brains(c);
+    int special = 0;
+
+    might = c->player.strength * (1 + sqrt(c->player.sword) * N_SWORDPOWER) +
+	    c->battle.strengthSpell;
+    if (c->battle.ring_in_use) might *= 2;
+
+	/* the monster acts first this tick (next tick its speed is +1) */
+    q = Do_odds(MIN(o->speed + 1.0, o->max_speed), c->player.quickness);
+    if (o->special_type == SM_DARKLORD || o->special_type == SM_SHRIEKER ||
+	    o->special_type == SM_MIMIC) q = 0.0;
+
+    if (c->battle.tried_luckout || o->special_type == SM_MORGOTH ||
+	    o->special_type == SM_DARKLORD) luck = 0.0;
+    else if (o->special_type == SM_IT_COMBAT) luck = Do_odds(brains, o->brains * 10.0);
+    else luck = Do_odds(brains, o->brains);
+
+    if (o->special_type == SM_DARKLORD || o->special_type == SM_SHRIEKER) evade = 1.0;
+    else evade = Do_odds((c->player.quickness * 1.1 + 1) * (brains + 1) *
+	    (o->special_type == SM_IT_COMBAT ? 6 : 1),
+	    (o->speed * 1.1 + 1) * (o->brains + 1) *
+	    (o->special_type == SM_IT_COMBAT && c->wizard > 0 ? 0 : 1));
+    if (o->special_type == SM_MIMIC) evade *= 0.05;
+
+    if (o->special_type == SM_IT_COMBAT) special = 3;
+    else if (c->nemesisFight >= 0) special = 2;
+    else if (c->championFight) special = 1;
+
+    Do_send_int(c, FIGHT_PACKET);
+    sprintf(line, "%s\n%.0f\n%.0f\n%.0f\n%.3f\n%.1f\n%.1f\n%.3f\n%.3f\n%d\n%.0f\n",
+	    o->name, MAX(0.0, o->energy), o->max_energy, MAX(0.0, o->strength), q,
+	    1.15 * might, 0.88 * might, luck, evade, special, o->brains);
+    Do_send_string(c, line);
+
+	/* spells: name, mana, average damage, average healing */
+    ml = Do_eff_magiclvl(c);
+    top = c->player.max_energy + c->player.shield;
+    line[0] = '\0';
+    if (o->special_type != SM_MORGOTH) {
+#define SPELL_ODDS(lvl, nm, cost, power, heal) \
+	if (ml >= (lvl)) { \
+	    sprintf(part, "%s:%.0f:%.0f:%.0f;", nm, Do_gear_spell_cost(c, cost), \
+		    o->special_type == SM_DARKLORD ? 0.0 : \
+		    (cost) * (pow(ml, 0.40) + 1) * (power), (heal)); \
+	    if (strlen(line) + strlen(part) < sizeof line - 2) strcat(line, part); \
+	}
+	SPELL_ODDS(ML_FROST, "Frost Lance", MM_FROST + ml / 4, 1.1, 0.0)
+	SPELL_ODDS(ML_DRAIN, "Drain Life", MM_DRAIN + ml / 2, 0.9,
+		(MM_DRAIN + ml / 2) * (pow(ml, 0.40) + 1) * 0.9 / 2)
+	SPELL_ODDS(ML_FIREBALL, "Fireball", MM_FIREBALL + ml, 1.3 * 1.2, 0.0)
+	if (o->special_type != SM_IT_COMBAT) {
+	    SPELL_ODDS(ML_MENDING, "Mending Light", MM_MENDING + ml / 2, 0.0,
+		    MIN(ceil(top * 0.30), MAX(0.0, top - c->player.energy)))
+	}
+#undef SPELL_ODDS
+    }
+    strcat(line, "\n");
+    Do_send_string(c, line);
 }

@@ -367,6 +367,7 @@ const char *Do_bag_name(int size);
 double Do_bag_gold_factor(int size);
 double Do_gold_capacity(struct client_t *c);
 int Do_autoplay_allowed(struct client_t *c);
+void Do_fight_odds(struct client_t *c);
 void Do_gear_chat(struct client_t *c);
 void Do_artifacts_chat(struct client_t *c);
 

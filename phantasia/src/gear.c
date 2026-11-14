@@ -1972,7 +1972,7 @@ void Do_gear_bag_shop(struct client_t *c)
 	}
 
 	next = now + 1;
-	bagPrice = floor(bagPrice * Do_world_price_factor(c));
+	bagPrice = floor(bags[next].price * Do_world_price_factor(c));
 	sprintf(line, "The bag maker offers a %s, holding %d items, for %.0f gold. It lets you carry %g times as much gold as a belt pouch (you now carry %g times).\n",
 		bags[next].name, bags[next].size, bagPrice, bagGold[next], bagGold[now]);
 	Do_send_line(c, line);

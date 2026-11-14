@@ -20,7 +20,7 @@
     NAME: 40, LOCATION: 41, ENERGY: 42, STRENGTH: 43, SPEED: 44,
     SHIELD: 45, SWORD: 46, QUICKSILVER: 47, MANA: 48, LEVEL: 49,
     GOLD: 50, GEMS: 51, CLOAK: 52, BLESSING: 53, CROWN: 54,
-    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61, WIZARD: 62, SELECT: 63, WORLD: 64, AUTOPLAY: 65
+    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61, WIZARD: 62, SELECT: 63, WORLD: 64, AUTOPLAY: 65, FIGHT: 66
   };
 
   /* ---- client -> server ---- */
@@ -179,6 +179,7 @@
         case P.SELECT: await askSelect(); break;
         case P.WORLD: await readWorld(); break;
         case P.AUTOPLAY: auto.allow((await next()) === "1"); break;
+        case P.FIGHT: auto.odds(await readFightOdds()); break;
         default:
           if (type >= P.NAME && type <= P.VIRGIN) await updateStatus(type);
           else console.warn("Unknown packet", type);
@@ -216,12 +217,12 @@
       case P.SHIELD: $("val-shield").textContent = await next(); break;
       case P.SWORD: $("val-sword").textContent = await next(); break;
       case P.QUICKSILVER: $("val-quicksilver").textContent = await next(); break;
-      case P.MANA: $("val-mana").textContent = await next(); break;
+      case P.MANA: { var mn = await next(); $("val-mana").textContent = mn; auto.stat("mana", parseFloat(mn) || 0); break; }
       case P.LEVEL: { var lv = await next(); $("val-level").textContent = lv; auto.level(parseFloat(lv) || 0); break; }
-      case P.GOLD: $("val-gold").textContent = await next(); break;
-      case P.GEMS: $("val-gems").textContent = await next(); break;
+      case P.GOLD: { var gd = await next(); $("val-gold").textContent = gd; auto.stat("gold", parseFloat(gd) || 0); break; }
+      case P.GEMS: { var gm = await next(); $("val-gems").textContent = gm; auto.stat("gems", parseFloat(gm) || 0); break; }
       case P.CLOAK: setItem("cloak", await nextBool()); break;
-      case P.BLESSING: setItem("blessing", await nextBool()); break;
+      case P.BLESSING: { var bl = await nextBool(); setItem("blessing", bl); auto.stat("blessing", bl); break; }
       case P.CROWN: setItem("crown", await nextBool()); break;
       case P.PALANTIR: setItem("palantir", await nextBool()); break;
       case P.RING: setItem("ring", await nextBool()); break;
@@ -564,7 +565,6 @@
   }
 
   function askString(prompt, secret) {
-    auto.needsYou("a question only you can answer");
     pending = "dialog";
     showModal("Phantasia Reimagined",
       "<p>" + esc(prompt) + "</p><form id='dlg-form'><input id='dlg-input' type='" +
@@ -573,6 +573,7 @@
       [{ label: "Cancel", cancel: true, action: cancelDialog },
        { label: "OK", primary: true, action: submitString }]);
     $("dlg-form").addEventListener("submit", function (e) { e.preventDefault(); submitString(); });
+    if (!secret) setTimeout(function () { auto.dialog("string", prompt); }, 300);
   }
 
   function submitString() {
@@ -591,7 +592,6 @@
   }
 
   function askCoords(prompt) {
-    auto.needsYou("a question only you can answer");
     pending = "dialog";
     showModal("Phantasia Reimagined",
       "<p>" + esc(prompt) + "</p><form id='dlg-form'>" +
@@ -601,6 +601,7 @@
       [{ label: "Cancel", cancel: true, action: cancelDialog },
        { label: "OK", primary: true, action: submitCoords }]);
     $("dlg-form").addEventListener("submit", function (e) { e.preventDefault(); submitCoords(); });
+    setTimeout(function () { auto.dialog("coords", prompt); }, 300);
   }
 
   function submitCoords() {
@@ -612,7 +613,7 @@
   }
 
   function askPlayer(prompt) {
-    auto.needsYou("a question only you can answer");
+    auto.dialog("player", prompt);
     pending = "dialog";
     var opts = players.map(function (p) {
       return "<option>" + esc(p.name) + "</option>";
@@ -636,7 +637,7 @@
       opts += "<option value='" + i + "'>" + esc(await next()) + "</option>";
     }
     pending = "dialog";
-    auto.needsYou("a choice only you can make");
+    auto.dialog("select", prompt);
     showModal("Phantasia Reimagined",
       "<p>" + esc(prompt) + "</p><select id='dlg-select'>" + opts + "</select>",
       [{ label: "Cancel", cancel: true, action: cancelDialog },
@@ -756,7 +757,7 @@
     return WEAPONS.blade;
   }
 
-  var gearItems = [];
+  var gearItems = [], gearCapacity = 6, gearBag = "";
 
   /* equip ("e") or take off ("u") straight from the gear panel */
   function gearClick(action, it) {
@@ -793,6 +794,7 @@
       items.push(g);
     }
     gearItems = items;
+    gearCapacity = capacity; gearBag = bagName;
 
     /* the regalia: a crown, halo or seal drawn on the adventurer */
     var rl = $("d-Regalia");
@@ -891,6 +893,7 @@
     var region = await next(), state = await next(), shadow = await nextInt();
     var town = await next(), townState = await next(), night = (await next()) === "1";
     var season = await next(), call = await next();
+    auto.world(call);
     var box = $("world-status");
     var SEASON_ICON = { "Bloom": "🌸", "Harvest": "🌾", "Hunter's Moon": "🍂", "Deep Frost": "❄️" };
     box.hidden = false;
@@ -1276,6 +1279,7 @@
     });
   }
   function addChat(text) {
+    auto.chat(text);
     var log = $("chat-log");
     var p = document.createElement("p");
     var m = /^(\((\d+)\) - )?([^:]{1,48}?)( proclaims)?: (.*)$/.exec(text);
@@ -1314,251 +1318,55 @@
 
   /* ------------------------------------------------------- autoplay */
 
-  /* Lets an allowed account (the server says which) have the client play
-     for it while the player watches.  It only presses the buttons a player
-     could press: rest when hurt, hunt, fight, take upgrades, and move out
-     to tougher circles as fights get easy (and back in when they don't).
-     Anything it doesn't understand, a death, or the player pressing a
-     button themselves hands control back. */
-  var auto = (function () {
-    var SPEEDS = { slow: 1500, normal: 700, fast: 250 };
-    var COMPASS_DIR = [[-1, 1], [0, 1], [1, 1], [-1, 0], null, [1, 0], [-1, -1], [0, -1], [1, -1]];
-    var DEATH = /You died|You were killed by|beyond repair|disemboweled|You're dead|fatal blow|found you easy prey|dies of old age|died in glorious battle|You were turned into|failure -- you've died/;
-    var YES = [/frisk the body/i, /pick (them|it) up\?/i, /inspect it\?/i, /continue waiting/i];
-    var st = {
-      allowed: false, on: false, speed: "normal", timer: null,
-      x: 0, y: 0, level: 0, e: 0, emax: 1,
-      lines: [], resting: false, inFight: false, fightStartE: 0, evaded: false,
-      hits: [], target: 1, easy: 0, heading: Math.floor(Math.random() * 4), fights: 0, wins: 0, startLevel: null
-    };
-    try { st.speed = localStorage.getItem("phantasia-autoplay-speed") || "normal"; } catch (e) {}
-    if (!SPEEDS[st.speed]) st.speed = "normal";
+  /* the odds of a fight, for autoplay (see Do_fight_odds on the server) */
+  async function readFightOdds() {
+    var F = { name: await next(), energy: +(await next()), maxEnergy: +(await next()),
+      str: +(await next()), q: +(await next()), melee: +(await next()), skirmish: +(await next()),
+      luck: +(await next()), evade: +(await next()), special: +(await next()), brains: +(await next()),
+      spells: [] };
+    (await next()).split(";").forEach(function (part) {
+      var f = part.split(":");
+      if (f.length === 4) F.spells.push({ name: f[0], mana: +f[1], dmg: +f[2], heal: +f[3] });
+    });
+    return F;
+  }
 
-    function el(id) { return document.getElementById(id); }
-    function say(text, kind) {
-      var s = el("autoplay-status");
-      if (!s) return;
-      s.textContent = text;
-      s.className = "autoplay-status" + (kind ? " " + kind : "");
-    }
-    function circle() { return Math.floor(Math.hypot(st.x, st.y) / 125) + 1; }
-    function cap() { return Math.max(1, Math.floor(st.level) + 2); }
-
-    function draw() {
-      var b = el("autoplay");
-      if (!b) return;
-      b.hidden = !st.allowed;
-      el("autoplay-speed").hidden = !st.allowed || !st.on;
-      el("autoplay-status").hidden = !st.allowed;
-      b.classList.toggle("on", st.on);
-      b.textContent = st.on ? "Stop autoplay" : "Autoplay";
-      el("autoplay-speed").value = st.speed;
-    }
-
-    function start() {
-      if (!st.allowed) return;
-      st.on = true;
-      st.target = Math.min(circle(), cap());
-      st.easy = 0;
-      if (st.startLevel === null) st.startLevel = st.level;
-      draw();
-      say("Autoplay is on: watching for the next choice.", "on");
-      if (pending === "buttons") schedule();
-    }
-    function stop(why, kind) {
-      st.on = false;
-      cancelPress();
-      draw();
-      if (why) say(why, kind || "");
-    }
-    function cancelPress() { if (st.timer) { clearTimeout(st.timer); st.timer = null; } }
-
-    var lastLabels = [], lastCompass = false;
-    function schedule() {
-      cancelPress();
-      st.timer = setTimeout(function () { st.timer = null; act(); }, SPEEDS[st.speed]);
-    }
-
-    /* press server button i (0-7) or compass k (0-8) */
-    function press(i) {
+  /* autoplay.js plays for the accounts the server allows; these are the
+     few things it may do: what a player could do with this screen */
+  var autoPressing = false;
+  var auto = (window.PhantasiaAutoplay || function () {
+    var none = function () { return false; };
+    return { allow: none, at: none, level: none, bar: none, stat: none, world: none, line: none,
+      chat: none, buttons: none, dialog: none, odds: none, userTook: none, cancelPress: none, toggle: none,
+      setSpeed: none, pressing: false };
+  })({
+    pending: function () { return pending; },
+    isPressing: function () { return autoPressing; },
+    press: function (i) {
       if (pending !== "buttons") return;
-      api.pressing = true;
-      try {
-        for (var d = 0; d < 8; d++) if (slotServer[d] === i) { clickAction(d); return; }
-      } finally { api.pressing = false; }
-    }
-    function pressCompass(k) {
-      if (pending !== "buttons" || !lastCompass) return;
-      api.pressing = true;
-      try { clickCompass(k); } finally { api.pressing = false; }
-    }
-
-    function recent(n) { return st.lines.slice(-n).join("\n"); }
-    /* the hardest hit taken lately (at least a tenth of full energy) */
-    function maxHit() { return Math.max(st.emax * 0.1, Math.max.apply(null, st.hits.concat([0]))); }
-
-    /* a piece of gear's worth, from "+12 energy, +5 damage, +2 quicksilver" */
-    function worth(line) {
-      if (!line) return 0;
-      var v = 0, m;
-      if ((m = /\+(\d+) energy/.exec(line))) v += +m[1];
-      if ((m = /\+(\d+) damage/.exec(line))) v += 2 * m[1];
-      if ((m = /\+(\d+) quicksilver/.exec(line))) v += 3 * m[1];
-      if (/ - /.test(line)) v *= 1.15;          /* it has an ability */
-      return v;
-    }
-    function after(label) {
-      for (var i = st.lines.length - 2; i >= 0; i--) if (st.lines[i] === label) return st.lines[i + 1];
-      return "";
-    }
-
-    /* the compass step that best heads (dx, dy) */
-    function stepToward(dx, dy) {
-      var best = -1, bestDot = -Infinity, len = Math.hypot(dx, dy) || 1;
-      COMPASS_DIR.forEach(function (d, k) {
-        if (!d) return;
-        var dot = (d[0] * dx + d[1] * dy) / (len * Math.hypot(d[0], d[1]));
-        if (dot > bestDot) { bestDot = dot; best = k; }
-      });
-      return best;
-    }
-    function outward() {
-      if (Math.hypot(st.x, st.y) < 1) return [[1, 7, 3, 5][st.heading]];
-      return [stepToward(st.x, st.y)];
-    }
-
-    function fightOver() {
-      st.inFight = false;
-      st.fights++;
-      var lost = (st.fightStartE - st.e) / st.emax, left = st.e / st.emax;
-      if (lost > 0.45 || left < 0.3) {
-        st.target = Math.max(1, Math.min(st.target, circle()) - 1);
-        st.easy = 0;
-      } else if (lost < 0.15 && left > 0.75) {
-        if (++st.easy >= 4) { st.target = Math.min(cap(), st.target + 1); st.easy = 0; }
-      } else st.easy = 0;
-    }
-
-    function act() {
-      if (!st.on || pending !== "buttons") return;
-      var L = lastLabels, has = function (s) { return L.indexOf(s); };
-      var e = st.e / st.emax, text = recent(6);
-
-      /* main menu */
-      if (has("Rest") >= 0 && has("Info") >= 0 && (has("Hunt") >= 0 || has("Enter Post") >= 0 || has("Move To") >= 0)) {
-        if (st.inFight) fightOver();
-        /* hunt only near full: a second monster can follow the first */
-        if (e < 0.85 || st.e < 3 * maxHit()) st.resting = true;
-        if (st.resting && e >= 0.98) st.resting = false;
-        if (st.resting) { say("Resting: energy " + Math.round(e * 100) + "%.", "on"); return press(has("Rest")); }
-        var c = circle();
-        if (lastCompass && c < st.target) {
-          say("Heading out to circle " + st.target + " (now " + c + ").", "on");
-          return pressCompass(outward()[0]);
-        }
-        if (lastCompass && c > st.target) {
-          say("Pulling back toward circle " + st.target + " (now " + c + ").", "on");
-          return pressCompass(stepToward(-st.x, -st.y));
-        }
-        if (has("Hunt") >= 0) {
-          say("Hunting in circle " + c + ". Fights " + st.fights + ", levels gained " +
-            Math.max(0, Math.floor(st.level - (st.startLevel || 0))) + ".", "on");
-          return press(has("Hunt"));
-        }
-        /* standing on a trading post (no Hunt here): step off it */
-        if (lastCompass) { st.heading = (st.heading + 1) % 4; return pressCompass([1, 5, 7, 3][st.heading]); }
-        return stop("Autoplay stopped: it can't hunt here.");
-      }
-
-      /* a fight */
-      if (has("Melee") >= 0) {
-        if (!st.inFight) { st.inFight = true; st.fightStartE = st.e; st.evaded = false; st.lucked = false; }
-        /* in danger when the next couple of hits could finish us */
-        var danger = st.e < 2.2 * maxHit() || e < 0.25;
-        /* champions and nemeses hit far harder: slip away from them */
-        if (/champion of the realm bars|nemesis/i.test(recent(4))) danger = true;
-        if (danger && has("Evade") >= 0 && !st.evaded) {
-          st.evaded = true;
-          say("Badly hurt: trying to get away.", "warn");
-          return press(has("Evade"));
-        }
-        if (danger && has("Luckout") >= 0 && !st.lucked) {
-          st.lucked = true;
-          say("Badly hurt: trying my luck.", "warn");
-          return press(has("Luckout"));
-        }
-        say("Fighting: energy " + Math.round(e * 100) + "%.", "on");
-        return press(has("Melee"));
-      }
-
-      /* a found piece of gear */
-      if (has("Leave") >= 0 || has("Refuse") >= 0) {
-        if (has("Equip") >= 0 || has("Stow") >= 0 || has("Swap") >= 0) {
-          var found = after("You found:"), worn = /You are wearing:/.test(recent(8)) ? after("You are wearing:") : "";
-          var artifact = has("Refuse") >= 0;
-          var better = !worn || worth(found) > worth(worn) || artifact;
-          if (better && has("Equip") >= 0) { say("Wearing an upgrade.", "on"); return press(has("Equip")); }
-          if (better && has("Swap") >= 0) { say("Swapping in an upgrade.", "on"); return press(has("Swap")); }
-          if (artifact && has("Stow") >= 0) return press(has("Stow"));
-          say("Leaving gear that isn't better.", "on");
-          return press(has("Leave"));
-        }
-      }
-
-      /* Wayland Smith improves a piece of equipment */
-      if (/Wayland Smith offers/.test(text)) {
-        var pick = ["Weapon", "Armor", "Boots"].map(has).filter(function (i) { return i >= 0; })[0];
-        if (pick !== undefined) return press(pick);
-      }
-
-      /* treasure: gold and gems */
-      if (has("Yes") >= 0 && has("No to All") >= 0) return press(has("Yes"));
-
-      /* a yes or no question */
-      if (has("Yes") >= 0 && has("No") >= 0 && L.filter(Boolean).length === 2) {
-        if (/continue playing/i.test(text)) return stop("Autoplay stopped: your character's turn is over.", "warn");
-        var q = text.split("\n").slice(-3).join(" ");
-        return press(YES.some(function (r) { return r.test(q); }) ? has("Yes") : has("No"));
-      }
-
-      /* "More" to carry on */
-      if (has("More") >= 0 && L.filter(Boolean).length === 1) return press(has("More"));
-
-      stop("Autoplay paused: this choice needs you (" + L.filter(Boolean).join(", ") + ").", "warn");
-    }
-
-    var api = {
-      pressing: false,
-      allow: function (yes) { st.allowed = yes; if (!yes) stop(); draw(); if (yes) say("Autoplay is ready."); },
-      at: function (x, y) { st.x = x; st.y = y; },
-      level: function (lv) { st.level = lv; },
-      bar: function (which, v, max) { if (which === "energy") { st.e = v; st.emax = max || 1; } },
-      line: function (text) {
-        if (text === "" || text == null) return;
-        st.lines.push(text);
-        if (st.lines.length > 40) st.lines.shift();
-        var hm = /hit you for (\d+)/.exec(text);
-        if (hm) { st.hits.push(+hm[1]); if (st.hits.length > 12) st.hits.shift(); }
-        /* a new monster: a fresh chance to flee from it */
-        if (/(attacked by|attacks|find and attack)/.test(text) && /Size:/.test(text)) { st.evaded = false; st.lucked = false; }
-        if (st.on && DEATH.test(text)) stop("Autoplay stopped: your character died.", "warn");
-      },
-      buttons: function (labels, compass) {
-        lastLabels = labels; lastCompass = compass;
-        if (st.on) schedule();
-      },
-      userTook: function () { if (st.on) stop("Autoplay stopped: you took over."); },
-      needsYou: function (what) { if (st.on) stop("Autoplay paused: " + what + ".", "warn"); },
-      cancelPress: cancelPress,
-      toggle: function () { if (st.on) stop("Autoplay is off."); else start(); },
-      setSpeed: function (s) {
-        if (!SPEEDS[s]) return;
-        st.speed = s;
-        try { localStorage.setItem("phantasia-autoplay-speed", s); } catch (e) {}
-      }
-    };
-    return api;
-  })();
+      autoPressing = true;
+      try { for (var d = 0; d < 8; d++) if (slotServer[d] === i) { clickAction(d); return; } }
+      finally { autoPressing = false; }
+    },
+    compass: function (k) {
+      if (pending !== "buttons") return;
+      autoPressing = true;
+      try { clickCompass(k); } finally { autoPressing = false; }
+    },
+    answerString: function (v) {
+      if (pending !== "dialog" || !$("dlg-input")) return;
+      $("dlg-input").value = v;
+      submitString();
+    },
+    answerCoords: function (x, y) {
+      if (pending !== "dialog" || !$("dlg-x")) return;
+      $("dlg-x").value = x; $("dlg-y").value = y;
+      submitCoords();
+    },
+    gear: function () { return { items: gearItems, capacity: gearCapacity, bag: gearBag }; },
+    wear: function (it) { gearClick("e", it); },
+    chat: function (text) { send(C.CHAT + text + "\0"); }
+  });
 
   /* ------------------------------------------------------- misc UI */
 

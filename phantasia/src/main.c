@@ -581,7 +581,8 @@ Do_play_loop(struct client_t *c)
     struct event_t *event_ptr;
 
 	/* let an allowed account's browser offer its autoplay switch */
-    if (c->isBrowser && Do_autoplay_allowed(c)) {
+    c->autoplayOk = c->isBrowser && Do_autoplay_allowed(c);
+    if (c->autoplayOk) {
 	Do_send_int(c, AUTOPLAY_PACKET);
 	Do_send_string(c, "1\n");
     }
