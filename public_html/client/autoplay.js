@@ -59,6 +59,59 @@ window.PhantasiaAutoplay = function (host) {
   try { st.speed = localStorage.getItem("phantasia-autoplay-speed") || "normal"; } catch (e) {}
   if (!SPEEDS[st.speed]) st.speed = "normal";
 
+  /* ------------------------------------------------------------ the record */
+
+  /* Everything that happens while autoplay runs, for studying how it plays:
+     each choice with the numbers behind it, and every line the game shows.
+     Kept in this browser (the newest 20000 entries), saved with "Save log",
+     and sent to the website when the character dies (which commits it to
+     GitHub when the server is set up for it). */
+  var REC_KEY = "phantasia-autoplay-record", REC_MAX = 20000;
+  var rec = [];
+  try { rec = JSON.parse(localStorage.getItem(REC_KEY) || "[]") || []; } catch (e) { rec = []; }
+  var recDirty = false;
+  function record(entry) {
+    entry.t = Date.now();
+    rec.push(entry);
+    if (rec.length > REC_MAX) rec.splice(0, rec.length - REC_MAX);
+    recDirty = true;
+  }
+  setInterval(function () {
+    if (!recDirty) return;
+    recDirty = false;
+    try { localStorage.setItem(REC_KEY, JSON.stringify(rec)); }
+    catch (e) { rec.splice(0, Math.floor(rec.length / 3)); }
+  }, 5000);
+  function snapshot() {
+    return { lv: st.level, e: Math.round(st.e), emax: st.emax, x: st.x, y: st.y, c: circle(),
+      gold: Math.floor(st.gold), gems: st.gems, mana: Math.floor(st.mana), target: st.target, cap: cap() };
+  }
+  function summary() {
+    return { character: host.name(), level: st.level, startLevel: st.startLevel, fights: st.fights,
+      kills: st.kills, minutes: st.startedAt ? Math.round((Date.now() - st.startedAt) / 60000) : 0 };
+  }
+  function sessionLog() {
+    for (var i = rec.length - 1; i >= 0; i--) if (rec[i].k === "start") return rec.slice(i);
+    return rec.slice();
+  }
+  function sendRecord(reason) {
+    if (!st.key || !window.fetch) return;
+    record({ k: "send", reason: reason });
+    fetch("/api/autoplay/report", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: st.key, character: host.name(), reason: reason, summary: summary(), log: sessionLog() }) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { say("Record " + (j && j.result ? j.result : "sent") + ".", "warn"); })
+      .catch(function () {});
+  }
+  function saveRecord() {
+    var blob = new Blob([sessionLog().map(function (e) { return JSON.stringify(e); }).join("\n") + "\n"], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "autoplay-" + (host.name() || "record") + "-" + new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-") + ".jsonl";
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+
   /* ------------------------------------------------------------ helpers */
 
   function el(id) { return document.getElementById(id); }
@@ -150,9 +203,11 @@ window.PhantasiaAutoplay = function (host) {
   }
 
   /* trading posts: the diagonals at 100n^2, the main roads at the same distance */
-  function nearestPost() {
+  /* A post's stock grows with its rank: rank 1 sells mana and armor,
+     rank 2 adds books, rank 3 amulets, and so on (Do_trading_post). */
+  function nearestPost(minRank) {
     var best = null, now = Date.now();
-    for (var n = 1; n <= 40; n++) {
+    for (var n = minRank || 1; n <= 40; n++) {
       var d = 100 * n * n, a = Math.round(d * Math.SQRT2);
       [[d, d], [-d, d], [d, -d], [-d, -d], [a, 0], [-a, 0], [0, a], [0, -a]].forEach(function (p) {
         if ((st.badPosts[p[0] + "," + p[1]] || 0) > now) return;
@@ -199,10 +254,22 @@ window.PhantasiaAutoplay = function (host) {
   function press(i) {
     if (i < 0) return;
     trace.push(lastLabels.filter(Boolean).join("|") + " -> " + lastLabels[i]);
+    var entry = snapshot();
+    entry.k = "do"; entry.menu = lastLabels.filter(Boolean).join("|"); entry.pick = lastLabels[i];
+    entry.why = (el("autoplay-status") || {}).textContent || "";
+    if (st.lastOdds) { entry.odds = st.lastOdds; st.lastOdds = null; }
+    record(entry);
     if (trace.length > 60) trace.shift();
     host.press(i);
   }
-  function pressCompass(k) { if (lastCompass) host.compass(k); }
+  function pressCompass(k) {
+    if (!lastCompass) return;
+    var entry = snapshot();
+    entry.k = "move"; entry.dir = ["NW", "N", "NE", "W", "Rest", "E", "SW", "S", "SE"][k];
+    entry.why = (el("autoplay-status") || {}).textContent || "";
+    record(entry);
+    host.compass(k);
+  }
 
   /* ------------------------------------------------------- the plan */
 
@@ -259,7 +326,10 @@ window.PhantasiaAutoplay = function (host) {
   }
 
   function startTrip() {
-    var p = nearestPost();
+    /* books need a rank 2 post (about circle 5): go to one when we can
+       safely hunt that far out */
+    var bookRank = booksWanted(100) > 0 && cap() >= circleAt(400, 400) ? 2 : 1;
+    var p = nearestPost(bookRank);
     if (!p) return false;
     /* only when the walk is reasonable */
     var steps = p.d / maxMove();
@@ -272,13 +342,14 @@ window.PhantasiaAutoplay = function (host) {
   function planVisit() {
     var tasks = [], nb = nextBag();
     if (st.gems > 0 && nb && st.gold < nb[1] + reserve()) tasks.push("gems");
+    tasks.push("books");
     if (nb) tasks.push("bag");
     tasks.push("armory");
     if (st.level >= 3 && st.amulets < 3) tasks.push("amulets");
     if (Object.keys(st.spells).length) tasks.push("mana");
     if (!st.blessed) tasks.push("blessing");
     tasks.push("donate");
-    st.visit = { tasks: tasks, items: [] };
+    st.visit = { tasks: tasks, items: [], spent: 0 };
     st.lastShopFight = st.fights;
   }
 
@@ -290,6 +361,9 @@ window.PhantasiaAutoplay = function (host) {
       switch (t) {
         case "gems":
           if (st.gems > 0) { say("Selling gems.", "on"); st.plan = ["Sell Gems"]; return true; }
+          break;
+        case "books":
+          if (booksWanted(100) > 0) { say("Buying books for brains (luckout and evade).", "on"); st.plan = ["Purchase", orCancel("Book")]; return true; }
           break;
         case "bag":
           nb = nextBag();
@@ -321,6 +395,20 @@ window.PhantasiaAutoplay = function (host) {
       }
     }
     return false;
+  }
+
+  /* Books (Do_book): each adds half the class's brains increase until
+     brains reach level x the class's cap, then far less, so buy up to the
+     cap.  Below level 20 a visit's purchases over level x 350 + 150 gold
+     risk being taken for a thief (with chance 1 - that / spent): stay at
+     or under it and the risk is nil. */
+  function booksWanted(price) {
+    var b = st.brainsInfo;
+    if (!b || b.perBook <= 0 || b.brains >= b.cap) return 0;
+    var need = Math.ceil((b.cap - b.brains) / b.perBook);
+    var afford = Math.floor((st.gold - reserve()) / price);
+    var safe = st.level < 20 ? Math.floor((st.level * 350 + 150 - ((st.visit && st.visit.spent) || 0)) / price) : Infinity;
+    return Math.max(0, Math.min(need, afford, safe));
   }
 
   /* press label if this shop sells it, else back out */
@@ -715,14 +803,20 @@ window.PhantasiaAutoplay = function (host) {
     }
     if ((m = /Mana is one per (\d+(?:\.\d+)?) gold piece.*\((\d+) max\)/.exec(prompt))) {
       v = Math.max(0, Math.min(+m[2], manaWanted() - st.mana, Math.floor((st.gold - reserve()) / +m[1])));
+      if (st.visit) st.visit.spent += Math.floor(v) * +m[1];
       host.answerString(String(Math.floor(v))); return true;
     }
     if ((m = /An amulet costs (\d+) gp.*\((\d+) max\)/.exec(prompt))) {
       v = Math.max(0, Math.min(+m[2], 3 - st.amulets, Math.floor((st.gold - reserve()) / +m[1])));
       st.amulets += v;
+      if (st.visit) st.visit.spent += v * +m[1];
       host.answerString(String(v)); return true;
     }
-    if (/A book costs/.test(prompt)) { host.answerString("0"); return true; }
+    if ((m = /A book costs (\d+) gp.*\((\d+) max\)/.exec(prompt))) {
+      v = Math.min(+m[2], booksWanted(+m[1]));
+      if (st.visit) st.visit.spent += v * +m[1];
+      host.answerString(String(v)); return true;
+    }
     if ((m = /A gem is worth (\d+) gp.*\((\d+) max\)/.exec(prompt))) {
       var nb = nextBag(), need = nb ? Math.ceil((nb[1] + reserve() - st.gold) / +m[1]) : 0;
       v = Math.max(0, Math.min(+m[2], Math.floor(st.level * st.level + 1), need));
@@ -750,6 +844,7 @@ window.PhantasiaAutoplay = function (host) {
     b.classList.toggle("on", st.on);
     b.textContent = st.on ? "Stop autoplay" : "Autoplay";
     el("autoplay-speed").value = st.speed;
+    if (el("autoplay-save")) el("autoplay-save").hidden = !st.allowed;
   }
   function start() {
     if (!st.allowed) return;
@@ -757,12 +852,15 @@ window.PhantasiaAutoplay = function (host) {
     st.target = Math.min(circle(), cap());
     st.easy = 0; st.plan = []; st.unknown = 0; st.trip = null;
     if (st.startLevel === null) st.startLevel = st.level;
+    if (!st.startedAt) st.startedAt = Date.now();
+    var s0 = snapshot(); s0.k = "start"; s0.character = host.name(); s0.speed = st.speed; record(s0);
     draw();
     say("Autoplay is on.", "on");
     if (!st.quest) host.chat("/quest");
     if (host.pending() === "buttons") schedule();
   }
   function stop(why, kind) {
+    if (st.on) record({ k: "stop", why: why || "" });
     st.on = false; st.plan = []; st.trip = null; st.visit = null;
     cancelPress();
     draw();
@@ -775,7 +873,7 @@ window.PhantasiaAutoplay = function (host) {
   }
 
   return {
-    allow: function (yes) { st.allowed = yes; if (!yes) stop(); draw(); if (yes) say("Autoplay is ready."); },
+    allow: function (yes, key) { st.allowed = yes; st.key = key || ""; if (!yes) stop(); draw(); if (yes) say("Autoplay is ready."); },
     at: function (x, y) { st.x = x; st.y = y; },
     level: function (lv) { st.level = lv; },
     bar: function (which, v, max) {
@@ -795,6 +893,7 @@ window.PhantasiaAutoplay = function (host) {
     },
     line: function (text) {
       if (text === "" || text == null) return;
+      if (st.on) record({ k: "line", s: text });
       st.lines.push(text);
       if (st.lines.length > 60) st.lines.shift();
       var hm = /hit you for (\d+)/.exec(text);
@@ -814,28 +913,39 @@ window.PhantasiaAutoplay = function (host) {
         st.badPosts[st.atPost.x + "," + st.atPost.y] = Date.now() + 30 * 60 * 1000;
         st.visit = null;
       }
-      if (st.on && DEATH.test(text)) stop("Autoplay stopped: your character died.", "warn");
+      if (st.on && DEATH.test(text)) {
+        var d = snapshot(); d.k = "death"; d.s = text; record(d);
+        stop("Autoplay stopped: your character died.", "warn");
+        sendRecord("death");
+      }
     },
     chat: function (text) {
+      if (st.on && text) record({ k: "chat", s: text });
       var m = /Today's quest: (.*)/.exec(text || "");
       if (!m) return;
       var r = /Journey to circle (\d+)/.exec(m[1]);
       st.quest = { text: m[1], reach: r ? +r[1] : 0, done: /complete!/.test(m[1]) };
     },
+    brains: function (b) { st.brainsInfo = b; },
     circles: function (list) { st.circles = window.PhantasiaAutoplayCircles = list; if (st.target > cap()) st.target = cap(); },
-    odds: function (F) { st.odds = F; F.spells.forEach(function (sp) { st.spells[sp.name] = true; }); F.spellsFromServer = true; },
+    odds: function (F) {
+      st.lastOdds = { m: F.name, me: F.energy, ms: F.str, q: F.q, melee: F.melee, luck: F.luck, ev: F.evade,
+        br: F.brains, fl: F.flock, xp: F.exp, sp: F.special };
+      st.odds = F; F.spells.forEach(function (sp) { st.spells[sp.name] = true; }); F.spellsFromServer = true; },
     buttons: function (labels, compass) {
       lastLabels = labels; lastCompass = compass;
       if (st.on) schedule();
     },
     dialog: function (kind, prompt) {
       if (!st.on) return false;
+      record({ k: "ask", kind: kind, s: prompt });
       if (answerDialog(kind, prompt)) return true;
       stop("Autoplay paused: a question only you can answer.", "warn");
       return false;
     },
     userTook: function () { if (st.on) stop("Autoplay stopped: you took over."); },
     cancelPress: cancelPress,
+    save: saveRecord,
     toggle: function () { if (st.on) stop("Autoplay is off."); else start(); },
     setSpeed: function (s) {
       if (!SPEEDS[s]) return;

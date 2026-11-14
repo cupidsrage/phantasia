@@ -3544,7 +3544,8 @@ void Do_fight_odds(struct client_t *c)
 /	(strength + 1)/2 per blow of ours.  Per circle (1 to 50) it sends
 /	the average energy a fight costs, the share of monsters that would
 /	cost more than 60% of full energy, and the average experience,
-/	a line each (a message must fit the 1024-byte output buffer).
+/	a line each (a message must fit the 1024-byte output buffer), then
+/	a line for books: brains, the brains cap and what a book adds.
 /	Only sent when the character's stats have changed.
 /
 /************************************************************************/
@@ -3580,7 +3581,8 @@ void Do_autoplay_circles(struct client_t *c)
     quick = MAX(0.0, c->player.quickness);
     top = c->player.max_energy + c->player.shield;
 
-    key = might * 7.0 + quick * 131.0 + top * 0.37 + c->player.level;
+    key = might * 7.0 + quick * 131.0 + top * 0.37 + c->player.level +
+	    c->player.brains * 0.013;
     if (key == c->circlesSent) return;
     c->circlesSent = key;
 
@@ -3614,4 +3616,11 @@ void Do_autoplay_circles(struct client_t *c)
 	sprintf(part, "%.0f:%.0f:%.3f:%.0f\n", cost[i][0], cost[i][1], cost[i][2], cost[i][3]);
 	Do_send_string(c, part);
     }
+
+	/* and for books (Do_book): brains now, the level x class cap past
+	   which books give little, and what one book adds below it */
+    sprintf(part, "%.1f:%.1f:%.2f\n", c->player.brains,
+	    c->player.level * c->realm->charstats[c->player.type].max_brains,
+	    c->realm->charstats[c->player.type].brains.increase / 2.0);
+    Do_send_string(c, part);
 }

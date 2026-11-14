@@ -8,7 +8,8 @@ server's TCP port.  Uses only the Python standard library.
     server.py --port 8080 --dir /app/public_html --game-port 43302
 
 /api/artifacts returns who holds each one-of-a-kind artifact, for the
-website's Legends page; /api/world the state of the living realm; /api/event the world event under way, for the
+website's Legends page; /api/world the state of the living realm; POST /api/autoplay/report takes an
+autoplay record (sent on a death) and commits it to GitHub; /api/event the world event under way, for the
 event banner on the website.
 
 The bridge performs the game's connection handshake itself, sending the
@@ -287,6 +288,121 @@ def world_state(data_dir):
         return {}
 
 
+# ---------------------------------------------------------------- autoplay records
+
+MAX_RECORD = 6 * 1024 * 1024
+LOG_BRANCH_DEFAULT = "autoplay-logs"
+recent_reports = {}
+
+
+def autoplay_key_owner(data_dir, key):
+    """The account and character a session's autoplay key was given to
+    (the game lists each in data/autoplay-keys), or None."""
+    if not key or len(key) != 32 or not all(ch in "0123456789abcdef" for ch in key):
+        return None
+    try:
+        with open(os.path.join(data_dir, "autoplay-keys"), encoding="latin-1") as f:
+            for line in f:
+                parts = line.split()
+                if len(parts) >= 3 and parts[0] == key:
+                    return parts[1], parts[2]
+    except OSError:
+        pass
+    return None
+
+
+def github_request(method, url, token, body=None):
+    import urllib.request
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(url, data=data, method=method, headers={
+        "Authorization": "Bearer " + token,
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "phantasia-autoplay-records",
+        "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.loads(r.read() or b"{}")
+
+
+def push_record(path, content):
+    """Commit an autoplay record to the log branch of PHANTASIA_LOG_REPO
+    with PHANTASIA_GITHUB_TOKEN (the branch is made from the default
+    branch the first time).  Returns where it went, or why not."""
+    import urllib.error
+    token = os.environ.get("PHANTASIA_GITHUB_TOKEN", "")
+    repo = os.environ.get("PHANTASIA_LOG_REPO", "")
+    branch = os.environ.get("PHANTASIA_LOG_BRANCH", LOG_BRANCH_DEFAULT)
+    if not token or not repo:
+        return "not sent: PHANTASIA_GITHUB_TOKEN and PHANTASIA_LOG_REPO are not set"
+    api = "https://api.github.com/repos/" + repo
+    try:
+        try:
+            github_request("GET", api + "/git/ref/heads/" + urllib.parse.quote(branch), token)
+        except urllib.error.HTTPError as e:
+            if e.code != 404:
+                raise
+            info = github_request("GET", api, token)
+            head = github_request("GET", api + "/git/ref/heads/" + info["default_branch"], token)
+            github_request("POST", api + "/git/refs", token,
+                           {"ref": "refs/heads/" + branch, "sha": head["object"]["sha"]})
+        github_request("PUT", api + "/contents/" + urllib.parse.quote(path), token, {
+            "message": "Autoplay record: " + path.split("/")[-1],
+            "content": base64.b64encode(content).decode(),
+            "branch": branch})
+        return "sent to %s on %s" % (path, branch)
+    except Exception as e:                      # report, don't crash
+        return "not sent: %r" % e
+
+
+async def autoplay_report(reader, writer, headers, data_dir):
+    """POST /api/autoplay/report: a character's autoplay record (sent when
+    it dies).  Kept in data/autoplay-logs, and committed to GitHub when a
+    token is configured."""
+    try:
+        length = int(headers.get("content-length", "0"))
+    except ValueError:
+        length = 0
+    if length <= 0 or length > MAX_RECORD:
+        await send_simple(writer, 413, "Too Large")
+        return
+    body = await asyncio.wait_for(reader.readexactly(length), 60)
+    try:
+        report = json.loads(body)
+    except ValueError:
+        await send_simple(writer, 400, "Bad Request")
+        return
+    owner = autoplay_key_owner(data_dir, str(report.get("key", "")))
+    if not owner:
+        await send_simple(writer, 403, "Forbidden")
+        return
+    now = time.time()
+    if now - recent_reports.get(report.get("key"), 0) < 30:
+        await send_simple(writer, 429, "Too Many Requests")
+        return
+    recent_reports[report.get("key")] = now
+
+    character = "".join(ch for ch in str(report.get("character", owner[1])).lower()
+                        if ch.isalnum())[:24] or "unknown"
+    reason = "".join(ch for ch in str(report.get("reason", "record")).lower() if ch.isalnum())[:16]
+    stamp = time.strftime("%Y-%m-%d/%H%M%S", time.gmtime(now))
+    path = "autoplay-logs/%s-%s-%s.jsonl" % (stamp, character, reason or "record")
+    lines = [json.dumps({"account": owner[0], "character": character, "reason": reason,
+                         "summary": report.get("summary", {}), "at": int(now)})]
+    for entry in report.get("log", [])[:50000]:
+        lines.append(json.dumps(entry, separators=(",", ":")))
+    content = ("\n".join(lines) + "\n").encode()
+
+    local = os.path.join(data_dir, path)
+    try:
+        os.makedirs(os.path.dirname(local), exist_ok=True)
+        with open(local, "wb") as f:
+            f.write(content)
+    except OSError:
+        pass
+    result = await asyncio.to_thread(push_record, path, content)
+    log("autoplay record for %s: %s" % (character, result))
+    await send_json(writer, {"ok": True, "result": result})
+
+
 async def send_json(writer, data):
     body = json.dumps(data).encode()
     writer.write(response_head(200, "OK", [
@@ -312,6 +428,8 @@ async def handle(reader, writer, args):
             await send_json(writer, world_event(args.data_dir))
         elif path == "/api/world":
             await send_json(writer, world_state(args.data_dir))
+        elif path == "/api/autoplay/report" and method == "POST":
+            await autoplay_report(reader, writer, headers, args.data_dir)
         elif method in ("GET", "HEAD"):
             await serve_file(writer, method, target, args.dir)
         else:

@@ -44,6 +44,7 @@
 #define PROTECTED_FILE		PHANTASIA_DIR "/data/protected"
 #define SHOPITEMS_FILE		PHANTASIA_DIR "/data/shopitems"
 #define WIZARD_FILE		PHANTASIA_DIR "/data/wizards"
+#define AUTOPLAY_KEY_FILE	PHANTASIA_DIR "/data/autoplay-keys"
 
 /* Data Files */
 #define ACCOUNT_FILE		PHANTASIA_DIR "/data/account"
