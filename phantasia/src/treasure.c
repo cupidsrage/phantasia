@@ -652,6 +652,10 @@ Do_treasure(struct client_t *c, struct event_t *the_event)
                         Do_send_line(c,
    "You release Gwaihir and he offers you a ride.  Do you wish to go anywhere?\n");
 
+			/* sometimes one of his kin stays with you */
+                        Do_mount_eagle_chance(c, 0.15,
+				"One of Gwaihir's kin stays behind to serve you.");
+
                         if (Do_yes_no(c, &theAnswer) != S_NORM || theAnswer ==
 				1) {
 

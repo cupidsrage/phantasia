@@ -979,6 +979,7 @@ Do_handle_event(struct client_t *c, struct event_t *the_event)
     case REST_EVENT:
 
 	Do_rest(c);
+	Do_mount_on_rest(c);
 	break;
 
     case INFORMATION_EVENT:

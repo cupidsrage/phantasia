@@ -883,6 +883,9 @@ int Do_chat_command(struct client_t *c, char *text)
     else if (strncasecmp(text, "/deedtest", 9) == 0) {
 	Do_deeds_test(c);
     }
+    else if (strncasecmp(text, "/mounttest", 10) == 0) {
+	Do_mount_test(c, text + 11);
+    }
     else if (strncasecmp(text, "/worldtest", 10) == 0) {
 	Do_world_test(c, text + 11);
     }
@@ -906,6 +909,9 @@ int Do_chat_command(struct client_t *c, char *text)
     }
     else if (strncasecmp(text, "/war", 4) == 0) {
 	Do_world_war_chat(c);
+    }
+    else if (strncasecmp(text, "/mount", 6) == 0) {
+	Do_mount_chat(c);
     }
     else if (strncasecmp(text, "/deeds", 6) == 0) {
 	Do_deeds_chat(c);
@@ -938,6 +944,7 @@ int Do_chat_command(struct client_t *c, char *text)
 	Do_send_chat_self(c, "/filter - turn the chat filter on or off\n");
 	Do_send_chat_self(c, "/court - who rules, the royal coffers and the Valar's blessing\n");
 	Do_send_chat_self(c, "/deeds - your account's deeds and the bonuses they give all your characters\n");
+	Do_send_chat_self(c, "/mount - the mount you ride: its stamina, food and health\n");
 	Do_send_chat_self(c, "/realm - the state of the realm: regions, towns, the season, projects and nemeses\n");
 	Do_send_chat_self(c, "/war - the War of the Seasons: the realm projects, your part, and the bonus at stake\n");
 	Do_send_chat_self(c, "/muster - the Banner's bearer calls the realm to arms (once a day)\n");

@@ -596,6 +596,7 @@ Do_play_loop(struct client_t *c)
 
 	    /* age the player */
 	Do_age(c);
+	Do_mount_turn(c);
 
 	    /* if there are events to handle */
 	if (c->events != NULL) {
@@ -723,11 +724,6 @@ Do_game_turn(struct client_t *c)
 	}
 	else {
 	    double step = Do_maxmove(c);
-
-		/* Gwaihir's Feather: one flight, however far */
-	    if (Do_gear_ability(c, AB_EAGLEFLIGHT) > 0) {
-		step = 1e9;
-	    }
 
 	    event_ptr = (struct event_t *) Do_create_event();
 	    event_ptr->to = c->game;
@@ -933,9 +929,8 @@ do nothing
         Do_distance(c->player.x, event_ptr->arg1, c->player.y,
 		event_ptr->arg2, &dtemp);
 
-	    /* farther than a step: walk there, a step each turn (Gwaihir's
-	       Feather flies there at once) */
-        if (dtemp > Do_maxmove(c) && Do_gear_ability(c, AB_EAGLEFLIGHT) <= 0) {
+	    /* farther than a step: walk there, a step each turn */
+        if (dtemp > Do_maxmove(c)) {
 	    c->walking = TRUE;
 	    c->walkX = event_ptr->arg1;
 	    c->walkY = event_ptr->arg2;
@@ -1147,7 +1142,11 @@ Do_random_events(struct client_t *c)
 	    Do_file_event(c, event_ptr);
         }
 
-        if (RND() <= Do_monster_chance(c)) {
+	    /* a Great Eagle or Gwaihir's Feather keeps you clear of most
+	       ambushes on a Move To walk */
+        double dtemp = Do_monster_chance(c) * Do_mount_encounter_factor(c);
+        if (c->walking && Do_gear_ability(c, AB_EAGLEFLIGHT) > 0) dtemp *= 0.25;
+        if (RND() <= dtemp) {
 	    event_ptr = (struct event_t *)Do_create_event();
 	    event_ptr->type = MONSTER_EVENT;
 	    event_ptr->arg1 = MONSTER_RANDOM;

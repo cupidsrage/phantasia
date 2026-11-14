@@ -521,6 +521,12 @@ Do_move(struct client_t *c, struct event_t *the_event)
     the_event->arg1 = floor(the_event->arg1);
     the_event->arg2 = floor(the_event->arg2);
 
+	/* a step of your own tires your mount */
+    if (the_event->arg3 == A_SPECIFIC && c->mountType) {
+	Do_distance(c->player.x, the_event->arg1, c->player.y, the_event->arg2, &distance);
+	if (distance > 0 && distance <= Do_maxmove(c) + 2) Do_mount_on_step(c);
+    }
+
 	/* lock the realm */
     Do_lock_mutex(&c->realm->realm_lock);
 
@@ -3199,15 +3205,23 @@ Do_direction(struct client_t *c, double *x, double *y, char *direction)
 }
 
 int Do_maxmove(struct client_t *c) {
-    int m;
+    double m, f;
 
-    if ((c->player.circle > 19) && (c->player.circle < 36)) {
-        m = (int) MIN(ceil(c->player.level / 50.0) + 1.5, 10.0);
+    if ((c->player.circle > 19) && (c->player.circle < 36) && !Do_mount_marsh_speed(c)) {
+        m = MIN(ceil(c->player.level / 50.0) + 1.5, 10.0);
     } else {
-        m = (int) MIN(floor((c->player.level * 1.5) + 1.5), 100.0);
+        m = MIN(floor((c->player.level * 1.5) + 1.5), 100.0);
     }
+
+	/* a mount carries you farther */
+    f = Do_mount_step_factor(c);
+
+	/* Gwaihir's Feather flies as an eagle: three times as far */
+    if (Do_gear_ability(c, AB_EAGLEFLIGHT) > 0) f = MAX(f, 3.0);
+
 	/* the Wind-lord's Boots: twice as far */
-    return Do_gear_ability(c, AB_WINDWALK) > 0 ? 2 * m : m;
+    if (Do_gear_ability(c, AB_WINDWALK) > 0) f *= 2;
+    return (int) floor(m * f);
 }
 
 int Do_anglemove(struct client_t *c) {

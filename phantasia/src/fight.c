@@ -440,6 +440,9 @@ Do_monster(struct client_t *c, struct event_t *the_event)
 	    Do_cancel_monster(c->battle.opponent);
         }
     }
+    else if (Do_mount_kin_leave(c)) {
+	;	/* a warg's rider: wargs and wolves leave you be */
+    }
     else {
 
         if (c->battle.opponent->special_type == SM_MORGOTH) {
@@ -746,6 +749,7 @@ Do_monster(struct client_t *c, struct event_t *the_event)
 	Do_experience(c, c->battle.opponent->experience, FALSE);
 
 	    /* account deeds, the living world, champions, quests and gear */
+	Do_mount_after_kill(c);	/* before the champion and nemesis are cleared */
 	Do_deeds_kill(c);
 	Do_world_kill(c);
 	Do_champion_slain(c);
@@ -909,8 +913,11 @@ Do_playerhits(struct client_t *c, short *theAttack, double *theArg)
         else
 	    strcpy(theButtons.button[5], "Luckout\n");
 
-        /* player has a ring */
-    if (c->player.ring_type != R_NONE)
+        /* a weakened Warg or marsh water-beast can be tamed as a mount;
+	   otherwise, the player's ring */
+    if (Do_mount_can_tame(c))
+	strcpy(theButtons.button[7], "Tame\n");
+    else if (c->player.ring_type != R_NONE)
 	strcpy(theButtons.button[7], "Use Ring\n");
 
     rc = Do_buttons(c, &answer, &theButtons);
@@ -1269,7 +1276,12 @@ Do_playerhits(struct client_t *c, short *theAttack, double *theArg)
         }
         break;
 
-    case 7:               /* use ring */
+    case 7:               /* use ring (or tame) */
+
+        if (Do_mount_can_tame(c)) {
+	    Do_mount_tame(c);
+	    break;
+	}
 
         if (c->player.ring_type != R_NONE) {
 
@@ -2031,6 +2043,9 @@ Do_monsthits(struct client_t *c)
 	    c->battle.opponent->name, inflict);
 
     Do_send_line(c, string_buffer);
+
+	/* a heavy blow can injure (or kill) your mount */
+    Do_mount_monster_hit(c, inflict);
 
     if (c->battle.force_field < inflict) {
 
@@ -3755,7 +3770,7 @@ static int Do_books_worth(struct client_t *c)
 
 void Do_autoplay_stats(struct client_t *c)
 {
-    char line[SZ_LINE];
+    char line[SZ_LINE * 2], mount[SZ_LINE];
     struct charstats_t *cs = &c->realm->charstats[c->player.type];
 
     Do_send_int(c, AUTOSTATS_PACKET);
@@ -3766,24 +3781,25 @@ void Do_autoplay_stats(struct client_t *c)
     if (c->wizard < 3) {
 	cap = Do_gold_capacity(c);
 	slow = MAX(0.0, ((c->player.gold + c->player.gems / 2.0) /
-		Do_bag_gold_factor(c->bagSize) - 1000.0) / cs->goldtote - c->player.level);
+		(Do_bag_gold_factor(c->bagSize) * Do_mount_carry_factor(c)) - 1000.0) / cs->goldtote - c->player.level);
     }
     char bag[SZ_LINE];
     double might = Do_might(c, c->player.max_strength, c->player.sword), riskNow = 0;
     int hunt;
 
     Do_autoplay_bag(c, bag);
+    Do_mount_autoplay(c, mount);	/* type, step, stamina, price, days fed, injured */
 	/* the chance a fight at its hunting circle kills it from the energy
 	   it has now (so it rests only as much as the next fight needs) */
     hunt = Do_hunt_circle(c, might, c->player.quickness, c->player.max_energy + c->player.shield);
     Do_fight_cost(c, hunt, might, c->player.quickness, MAX(1.0, c->player.energy), NULL, NULL, &riskNow);
-    snprintf(line, sizeof line, "%s:%.1f:%.1f:%.2f:%.1f:%.2f:%.2f:%d:%d:%d:%.0f:%.1f:%d:%.0f:%s:%d:%d:%.5f:%d:%d\n",
+    snprintf(line, sizeof line, "%s:%.1f:%.1f:%.2f:%.1f:%.2f:%.2f:%d:%d:%d:%.0f:%.1f:%d:%.0f:%s:%d:%d:%.5f:%d:%d:%s\n",
 	    cs->class_name, c->player.brains, c->player.level * cs->max_brains,
 	    cs->brains.increase / 2.0, Do_eff_magiclvl(c), c->player.sin,
 	    c->player.poison, c->player.amulets, c->player.charms,
 	    c->player.blind ? 1 : 0, cap, slow, Do_maxmove(c),
 	    1000.0 + c->player.level * cs->max_mana, bag, Do_books_worth(c), hunt, riskNow,
-	    c->player.age, (int) c->player.degenerated);
+	    c->player.age, (int) c->player.degenerated, mount);
     Do_send_string(c, line);
 }
 

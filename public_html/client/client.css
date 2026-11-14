@@ -454,6 +454,10 @@ kbd {
 .gear .t5 { color: var(--gold-2); font-weight: 600;
   text-shadow: 0 0 10px rgba(214, 168, 74, 0.5); }  /* artifact */
 .gear-hint { margin-top: 6px; font-size: 12px; color: var(--muted); }
+.mount { margin-top: 8px; padding-top: 8px; border-top: 1px solid #2c241a; font-size: 13px; color: var(--muted); }
+.mount .mount-name { color: var(--gold); font-family: "Cinzel", serif; font-weight: 600; }
+.mount .mount-name::before { content: "Riding: "; color: var(--muted); font-family: inherit; font-weight: 400; }
+.mount.tired .mount-state { color: #d9894a; }
 
 /* ---------- modal ---------- */
 

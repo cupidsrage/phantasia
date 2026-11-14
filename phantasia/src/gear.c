@@ -92,7 +92,7 @@ static const char *abilityHelp[NUM_ABILITIES] = {
     "a blow that leaves a monster under a fifth of its energy finishes it",
     "every blow you strike restores some of your energy",
     "poison cannot touch you",
-    "Move To carries you anywhere in a single turn",
+    "steps three times as far, and far fewer ambushes on a Move To walk",
     "you are twice as quick in battle",
     "monsters' blows do a quarter less damage",
     "curses cannot touch you",
@@ -187,7 +187,7 @@ double Do_gold_capacity(struct client_t *c)
     if (Do_gear_ability(c, AB_HOARD) > 0) return 1e15;	/* the Ring of Hoarding */
     return (1000.0 + MAX(0.0, c->player.level) *
 	    c->realm->charstats[c->player.type].goldtote) *
-	    Do_bag_gold_factor(c->bagSize);
+	    Do_bag_gold_factor(c->bagSize) * Do_mount_carry_factor(c);
 }
 
 const char *Do_bag_name(int size)
@@ -590,6 +590,7 @@ static void Do_gear_save_locked(struct client_t *c)
 	/* the bag (slot -2), which also marks the character as converted */
     fprintf(out_file, "%s -2 %d 0 0 0 0 0 0 0 0\n", c->player.lcname,
 	    c->bagSize);
+    Do_mount_save_line(c, out_file);
 
     fclose(out_file);
     rename(TEMP_GEAR_FILE, GEAR_FILE);
@@ -801,6 +802,9 @@ void Do_gear_load(struct client_t *c)
 
     c->numGear = 0;
     c->bagSize = BACKPACK_SIZE;
+    c->mountType = 0;
+    c->mountInjured = 0;
+    c->mountHungryTold = FALSE;
     gearRealm = c->realm;	/* gear is measured against this realm's monsters */
 
     Do_lock_mutex(&c->realm->gear_lock);
@@ -824,6 +828,12 @@ void Do_gear_load(struct client_t *c)
 	    }
 
 	    found = TRUE;
+
+		/* the mount */
+	    if (slot == -3) {
+		Do_mount_load_line(c, line);
+		continue;
+	    }
 
 		/* the bag */
 	    if (slot == -2) {
@@ -1023,6 +1033,7 @@ void Do_gear_send(struct client_t *c)
 
 	/* autoplay judges its gear by the fight math */
     Do_autoplay_gear_values(c, "gear", c->gear, c->numGear);
+    Do_mount_send(c);
 }
 
 static int Do_gear_backpack_count(struct client_t *c)
@@ -1298,6 +1309,9 @@ void Do_gear_monster_drop(struct client_t *c)
 	if (Do_gear_artifact_chance(c, chance, c->deedName)) {
 	    return;
 	}
+	    /* or the Eagles take notice */
+	Do_mount_eagle_chance(c, chance / 2,
+		"A Great Eagle, sent by Gwaihir to honour your deed, alights beside you.");
     }
 
     if (c->championFight && Do_gear_artifact_chance(c, ARTIFACT_CHAMPION_CHANCE,
@@ -1483,6 +1497,7 @@ void Do_gear_death(struct client_t *c)
 
     c->numGear = 0;
     c->bagSize = BACKPACK_SIZE;
+    Do_mount_death(c);
     Do_gear_save(c);
     c->gearLoaded = FALSE;
 }
@@ -1561,6 +1576,9 @@ void Do_gear_after_attack(struct client_t *c, double inflict)
     if (c->battle.opponent->special_type == SM_IT_COMBAT) {
 	return;
     }
+
+	/* the Dragon Hatchling breathes fire */
+    Do_mount_after_attack(c, inflict);
 
 	/* the Phoenix Amulet: every blow restores some energy */
     if (Do_gear_ability(c, AB_RADIANCE) > 0 && inflict > 0) {
