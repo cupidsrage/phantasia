@@ -2291,12 +2291,13 @@ void Do_artifacts_chat(struct client_t *c)
 /	the share of full energy an average fight costs at the circle this
 /	character hunts in now.  Lower is better.  Sent as: the kind of list
 /	("gear", "offer" or "armory"), "huntCircle:costNow", the count, then
-/	one cost a line, in the list's order.  Abilities aren't counted.
+/	a line each, in the list's order: the cost with it, and the circle the
+/	character could hunt in with it.  Abilities aren't counted.
 /
 /************************************************************************/
 
 static double Do_gear_stats_cost(struct client_t *c, int hunt, double shield,
-	double sword, double quicksilver)
+	double sword, double quicksilver, int *huntWith)
 {
     double might, quick, top;
 
@@ -2304,6 +2305,8 @@ static double Do_gear_stats_cost(struct client_t *c, int hunt, double shield,
     quick = c->player.quickness - sqrt(floor(MAX(0.0, c->player.quicksilver))) +
 	    sqrt(floor(MAX(0.0, quicksilver)));
     top = MAX(1.0, c->player.max_energy + shield);
+	/* and how far out these stats could hunt */
+    if (huntWith) *huntWith = Do_hunt_circle(c, might, quick, top);
     return Do_fight_cost(c, hunt, might, quick, top, NULL, NULL, NULL) / top;
 }
 
@@ -2319,7 +2322,7 @@ void Do_autoplay_gear_values(struct client_t *c, const char *kind,
     might = c->player.max_strength * (1 + sqrt(MAX(0.0, c->player.sword)) * N_SWORDPOWER);
     top = c->player.max_energy + c->player.shield;
     hunt = Do_hunt_circle(c, might, c->player.quickness, top);
-    now = Do_gear_stats_cost(c, hunt, c->player.shield, c->player.sword, c->player.quicksilver);
+    now = Do_gear_stats_cost(c, hunt, c->player.shield, c->player.sword, c->player.quicksilver, NULL);
 
     Do_send_int(c, GEARVALUE_PACKET);
     sprintf(line, "%s\n%d:%.5f\n", kind, hunt, now);
@@ -2330,7 +2333,7 @@ void Do_autoplay_gear_values(struct client_t *c, const char *kind,
 	double shield = c->player.shield, sword = c->player.sword, qs = c->player.quicksilver;
 
 	if (g->equipped && items == c->gear) {
-	    sprintf(line, "%.5f\n", now);
+	    sprintf(line, "%.5f:%d\n", now, hunt);
 	    Do_send_string(c, line);
 	    continue;
 	}
@@ -2344,8 +2347,13 @@ void Do_autoplay_gear_values(struct client_t *c, const char *kind,
 	shield += g->shield;
 	sword += g->sword;
 	qs += g->quicksilver;
-	sprintf(line, "%.5f\n", Do_gear_stats_cost(c, hunt, shield, sword, qs));
-	Do_send_string(c, line);
+	{
+	    int huntWith;
+	    double cost = Do_gear_stats_cost(c, hunt, shield, sword, qs, &huntWith);
+
+	    sprintf(line, "%.5f:%d\n", cost, huntWith);
+	    Do_send_string(c, line);
+	}
     }
 }
 

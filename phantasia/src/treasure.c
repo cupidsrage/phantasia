@@ -475,6 +475,7 @@ Do_treasure(struct client_t *c, struct event_t *the_event)
 		    event_ptr = (struct event_t *) Do_create_event();
 		    event_ptr->type = MONSTER_EVENT;
 		    event_ptr->arg1 = MONSTER_SPECIFY;
+		    Do_autoplay_monster_choices(c);
                     if (Do_long_dialog(c, &event_ptr->arg3,
 			    "Which monster do you want [0-99]?\n")) {
 

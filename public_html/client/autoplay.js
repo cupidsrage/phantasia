@@ -180,6 +180,14 @@ window.PhantasiaAutoplay = function (host) {
     return v && it && v.vals[it.index] !== undefined ? v.vals[it.index] : null;
   }
   function improves(costWith, costNow) { return costWith !== null && costWith < costNow * 0.995; }
+  /* worth paying for: lets it hunt a circle further out (more experience a
+     fight), or saves a real amount, at least 5% of what a fight costs and
+     1% of full energy a fight */
+  function worthBuying(costWith, costNow, huntWith, huntNow) {
+    if (costWith === null || costWith === undefined) return false;
+    if (huntWith > huntNow) return true;
+    return costWith <= costNow * 0.95 && costNow - costWith >= 0.01;
+  }
   function gear() { return host.gear(); }
   function worn(slot) { return gear().items.filter(function (g) { return g.equipped && g.slot === slot; })[0]; }
   /* the next bag at this town's prices, and its name (the server's) */
@@ -449,11 +457,16 @@ window.PhantasiaAutoplay = function (host) {
       if (!m) return;
       var price = +m[4], v = gv.armory;
       if (!v || v.vals[i] === undefined) return;
-      var g = v.now - v.vals[i];      /* energy share an average fight saves */
-      if (price <= budget && improves(v.vals[i], v.now) && g > gain) { gain = g; best = i; }
+      /* the farther out it lets us hunt, then the more it saves */
+      var g = (v.hunts[i] || 0) * 10 + (v.now - v.vals[i]);
+      var ok = price <= budget && worthBuying(v.vals[i], v.now, v.hunts[i] || 0, v.hunt);
+      record({ k: "armory", item: m[1], price: price, costNow: v.now, costWith: v.vals[i], huntNow: v.hunt, huntWith: v.hunts[i], buy: ok });
+      if (ok && g > gain) { gain = g; best = i; }
     });
     if (best >= 0 && lastLabels[best]) {
-      say("Buying an upgrade at the armory.", "on");
+      var bv = gv.armory;
+      say("Buying " + wares[best].split(" (")[0] + ": " + (bv.hunts[best] > bv.hunt ? "hunt out to circle " + bv.hunts[best] :
+        "a fight costs " + (bv.vals[best] * 100).toFixed(1) + "% of energy instead of " + (bv.now * 100).toFixed(1) + "%") + ".", "on");
       st.plan.unshift(armoryStep);
       return best;
     }
@@ -821,6 +834,25 @@ window.PhantasiaAutoplay = function (host) {
       v = Math.min(v, Math.floor(st.gold - reserve()));
       host.answerString(String(Math.max(0, v))); return true;
     }
+    /* a pick-your-monster scroll: the one worth the most experience that
+       it can still beat with ease (by the server's figures for each monster
+       at this circle: under a 1% chance of a fatal streak, costing no more
+       than a quarter of the energy it has now, and no special monsters) */
+    if (/Which monster do you want \[0-99\]/.test(prompt) && st.monsters) {
+      var easy = st.monsters.filter(function (mo) {
+        return mo.special === 0 && mo.risk <= 0.01 && mo.loss <= 0.25 * st.e;
+      });
+      var pickM = easy.sort(function (a, b) { return b.exp - a.exp; })[0] ||
+        st.monsters.filter(function (mo) { return mo.special === 0; })
+          .sort(function (a, b) { return a.risk - b.risk || a.loss - b.loss; })[0];
+      if (pickM) {
+        say("Choosing " + pickM.name + ": " + pickM.exp + " experience, costs about " + pickM.loss +
+          " energy, " + (pickM.risk * 100).toFixed(2) + "% risk.", "on");
+        record({ k: "pickmonster", id: pickM.id, name: pickM.name, exp: pickM.exp, loss: pickM.loss, risk: pickM.risk, easy: easy.length });
+        st.monsters = null;
+        host.answerString(String(pickM.id)); return true;
+      }
+    }
     if (/How much mana for bolt/.test(prompt)) {
       host.answerString(String(st.boltMana || Math.max(1, Math.floor(st.mana * 0.2)))); return true;
     }
@@ -878,9 +910,10 @@ window.PhantasiaAutoplay = function (host) {
         setTimeout(function () { charSnapshot("level", true); }, 1500);
       }
     },
-    gearValues: function (kind, hunt, now, vals) {
-      gv[kind] = { hunt: hunt, now: now, vals: vals };
-      if (st.on && kind !== "gear") record({ k: "gearvalue", kind: kind, hunt: hunt, now: now, vals: vals });
+    monsterChoices: function (list) { st.monsters = list; },
+    gearValues: function (kind, hunt, now, vals, hunts) {
+      gv[kind] = { hunt: hunt, now: now, vals: vals, hunts: hunts || [] };
+      if (st.on && kind !== "gear") record({ k: "gearvalue", kind: kind, hunt: hunt, now: now, vals: vals, hunts: hunts });
     },
     status: function (o) {
       st.status = o;
