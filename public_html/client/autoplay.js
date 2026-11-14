@@ -513,13 +513,16 @@ window.PhantasiaAutoplay = function (host) {
     var lost = (st.fightStartE - st.e) / st.emax, left = frac();
     /* a fight we had to run from, or that hurt, says: closer in */
     /* hunt at the safe limit, backing off a circle after a dangerous fight
-       and stepping back out after eight easy ones (moving costs turns) */
+       and stepping back out after eight kills without danger (moving
+       costs turns) */
     if (st.fightDanger || lost > 0.45 || left < 0.3) {
       st.backoff = Math.min((st.backoff || 0) + 1, Math.max(0, cap() - 1));
       st.easy = 0;
-    } else if (st.fightKilled && lost < 0.15 && left > 0.75) {
-      if (++st.easy >= 8) { st.backoff = Math.max(0, (st.backoff || 0) - 1); st.easy = 0; }
-    } else st.easy = 0;
+    } else if (st.fightKilled && ++st.easy >= 8) {
+      /* eight kills in a row without danger: step back out */
+      st.backoff = Math.max(0, (st.backoff || 0) - 1);
+      st.easy = 0;
+    }
   }
 
   function mainMenu() {
@@ -1016,6 +1019,7 @@ window.PhantasiaAutoplay = function (host) {
   function start() {
     if (!st.allowed) return;
     st.on = true;
+    st.backoff = 0; st.easy = 0;	/* a fresh start (maybe a new character) */
     st.target = cap();      /* straight to the farthest circle the math calls safe */
     st.easy = 0; st.plan = []; st.unknown = 0; st.trip = null;
     if (st.startLevel === null) st.startLevel = st.level;
@@ -1046,6 +1050,7 @@ window.PhantasiaAutoplay = function (host) {
     level: function (lv) {
       var was = st.level;
       st.level = lv;
+      if (lv < was - 1) { st.backoff = 0; st.easy = 0; }   /* a different character */
       if (st.on && Math.floor(lv) !== Math.floor(was)) {
         record({ k: "levelup", from: was, to: lv });
         setTimeout(function () { charSnapshot("level", true); }, 1500);
