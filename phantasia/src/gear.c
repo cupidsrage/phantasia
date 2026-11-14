@@ -24,10 +24,10 @@
 #define GEAR_DROP_CHANCE	0.07	/* chance a monster drops gear */
 #endif
 #ifndef ARTIFACT_TREASURE_CHANCE
-#define ARTIFACT_TREASURE_CHANCE 0.02	/* chance treasure is an artifact */
+#define ARTIFACT_TREASURE_CHANCE 0.0	/* artifacts come from great deeds, not treasure */
 #endif
 #ifndef ARTIFACT_CHAMPION_CHANCE
-#define ARTIFACT_CHAMPION_CHANCE 0.08	/* chance a champion has one */
+#define ARTIFACT_CHAMPION_CHANCE 0.03	/* chance a champion has one */
 #endif
 
 static const char *slotNames[NUM_SLOTS] = {
@@ -55,14 +55,19 @@ static const char *tierNames[] = {
 static const char *abilityNames[NUM_ABILITIES] = {
     "", "Evasion", "Lifesteal", "Swiftness", "Crushing Blows", "Thorns",
     "Fortune", "Warding", "Mending", "Prospecting", "Phoenix",
-    "Seafarer", "Dragonbane", "Insight", "Arcana", "Wellspring", "Focus"
+    "Seafarer", "Dragonbane", "Insight", "Arcana", "Wellspring", "Focus",
+    "Soulreaper", "Execution", "Radiance", "Tideward", "Eagle's Flight",
+    "Tailwind", "Dragonscale", "Fireborn", "Hoard", "Midas Touch",
+    "First Blood", "Shadowmeld", "Unseen", "Timeless", "Sage's Wisdom",
+    "Windwalker", "Gale", "Archmage", "Manafont"
 };
 
 static const char *abilitySuffix[NUM_ABILITIES] = {
     "", "of Evasion", "of the Leech", "of Swiftness", "of Crushing",
     "of Thorns", "of Fortune", "of Warding", "of Mending",
     "of Prospecting", "", "", "", "of Insight", "of Arcana",
-    "of the Wellspring", "of Focus"
+    "of the Wellspring", "of Focus",
+    "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""
 };
 
 static const char *abilityHelp[NUM_ABILITIES] = {
@@ -76,13 +81,32 @@ static const char *abilityHelp[NUM_ABILITIES] = {
     "resists poison",
     "regain energy as you travel",
     "find treasure more often",
-    "saves you from death once, then flies away",
+    "saves you from death, then rests an hour before it can again",
     "the creatures of the water will not fight you",
     "double damage against dragons and wyrms",
     "sharpens your wits (more brains)",
     "deepens your magic (higher magic level)",
     "regain mana as you travel",
-    "your spells cost less mana"
+    "your spells cost less mana",
+    "each monster you slay restores a fifth of your energy",
+    "a blow that leaves a monster under a fifth of its energy finishes it",
+    "every blow you strike restores some of your energy",
+    "poison cannot touch you",
+    "Move To carries you anywhere in a single turn",
+    "you are twice as quick in battle",
+    "monsters' blows do a quarter less damage",
+    "curses cannot touch you",
+    "gold never weighs you down",
+    "you find twice the gold",
+    "your first blow in every fight does triple damage",
+    "you can always get away from a fight",
+    "your luckouts succeed as if you were twice as clever",
+    "you do not age while you wear it",
+    "you gain a fifth more experience",
+    "your steps carry you twice as far",
+    "monsters are half as quick against you",
+    "your spells are half again as strong",
+    "your spells cost half the mana"
 };
 
 struct artifact_def {
@@ -96,17 +120,17 @@ struct artifact_def {
 	/* index 0 unused so that 0 means "not an artifact" */
 static const struct artifact_def artifacts[NUM_ARTIFACTS + 1] = {
     { "", 0, 0, 0, 0 },
-    { "Mourneblade", SLOT_WEAPON, AB_CRUSHING, AB_LEECH, 10 },
-    { "The Phoenix Amulet", SLOT_TRINKET, AB_PHOENIX, AB_MENDING, 5 },
-    { "The Crown of the Deep", SLOT_HELM, AB_SEAFARER, AB_WARDING, 20 },
-    { "Gwaihir's Feather", SLOT_BOOTS, AB_SWIFTNESS, AB_EVASION, 8 },
-    { "The Dragonscale Aegis", SLOT_ARMOR, AB_THORNS, AB_WARDING, 15 },
-    { "The Ring of Hoarding", SLOT_TRINKET, AB_FORTUNE, AB_PROSPECTING, 3 },
-    { "Wyrmslayer", SLOT_WEAPON, AB_DRAGONBANE, AB_SWIFTNESS, 25 },
-    { "The Mantle of Shadows", SLOT_ARMOR, AB_EVASION, AB_THORNS, 12 },
-    { "The Helm of Ages", SLOT_HELM, AB_MENDING, AB_WARDING, 6 },
-    { "The Wind-lord's Boots", SLOT_BOOTS, AB_EVASION, AB_MENDING, 18 },
-    { "The Archmage's Circlet", SLOT_HELM, AB_ARCANA, AB_WELLSPRING, 10 }
+    { "Mourneblade", SLOT_WEAPON, AB_SOULREAP, AB_EXECUTE, 10 },
+    { "The Phoenix Amulet", SLOT_TRINKET, AB_PHOENIX, AB_RADIANCE, 5 },
+    { "The Crown of the Deep", SLOT_HELM, AB_SEAFARER, AB_TIDEWARD, 20 },
+    { "Gwaihir's Feather", SLOT_BOOTS, AB_EAGLEFLIGHT, AB_TAILWIND, 8 },
+    { "The Dragonscale Aegis", SLOT_ARMOR, AB_DRAGONSCALE, AB_FIREBORN, 15 },
+    { "The Ring of Hoarding", SLOT_TRINKET, AB_HOARD, AB_MIDAS, 3 },
+    { "Wyrmslayer", SLOT_WEAPON, AB_DRAGONBANE, AB_FIRSTBLOOD, 25 },
+    { "The Mantle of Shadows", SLOT_ARMOR, AB_SHADOWMELD, AB_UNSEEN, 12 },
+    { "The Helm of Ages", SLOT_HELM, AB_TIMELESS, AB_SAGE, 6 },
+    { "The Wind-lord's Boots", SLOT_BOOTS, AB_WINDWALK, AB_GALE, 18 },
+    { "The Archmage's Circlet", SLOT_HELM, AB_ARCHMAGE, AB_MANAFONT, 10 }
 };
 
 
@@ -158,6 +182,7 @@ double Do_bag_gold_factor(int size)
 	/* gold (and gems at half) a character can carry without slowing */
 double Do_gold_capacity(struct client_t *c)
 {
+    if (Do_gear_ability(c, AB_HOARD) > 0) return 1e15;	/* the Ring of Hoarding */
     return (1000.0 + MAX(0.0, c->player.level) *
 	    c->realm->charstats[c->player.type].goldtote) *
 	    Do_bag_gold_factor(c->bagSize);
@@ -811,6 +836,11 @@ void Do_gear_load(struct client_t *c)
 	    g.ability = (ab >= 0 && ab < NUM_ABILITIES) ? ab : 0;
 	    g.ability2 = (ab2 >= 0 && ab2 < NUM_ABILITIES) ? ab2 : 0;
 	    g.artifact = (art >= 0 && art <= NUM_ARTIFACTS) ? art : 0;
+		/* an artifact always carries its own powers */
+	    if (g.artifact > 0) {
+		g.ability = artifacts[g.artifact].ability;
+		g.ability2 = artifacts[g.artifact].ability2;
+	    }
 	    g.shield = shield; g.sword = sword; g.quicksilver = quick;
 	    g.circle = (short) MIN(30000, circle);
 
@@ -1227,6 +1257,24 @@ void Do_gear_offer(struct client_t *c, struct gear_item_t *item)
 }
 
 	/* after killing a monster */
+/* Artifacts are rare, and come from great deeds: a nemesis slain, a region
+   liberated, the throne defended, a champion beaten, a quest done.  The
+   whole realm hears what it was for. */
+int Do_gear_artifact_chance(struct client_t *c, double chance, const char *deed)
+{
+    struct gear_item_t item;
+    char message[SZ_LINE];
+
+    if (!c->gearLoaded || chance <= 0 || RND() >= chance || !Do_artifact_claim(c, &item)) {
+	return FALSE;
+    }
+    snprintf(message, sizeof message, "%s has found %s, for %s!\n", c->player.name,
+	    artifacts[item.artifact].name, deed);
+    Do_broadcast(c, message);
+    Do_gear_offer(c, &item);
+    return TRUE;
+}
+
 void Do_gear_monster_drop(struct client_t *c)
 {
     struct gear_item_t item;
@@ -1236,13 +1284,18 @@ void Do_gear_monster_drop(struct client_t *c)
 	return;
     }
 
-    if (c->championFight && RND() < ARTIFACT_CHAMPION_CHANCE &&
-	    Do_artifact_claim(c, &item)) {
+	/* a great deed in this fight (the living world marks it) */
+    if (c->deedChance > 0) {
+	double chance = c->deedChance;
 
-	sprintf(message, "%s has found %s!\n", c->player.name,
-		artifacts[item.artifact].name);
-	Do_broadcast(c, message);
-	Do_gear_offer(c, &item);
+	c->deedChance = 0;
+	if (Do_gear_artifact_chance(c, chance, c->deedName)) {
+	    return;
+	}
+    }
+
+    if (c->championFight && Do_gear_artifact_chance(c, ARTIFACT_CHAMPION_CHANCE,
+	    "beating a champion")) {
 	return;
     }
 
@@ -1428,33 +1481,26 @@ void Do_gear_death(struct client_t *c)
     c->gearLoaded = FALSE;
 }
 
-	/* the Phoenix Amulet saves its holder once, then flies away */
+	/* the Phoenix Amulet saves its holder from death, then rests an hour */
 int Do_gear_phoenix(struct client_t *c)
 {
-    int i, id;
+    int i;
 
     for (i = 0; i < c->numGear; i++) {
 	if (c->gear[i].equipped && (c->gear[i].ability == AB_PHOENIX ||
 		c->gear[i].ability2 == AB_PHOENIX)) {
-
-	    id = c->gear[i].artifact;
-	    Do_send_line(c, "The Phoenix Amulet blazes with fire and pulls you back from death!\n");
+	    if (time(NULL) < c->phoenixReady) {
+		return FALSE;
+	    }
+	    Do_send_line(c, "The Phoenix Amulet blazes with fire and pulls you back from death!  Its fire will need an hour to return.\n");
 	    Do_more(c);
 	    Do_send_clear(c);
-
-	    Do_gear_remove(c, i);
+	    c->phoenixReady = time(NULL) + 3600;
 	    Do_energy(c, c->player.max_energy / 2.0 + 1.0, c->player.max_energy,
 		    c->player.shield, 0, FALSE);
-	    Do_gear_apply(c, FALSE);
-	    Do_gear_save(c);
-
-	    if (id > 0) {
-		Do_artifact_release(c, id, "was saved by the Phoenix Amulet!");
-	    }
 	    return TRUE;
 	}
     }
-
     return FALSE;
 }
 
@@ -1489,6 +1535,14 @@ double Do_gear_attack(struct client_t *c, double inflict)
 	    Do_is_dragon(c->battle.opponent->realName)) {
 	inflict *= 2.0;
     }
+	/* Wyrmslayer: the first blow of a fight */
+    if (c->firstBlow) {
+	c->firstBlow = FALSE;
+	if (Do_gear_ability(c, AB_FIRSTBLOOD) > 0) {
+	    Do_send_line(c, "First blood! Wyrmslayer bites deep.\n");
+	    inflict *= 3.0;
+	}
+    }
 
     return floor(inflict);
 }
@@ -1502,6 +1556,22 @@ void Do_gear_after_attack(struct client_t *c, double inflict)
 	return;
     }
 
+	/* the Phoenix Amulet: every blow restores some energy */
+    if (Do_gear_ability(c, AB_RADIANCE) > 0 && inflict > 0) {
+	double top = c->player.max_energy + c->player.shield;
+	if (c->player.energy < top) {
+	    Do_energy(c, MIN(top, c->player.energy + ceil(top * 0.04)), c->player.max_energy,
+		    c->player.shield, c->battle.force_field, FALSE);
+	}
+    }
+	/* Mourneblade: finish a monster below a fifth of its energy */
+    if (Do_gear_ability(c, AB_EXECUTE) > 0 && c->battle.opponent->energy > 0 &&
+	    c->battle.opponent->energy < 0.2 * c->battle.opponent->max_energy) {
+	char message[SZ_LINE];
+	sprintf(message, "Mourneblade finishes %s.\n", c->battle.opponent->name);
+	Do_send_line(c, message);
+	c->battle.opponent->energy = 0;
+    }
     if ((p = Do_gear_ability(c, AB_LEECH)) > 0 && inflict > 0) {
 	heal = floor(inflict * 0.08 * p);
 	if (heal >= 1 && c->player.energy < c->player.max_energy +
@@ -1550,6 +1620,28 @@ int Do_gear_defend(struct client_t *c)
     }
 
     return FALSE;
+}
+
+	/* the Dragonscale Aegis: a monster's blow does a quarter less */
+double Do_gear_soak(struct client_t *c, double inflict)
+{
+    if (c->battle.opponent->special_type != SM_IT_COMBAT &&
+	    Do_gear_ability(c, AB_DRAGONSCALE) > 0) {
+	inflict = floor(inflict * 0.75);
+    }
+    return inflict;
+}
+
+	/* Mourneblade: a kill restores a fifth of your energy */
+void Do_gear_on_kill(struct client_t *c)
+{
+    double top = c->player.max_energy + c->player.shield;
+
+    if (Do_gear_ability(c, AB_SOULREAP) > 0 && c->player.energy < top) {
+	Do_send_line(c, "Mourneblade drinks its soul, and your strength returns.\n");
+	Do_energy(c, MIN(top, c->player.energy + ceil(top * 0.2)), c->player.max_energy,
+		c->player.shield, c->battle.force_field, FALSE);
+    }
 }
 
 	/* after a monster's normal hit */
@@ -1644,12 +1736,14 @@ double Do_eff_magiclvl(struct client_t *c)
 double Do_gear_spell_cost(struct client_t *c, double cost)
 {
     return ceil(cost * MAX(0.5, 1.0 - 0.1 * Do_gear_ability(c, AB_FOCUS)) *
+	    (Do_gear_ability(c, AB_MANAFONT) > 0 ? 0.5 : 1.0) *	/* the Archmage's Circlet */
 	    Do_world_spell_factor());
 }
 
 double Do_gear_gold_factor(struct client_t *c)
 {
-    return 1.0 + 0.15 * Do_gear_ability(c, AB_FORTUNE);
+    return (1.0 + 0.15 * Do_gear_ability(c, AB_FORTUNE)) *
+	    (Do_gear_ability(c, AB_MIDAS) > 0 ? 2.0 : 1.0);	/* the Ring of Hoarding */
 }
 
 double Do_gear_treasure_factor(struct client_t *c)
@@ -1659,6 +1753,7 @@ double Do_gear_treasure_factor(struct client_t *c)
 
 double Do_gear_poison_factor(struct client_t *c)
 {
+    if (Do_gear_ability(c, AB_TIDEWARD) > 0) return 0.0;	/* the Crown of the Deep */
     return MAX(0.2, 1.0 - 0.2 * Do_gear_ability(c, AB_WARDING));
 }
 
@@ -2508,44 +2603,46 @@ void Do_autoplay_bag(struct client_t *c, char *out)
 /
 / DESCRIPTION:
 /	One of a kind should always feel like the best: an artifact's stats
-/	follow the highest of the circle it was found in, the deepest circle
-/	it has been carried to, and the circle that matches its bearer's
-/	level (1 + level / 4, about where characters of that level hunt).  It
+/	follow its bearer's level, as if made at the circle that matches it
+/	(1 + level / 4, about where characters of that level hunt).  It
 /	keeps its own roll against the formula, at the artifact tier's
-/	quality, which no other tier reaches.  Returns how many grew.
+/	quality, which no other tier reaches.  Returns how many changed
+/	(and in *grew how many grew).
 /
 /************************************************************************/
 
-int Do_gear_artifact_grow(struct client_t *c)
+int Do_gear_artifact_grow(struct client_t *c, int *grew)
 {
     double q = Do_tier_quality(TIER_ARTIFACT), target;
     struct gear_item_t was, now;
-    int i, grown = 0;
+    int i, grown = 0, changed = 0;
 
     if (!c->gearLoaded) return 0;
+	/* the circle that matches its bearer's level: about where characters
+	   of that level hunt (where it was found doesn't count, so carrying
+	   one in from far out gives no head start) */
+    target = MIN(30000.0, 1.0 + floor(c->player.level / 4.0));
+
     for (i = 0; i < c->numGear; i++) {
 	struct gear_item_t *g = &c->gear[i];
 
-	if (g->artifact <= 0) continue;
-	target = MAX(MAX(1.0, g->circle), MAX(c->player.circle,
-		1.0 + floor(c->player.level / 4.0)));
-	target = MIN(30000.0, target);
-	if (target <= g->circle) continue;
+	if (g->artifact <= 0 || g->circle == (short) target) continue;
 
-	    /* the formula at the old circle and the new, at roll 1 */
+	    /* the formula at its old circle and its new one, at roll 1:
+	       its own roll carries over */
 	was = *g;
-	Do_gear_set_stats(&was, g->circle, q);
+	Do_gear_set_stats(&was, MAX(1, g->circle), q);
 	now = *g;
 	Do_gear_set_stats(&now, target, q);
 
-	if (was.shield >= 1) g->shield = MAX(g->shield, floor(now.shield * g->shield / was.shield));
-	else if (now.shield >= 1 && g->shield >= 1) g->shield = MAX(g->shield, now.shield);
-	if (was.sword >= 1) g->sword = MAX(g->sword, floor(now.sword * g->sword / was.sword));
-	else if (now.sword >= 1 && g->sword >= 1) g->sword = MAX(g->sword, now.sword);
-	if (was.quicksilver >= 1) g->quicksilver = MAX(g->quicksilver,
-		floor(now.quicksilver * g->quicksilver / was.quicksilver));
+	if (was.shield >= 1 && g->shield >= 1) g->shield = MAX(1.0, floor(now.shield * g->shield / was.shield));
+	if (was.sword >= 1 && g->sword >= 1) g->sword = MAX(1.0, floor(now.sword * g->sword / was.sword));
+	if (was.quicksilver >= 1 && g->quicksilver >= 1)
+	    g->quicksilver = MAX(1.0, floor(now.quicksilver * g->quicksilver / was.quicksilver));
+	grown += (short) target > g->circle;
 	g->circle = (short) target;
-	++grown;
+	++changed;
     }
-    return grown;
+    if (grew) *grew = grown;
+    return changed;
 }

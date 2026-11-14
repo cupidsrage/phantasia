@@ -110,9 +110,14 @@ window.PhantasiaAutoplay = function (host) {
     return { character: host.name(), level: st.level, startLevel: st.startLevel, fights: st.fights,
       kills: st.kills, minutes: st.startedAt ? Math.round((Date.now() - st.startedAt) / 60000) : 0 };
   }
+  /* this session, and the end of the one before it (a fight can span the
+     two when autoplay is switched off and on again) */
   function sessionLog() {
-    for (var i = rec.length - 1; i >= 0; i--) if (rec[i].k === "start") return rec.slice(i);
-    return rec.slice();
+    var starts = 0;
+    for (var i = rec.length - 1; i >= 0; i--) {
+      if (rec[i].k === "start" && ++starts === 2) return rec.slice(Math.max(i, rec.length - 20000));
+    }
+    return rec.slice(Math.max(0, rec.length - 20000));
   }
   function sendRecord(reason) {
     record({ k: "send", reason: reason });
@@ -327,19 +332,23 @@ window.PhantasiaAutoplay = function (host) {
     return gear().items.filter(function (g) { return !g.equipped; }).length >= gear().capacity;
   }
 
-  function wantsToShop() {
-    if (heavy()) return true;
-    /* a full bag of spares: go and sell them */
-    if (backpackFull() && spareGear().length) return true;
+  function wantsToShop() { var w = shopReason(); st.shopWhy = w; return !!w; }
+  function shopReason() {
+    if (heavy()) return "gold is weighing it down";
+    /* spares aren't worth a trip (they sell when it's at a post anyway,
+       and with a full bag upgrades are swapped in and old pieces left) */
     /* every step of a trip is a turn (and turns age): not too often */
-    if (st.fights - st.lastShopFight < 60 && load() < 0.8 * capacity()) return false;
+    if (st.fights - st.lastShopFight < 100 && load() < 0.8 * capacity()) return "";
     var spend = st.gold + Math.min(st.gems, st.level * st.level + 1) * 1000 - reserve();
     var nb = nextBag();
-    if (load() > 0.75 * capacity()) return true;
-    if (nb && spend >= nb[1]) return true;
-    if (spareGear().length >= 2) return true;
-    return spend >= 300 + st.level * 40;
+    if (load() > 0.9 * capacity()) return "carrying a lot of gold";
+    if (nb && spend >= nb[1]) return "can buy the " + nb[0];
+    /* books are the one other thing worth a walk: at least fifty that
+       each still add brains, and the gold for them */
+    if (booksWanted(100) >= 50) return "books to buy";
+    return "";
   }
+
 
   function startTrip() {
     /* books need a rank 2 post (about circle 5): go to one when we can
@@ -349,7 +358,7 @@ window.PhantasiaAutoplay = function (host) {
     if (!p) return false;
     /* only when the walk is reasonable */
     var steps = p.d / maxMove();
-    if (steps > 45 && !heavy() && !(backpackFull() && steps <= 160)) return false;
+    if (steps > 45 && !heavy()) return false;
     st.trip = p;
     return true;
   }
@@ -406,7 +415,7 @@ window.PhantasiaAutoplay = function (host) {
           if (st.gold - reserve() >= 15000) { st.plan = ["Purchase", orCancel("Blessing")]; return true; }
           break;
         case "donate":
-          if (load() > 0.6 * capacity()) { say("Giving spare gold to the realm project.", "on"); st.plan = ["Realm Project"]; return true; }
+          if (load() > 0.4 * capacity()) { say("Giving spare gold to the realm project.", "on"); st.plan = ["Realm Project"]; return true; }
           break;
       }
     }
@@ -463,7 +472,8 @@ window.PhantasiaAutoplay = function (host) {
     wares.forEach(function (line, i) {
       var m = /^(.*) \((Weapon|Armor|Helm|Boots|Trinket)\) (.*) - (\d+) gold$/.exec(line);
       if (!m) return;
-      var price = +m[4], v = gv.armory;
+      var price = +m[4], v = gv.armory, wa = worn(m[2]);
+      if (wa && wa.tier >= 5) return;        /* never replace an artifact */
       if (!v || v.vals[i] === undefined) return;
       /* the farther out it lets us hunt, then the more it saves */
       var g = (v.hunts[i] || 0) * 10 + (v.now - v.vals[i]);
@@ -503,12 +513,12 @@ window.PhantasiaAutoplay = function (host) {
     var lost = (st.fightStartE - st.e) / st.emax, left = frac();
     /* a fight we had to run from, or that hurt, says: closer in */
     /* hunt at the safe limit, backing off a circle after a dangerous fight
-       and stepping back out after three easy ones */
+       and stepping back out after eight easy ones (moving costs turns) */
     if (st.fightDanger || lost > 0.45 || left < 0.3) {
       st.backoff = Math.min((st.backoff || 0) + 1, Math.max(0, cap() - 1));
       st.easy = 0;
     } else if (st.fightKilled && lost < 0.15 && left > 0.75) {
-      if (++st.easy >= 3) { st.backoff = Math.max(0, (st.backoff || 0) - 1); st.easy = 0; }
+      if (++st.easy >= 8) { st.backoff = Math.max(0, (st.backoff || 0) - 1); st.easy = 0; }
     } else st.easy = 0;
   }
 
@@ -520,7 +530,8 @@ window.PhantasiaAutoplay = function (host) {
     /* wear anything in the bag that beats what's on */
     var swap = null, now = gv.gear ? gv.gear.now : null;
     gear().items.forEach(function (g) {
-      var c = gearCost(g);
+      var c = gearCost(g), w = worn(g.slot);
+      if (w && w.tier >= 5) return;          /* never take off an artifact */
       if (!g.equipped && now !== null && improves(c, now) && (!swap || c < gearCost(swap))) swap = g;
     });
     if (swap && !st.swapped) {
@@ -546,6 +557,7 @@ window.PhantasiaAutoplay = function (host) {
     /* standing at a trading post */
     if (has("Enter Post") >= 0) {
       if (st.trip || wantsToShop()) {
+        record({ k: "shop", why: st.shopWhy || (st.trip ? "trip" : ""), gold: Math.floor(st.gold), cap: Math.floor(capacity()), fights: st.fights, last: st.lastShopFight });
         st.trip = null;
         planVisit();
         say("Entering the trading post.", "on");
@@ -577,8 +589,30 @@ window.PhantasiaAutoplay = function (host) {
     var want = st.target;
     if (st.quest && st.quest.reach && !st.quest.done && st.quest.reach <= cap()) want = Math.max(want, st.quest.reach);
 
-    if (lastCompass && c < want) { say("Heading out to circle " + want + " (now " + c + ").", "on"); return pressCompass(outward()); }
-    if (lastCompass && c > want) { say("Pulling back toward circle " + want + " (now " + c + ").", "on"); return pressCompass(stepToward(-st.x, -st.y)); }
+    if (lastCompass && c < want) {
+      /* far in: Move To walks it out in one go, a step a turn */
+      if (c < want - 1 && has("Move To") >= 0) {
+        var od = COMPASS_DIR[outward()], r2 = Math.hypot(st.x, st.y), ox, oy;
+        if (r2 > 1) { ox = st.x / r2; oy = st.y / r2; } else { ox = od[0] / Math.hypot(od[0], od[1]); oy = od[1] / Math.hypot(od[0], od[1]); }
+        var outR = (want - 0.5) * 125;
+        st.moveTo = { x: Math.round(ox * outR), y: Math.round(oy * outR) };
+        say("Heading out to circle " + want + " (now " + c + ").", "on");
+        return press(has("Move To"));
+      }
+      say("Heading out to circle " + want + " (now " + c + ").", "on");
+      return pressCompass(outward());
+    }
+    if (lastCompass && c > want) {
+      /* far out: Move To walks it back in one go, a step a turn */
+      if (c > want + 1 && has("Move To") >= 0) {
+        var rr = Math.hypot(st.x, st.y) || 1, back = (want - 0.5) * 125;
+        st.moveTo = { x: Math.round(st.x / rr * back), y: Math.round(st.y / rr * back) };
+        say("Heading back in to circle " + want + " (now " + c + ").", "warn");
+        return press(has("Move To"));
+      }
+      say("Pulling back toward circle " + want + " (now " + c + ").", "on");
+      return pressCompass(stepToward(-st.x, -st.y));
+    }
     /* wander along the circle now and then, as players do: new ground
        turns up treasure, villages and gurus as well as monsters */
     if (false && lastCompass && ++st.sinceStep >= 3) {   /* wandering only ages the character */
@@ -729,10 +763,11 @@ window.PhantasiaAutoplay = function (host) {
               if (me <= 0) break;
               continue;
             }
-            var act = plan(me, tried, healed, cast, mana);
+            var act = plan(me, tried, healed, cast, mana, mo);
             if (act === "evade") { if (Math.random() < F.evade) { lived++; break; } continue; }
             if (act === "luck") { tried = true; if (Math.random() < F.luck) { lived++; break; } continue; }
             if (act === "heal") { healed = true; mana -= ml.mana; me = Math.min(st.emax, me + ml.heal); continue; }
+            if (act && act.dmg && mana < act.mana) act = "melee";
             var hit = act && act.dmg ? (cast = true, mana -= act.mana, Math.floor(act.dmg * (0.7 + 0.6 * Math.random())))
                                      : Math.floor((0.5 + 1.3 * Math.random()) * might);
             if (act && act.heal) me = Math.min(st.emax, me + Math.min(act.heal, hit / 2));
@@ -755,11 +790,16 @@ window.PhantasiaAutoplay = function (host) {
         choices.push({ label: ml.name, spell: true, live: sim(function (me, tried, healed) { return healed ? "melee" : "heal"; }),
           why: "Healing (+" + Math.round(Math.min(ml.heal, missing)) + ")" });
       }
-      F.spells.forEach(function (sp) {
-        if (sp.name === "Mending Light" || st.mana < sp.mana || has("Spell") < 0) return;
+      /* attack spells: cast again and again while the mana lasts, healing
+         with Mending Light when low, then fight on with melee */
+      var attacks = F.spells.filter(function (sp) { return sp.name !== "Mending Light" && sp.dmg > 0 && st.mana >= sp.mana; });
+      if (has("Spell") >= 0) attacks.forEach(function (sp) {
         choices.push({ label: sp.name, spell: true,
-          live: sim(function (me, tried, healed, cast, mana) { return !cast && mana >= sp.mana ? sp : "melee"; }),
-          why: sp.name });
+          live: sim(function (me, tried, healed, cast, mana) {
+            if (ml && me < 0.4 * st.emax && mana >= ml.mana + sp.mana) return "heal";
+            return mana >= sp.mana ? sp : "melee";
+          }),
+          why: sp.name + " while the mana lasts" });
       });
       choices.sort(function (a, b) { return b.live - a.live; });
       var best = choices[0];
@@ -811,6 +851,10 @@ window.PhantasiaAutoplay = function (host) {
     if ((has("Leave") >= 0 || has("Refuse") >= 0) && (has("Equip") >= 0 || has("Stow") >= 0 || has("Swap") >= 0)) {
       var artifact = has("Refuse") >= 0, o = gv.offer;
       var better = artifact || (o && improves(o.vals[0], o.now));
+      /* an artifact's powers outweigh any stats: never replace a worn one */
+      var foundSlot = (/\((Weapon|Armor|Helm|Boots|Trinket)\)/.exec(after("You found:")) || [])[1];
+      var wornNow = foundSlot && worn(foundSlot);
+      if (!artifact && wornNow && wornNow.tier >= 5) better = false;
       if (better && has("Equip") >= 0) { say("Wearing an upgrade.", "on"); return press(has("Equip")); }
       if (better && has("Swap") >= 0) { say("Swapping in an upgrade.", "on"); return press(has("Swap")); }
       /* keep artifacts; selling other spares isn't worth the trips (every
@@ -829,8 +873,17 @@ window.PhantasiaAutoplay = function (host) {
       if (pick >= 0) return press(pick);
     }
 
-    /* treasure: gold and gems */
-    if (has("Yes") >= 0 && has("No to All") >= 0) return press(has("Yes"));
+    /* treasure: gold and gems; but gold it can't use only weighs it down
+       and means another trip, so near its limit it leaves gold lying
+       (unless it's saving for the next bag) */
+    if (has("Yes") >= 0 && has("No to All") >= 0) {
+      var gm = /found (\d+) gold pieces/.exec(recent(3)), nb2 = nextBag();
+      if (gm && load() + +gm[1] > 0.7 * capacity() && !(nb2 && st.gold < nb2[1])) {
+        say("Leaving " + gm[1] + " gold: it would only weigh me down.", "on");
+        return press(has("No"));
+      }
+      return press(has("Yes"));
+    }
 
     /* a yes or no question */
     if (has("Yes") >= 0 && has("No") >= 0 && n === 2) {
@@ -839,6 +892,18 @@ window.PhantasiaAutoplay = function (host) {
       var q = "";
       for (var qi = st.lines.length - 1; qi >= 0 && qi >= st.lines.length - 4; qi--) {
         if (/\?\s*$/.test(st.lines[qi])) { q = st.lines[qi]; break; }
+      }
+      /* Gwaihir offers a free flight: to the trading post it wants, or
+         out to its hunting circle if it's far from it */
+      if (/Gwaihir.*offers you a ride/.test(q)) {
+        var dest = null;
+        if (st.trip || wantsToShop()) { var pp = st.trip || nearestPost(); if (pp) dest = { x: pp.x, y: pp.y }; }
+        if (!dest && Math.abs(circle() - st.target) >= 2) {
+          var r0 = Math.hypot(st.x, st.y) || 1, r1 = (st.target - 0.5) * 125;
+          dest = { x: Math.round(st.x / r0 * r1), y: Math.round(st.y / r0 * r1) };
+        }
+        if (dest) { st.moveTo = dest; say("Riding Gwaihir to (" + dest.x + ", " + dest.y + ").", "on"); return press(has("Yes")); }
+        return press(has("No"));
       }
       /* a fresh corpse is cursed 75% of the time: frisk only with amulets */
       if (/frisk the body/.test(q)) return press(st.amulets > 0 ? has("Yes") : has("No"));
@@ -904,7 +969,9 @@ window.PhantasiaAutoplay = function (host) {
       host.answerString(String(v)); return true;
     }
     if (/How much gold will you give/.test(prompt)) {
-      v = Math.max(0, Math.floor(load() - 0.4 * capacity()));
+      /* give generously: gold coming back to the limit means another
+         trip (every step a turn), and the project helps everyone */
+      v = Math.max(0, Math.floor(load() - capacity() / 6));
       v = Math.min(v, Math.floor(st.gold - reserve()));
       host.answerString(String(Math.max(0, v))); return true;
     }

@@ -764,6 +764,7 @@ void Do_world_turn(struct client_t *c)
 		    c->siegeKills, pay);
 	    Do_send_line(c, line);
 	    Do_send_chat_self(c, line);
+	    Do_gear_artifact_chance(c, 0.10, "defending the throne");
 	}
 	c->siegeKills = 0;
     }
@@ -830,6 +831,9 @@ void Do_world_kill(struct client_t *c)
 	if (before >= LIBERATED && rg->shadow < LIBERATED) {
 	    sprintf(msg, "%s struck the blow that liberated %s!", c->modifiedName, regionNames[r]);
 	    Do_world_news_locked(msg, TRUE);
+		/* a great deed: a chance of an artifact (offered after the fight) */
+	    c->deedChance = MAX(c->deedChance, 0.25);
+	    snprintf(c->deedName, sizeof c->deedName, "liberating %s", regionNames[r]);
 	}
 	if (rg->fallen && rg->shadow < TOWN_RETAKEN) {
 	    rg->fallen = FALSE;
@@ -886,6 +890,8 @@ void Do_world_kill(struct client_t *c)
 	Do_nemesis_name(nem, name);
 	bounty = W.nemesis[nem].bounty;
 	sprintf(msg, "%s has slain %s and claims a bounty of %.0f gold!", c->modifiedName, name, bounty);
+	c->deedChance = MAX(c->deedChance, 0.25);	/* a great deed */
+	snprintf(c->deedName, sizeof c->deedName, "slaying the nemesis %s", name);
 	Do_world_news_locked(msg, TRUE);
 	W.nemesis[nem].active = FALSE;
 	if (r != HEARTLANDS) W.region[r].shadow = MAX(0.0, W.region[r].shadow - 10);

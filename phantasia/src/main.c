@@ -694,10 +694,14 @@ Do_game_turn(struct client_t *c)
     }
 
 	/* artifacts grow with their bearer (level and depth) */
-    if (Do_gear_artifact_grow(c)) {
-	Do_gear_apply(c, FALSE);
-	Do_gear_save(c);
-	Do_send_line(c, "Your artifact grows in power with you.\n");
+    {
+	int grew = 0;
+
+	if (Do_gear_artifact_grow(c, &grew)) {
+	    Do_gear_apply(c, FALSE);
+	    Do_gear_save(c);
+	    if (grew) Do_send_line(c, "Your artifact grows in power with you.\n");
+	}
     }
 
 	/* walking to a place chosen with Move To: take the next step (each
@@ -716,6 +720,11 @@ Do_game_turn(struct client_t *c)
 	}
 	else {
 	    double step = Do_maxmove(c);
+
+		/* Gwaihir's Feather: one flight, however far */
+	    if (Do_gear_ability(c, AB_EAGLEFLIGHT) > 0) {
+		step = 1e9;
+	    }
 
 	    event_ptr = (struct event_t *) Do_create_event();
 	    event_ptr->to = c->game;
@@ -921,8 +930,9 @@ do nothing
         Do_distance(c->player.x, event_ptr->arg1, c->player.y,
 		event_ptr->arg2, &dtemp);
 
-	    /* farther than a step: walk there, a step each turn */
-        if (dtemp > Do_maxmove(c)) {
+	    /* farther than a step: walk there, a step each turn (Gwaihir's
+	       Feather flies there at once) */
+        if (dtemp > Do_maxmove(c) && Do_gear_ability(c, AB_EAGLEFLIGHT) <= 0) {
 	    c->walking = TRUE;
 	    c->walkX = event_ptr->arg1;
 	    c->walkY = event_ptr->arg2;

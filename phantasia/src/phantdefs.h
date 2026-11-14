@@ -120,7 +120,27 @@ typedef char bool;
 #define AB_ARCANA		14	/* higher magic level */
 #define AB_WELLSPRING		15	/* regain mana each turn */
 #define AB_FOCUS		16	/* spells cost less mana */
-#define NUM_ABILITIES		17
+	/* the artifacts' own powers: no other gear has them */
+#define AB_SOULREAP		17	/* each kill restores energy */
+#define AB_EXECUTE		18	/* finish a monster below a fifth of its energy */
+#define AB_RADIANCE		19	/* regain energy with every blow */
+#define AB_TIDEWARD		20	/* immune to poison */
+#define AB_EAGLEFLIGHT		21	/* Move To arrives in one turn */
+#define AB_TAILWIND		22	/* twice as quick in battle */
+#define AB_DRAGONSCALE		23	/* monsters' blows do a quarter less */
+#define AB_FIREBORN		24	/* curses can't touch you */
+#define AB_HOARD		25	/* gold never weighs you down */
+#define AB_MIDAS		26	/* double gold */
+#define AB_FIRSTBLOOD		27	/* the first blow of a fight does triple */
+#define AB_SHADOWMELD		28	/* evading always works */
+#define AB_UNSEEN		29	/* luckout as if twice as clever */
+#define AB_TIMELESS		30	/* you do not age */
+#define AB_SAGE			31	/* a fifth more experience */
+#define AB_WINDWALK		32	/* steps go twice as far */
+#define AB_GALE			33	/* monsters half as quick */
+#define AB_ARCHMAGE		34	/* spells half again as strong */
+#define AB_MANAFONT		35	/* spells cost half the mana */
+#define NUM_ABILITIES		36
 
 #define NUM_ARTIFACTS		11
 #define NUM_CHARS		6	/* number of character types */

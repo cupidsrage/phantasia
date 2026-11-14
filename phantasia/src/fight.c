@@ -48,6 +48,7 @@ Do_monster(struct client_t *c, struct event_t *the_event)
     c->battle.tried_luckout = FALSE;
     c->battle.melee_damage = 0.0;
     c->battle.skirmish_damage = 0.0;
+    c->firstBlow = TRUE;	/* Wyrmslayer's first blood */
 
 
 	/* create a player opponent */
@@ -644,8 +645,8 @@ Do_monster(struct client_t *c, struct event_t *the_event)
             monsthit = TRUE;
 
             for (count = 0; count < (6 - floor((c->player.sin + 1.0) / 1.25)); count++) {
-                monsthit &= (RND() * c->battle.opponent->speed > 
-                             RND() * c->player.quickness);
+                monsthit &= (RND() * Do_battle_speed(c) >
+                             RND() * Do_battle_quickness(c));
             }
 
             if ((monsthit == TRUE) && (c->player.quickness > 0)) {
@@ -654,8 +655,8 @@ Do_monster(struct client_t *c, struct event_t *the_event)
         }
                 
             /* monster is faster */
-        if (RND() * c->battle.opponent->speed >
-		(RND() * c->player.quickness)
+        if (RND() * Do_battle_speed(c) >
+		(RND() * Do_battle_quickness(c))
 	            /* not darklord */
 	        && c->battle.opponent->special_type != SM_DARKLORD
             	    /* not shrieker */
@@ -1049,8 +1050,11 @@ Do_playerhits(struct client_t *c, short *theAttack, double *theArg)
 	    dtemp = 1;
 	}
 
-            /* use brains and speed to try to evade */
-        if ((c->battle.opponent->special_type != SM_MIMIC || RND() < .05) &&
+            /* use brains and speed to try to evade (the Mantle of
+	       Shadows always slips away, except from Morgoth) */
+        if ((Do_gear_ability(c, AB_SHADOWMELD) > 0 &&
+		c->battle.opponent->special_type != SM_MORGOTH) ||
+		(c->battle.opponent->special_type != SM_MIMIC || RND() < .05) &&
 		    /* cannot run from mimic very effectively */
 		((c->battle.opponent->special_type == SM_DARKLORD ||
 		  c->battle.opponent->special_type == SM_SHRIEKER) ||
@@ -1204,7 +1208,7 @@ Do_playerhits(struct client_t *c, short *theAttack, double *theArg)
             else if (c->battle.opponent->special_type == SM_IT_COMBAT) {
 
                     /* use brains for success with a major handicap */
-                if (RND() * Do_eff_brains(c) < RND() *
+                if (RND() * Do_luck_brains(c) < RND() *
                         c->battle.opponent->brains * 10) {
 
                     sprintf(string_buffer, "You blew it, %s.\n",
@@ -1234,7 +1238,7 @@ Do_playerhits(struct client_t *c, short *theAttack, double *theArg)
             else {
                     /* normal monster; use brains for success */
                 if (c->battle.opponent->special_type == SM_DARKLORD ||
-			RND() * Do_eff_brains(c) < RND() *
+			RND() * Do_luck_brains(c) < RND() *
                         c->battle.opponent->brains) {
 
                     sprintf(string_buffer, "You blew it, %s.\n",
@@ -2015,6 +2019,7 @@ Do_monsthits(struct client_t *c)
 
 	inflict = floor(1.0 + RND() * c->battle.opponent->strength);
     }
+    inflict = Do_gear_soak(c, inflict);	/* the Dragonscale Aegis */
 
 	/* gear: evade the blow (or lose an artifact to a thief) */
     if (Do_gear_defend(c)) {
@@ -2170,6 +2175,7 @@ Do_hitmonster(struct client_t *c, double inflict)
 		        c->modifiedName);
 
 	        Do_send_line(c, string_buffer);
+	        Do_gear_on_kill(c);	/* Mourneblade */
 
                 if (c->battle.opponent->special_type == SM_MIMIC &&
 		        strcmp(c->battle.opponent->name, "A Mimic") != 0 &&
@@ -2208,7 +2214,8 @@ static double Do_spell_damage(struct client_t *c, double mana, double power)
 	return 0.0;
     }
     return floor(mana * (.7 + .6 * RND()) *
-	    (pow(Do_eff_magiclvl(c), 0.40) + 1) * power);
+	    (pow(Do_eff_magiclvl(c), 0.40) + 1) * power *
+	    (Do_gear_ability(c, AB_ARCHMAGE) > 0 ? 1.5 : 1.0));	/* the Archmage's Circlet */
 }
 
 	/* against players a spell can fizzle, like a Magic Bolt */
@@ -2288,7 +2295,8 @@ static int Do_more_spells(struct client_t *c, short *theAttack, double *theArg)
 	    return MORE_BACK;
 	}
 	Do_mana(c, -Do_gear_spell_cost(c, cost), FALSE);
-	heal = MIN(ceil(top * 0.30), MAX(0.0, top - c->player.energy));
+	heal = MIN(ceil(top * 0.30 * (Do_gear_ability(c, AB_ARCHMAGE) > 0 ? 1.5 : 1.0)),
+		MAX(0.0, top - c->player.energy));
 	Do_energy(c, c->player.energy + heal, c->player.max_energy,
 		c->player.shield, c->battle.force_field, FALSE);
 	sprintf(line, "Warm light washes over you, restoring %.0f energy.\n", heal);
@@ -3473,14 +3481,15 @@ void Do_fight_odds(struct client_t *c)
     if (c->battle.ring_in_use) might *= 2;
 
 	/* the monster acts first this tick (next tick its speed is +1) */
-    q = Do_odds(MIN(o->speed + 1.0, o->max_speed), c->player.quickness);
+    q = Do_odds(MIN(o->speed + 1.0, o->max_speed) * (Do_gear_ability(c, AB_GALE) > 0 ? 0.5 : 1.0),
+	    Do_battle_quickness(c));
     if (o->special_type == SM_DARKLORD || o->special_type == SM_SHRIEKER ||
 	    o->special_type == SM_MIMIC) q = 0.0;
 
     if (c->battle.tried_luckout || o->special_type == SM_MORGOTH ||
 	    o->special_type == SM_DARKLORD) luck = 0.0;
-    else if (o->special_type == SM_IT_COMBAT) luck = Do_odds(brains, o->brains * 10.0);
-    else luck = Do_odds(brains, o->brains);
+    else if (o->special_type == SM_IT_COMBAT) luck = Do_odds(Do_luck_brains(c), o->brains * 10.0);
+    else luck = Do_odds(Do_luck_brains(c), o->brains);
 
     if (o->special_type == SM_DARKLORD || o->special_type == SM_SHRIEKER) evade = 1.0;
     else evade = Do_odds((c->player.quickness * 1.1 + 1) * (brains + 1) *
@@ -3488,6 +3497,7 @@ void Do_fight_odds(struct client_t *c)
 	    (o->speed * 1.1 + 1) * (o->brains + 1) *
 	    (o->special_type == SM_IT_COMBAT && c->wizard > 0 ? 0 : 1));
     if (o->special_type == SM_MIMIC) evade *= 0.05;
+    if (Do_gear_ability(c, AB_SHADOWMELD) > 0 && o->special_type != SM_MORGOTH) evade = 1.0;
 
     if (o->special_type == SM_IT_COMBAT) special = 3;
     else if (c->nemesisFight >= 0) special = 2;
@@ -3581,7 +3591,8 @@ static void Do_monster_cost(struct client_t *c, int t, double circle, double mig
     else if (circle < 31 && circle > 24) size = MAX(circle, 0.1 * c->player.level);
     str = (1.0 + size / 2.0) * m->strength;
     en = size * m->energy;
-    q = MIN(0.95, Do_odds(m->speed, MAX(0.0, quick)));
+    q = MIN(0.95, Do_odds(m->speed * (Do_gear_ability(c, AB_GALE) > 0 ? 0.5 : 1.0),
+	    MAX(0.0, quick) * (Do_gear_ability(c, AB_TAILWIND) > 0 ? 2.0 : 1.0)));
     n = MAX(1.0, ceil(en / (1.15 * MAX(1.0, might))));
     *loss = n * q / (1.0 - q) * (str + 1.0) / 2.0;
     *risk = 1.0 - pow(1.0 - pow(q, ceil(top / ((str + 1.0) / 2.0))), n + 1.0);
@@ -3634,7 +3645,8 @@ double Do_fight_cost(struct client_t *c, double circle, double might, double qui
 	    w = v == 0 ? (m->special_type == SM_NONE ? 1.0 - pc : 1.0) : pc;
 	    str = (1.0 + size / 2.0) * m->strength * (v ? 2.0 : 1.0);
 	    en = size * m->energy * (v ? 3.0 : 1.0);
-	    q = MIN(0.95, Do_odds(m->speed, MAX(0.0, quick)));
+	    q = MIN(0.95, Do_odds(m->speed * (Do_gear_ability(c, AB_GALE) > 0 ? 0.5 : 1.0),
+		    MAX(0.0, quick) * (Do_gear_ability(c, AB_TAILWIND) > 0 ? 2.0 : 1.0)));
 	    n = MAX(1.0, ceil(en / (1.15 * might)));
 	    loss = n * q / (1.0 - q) * (str + 1.0) / 2.0;
 	    cl += w * loss;
@@ -3793,4 +3805,23 @@ double Do_might(struct client_t *c, double strength, double sword)
 {
     sword = MAX(0.0, sword);
     return strength * (1 + sqrt(sword) * N_SWORDPOWER) + sword;
+}
+
+
+/* battle speeds with the artifacts: Gwaihir's Feather makes you twice as
+   quick, the Wind-lord's Boots make monsters half as quick */
+double Do_battle_quickness(struct client_t *c)
+{
+    return c->player.quickness * (Do_gear_ability(c, AB_TAILWIND) > 0 ? 2.0 : 1.0);
+}
+
+double Do_battle_speed(struct client_t *c)
+{
+    return c->battle.opponent->speed * (Do_gear_ability(c, AB_GALE) > 0 ? 0.5 : 1.0);
+}
+
+/* brains for a luckout: the Mantle of Shadows doubles them */
+double Do_luck_brains(struct client_t *c)
+{
+    return Do_eff_brains(c) * (Do_gear_ability(c, AB_UNSEEN) > 0 ? 2.0 : 1.0);
 }

@@ -298,6 +298,10 @@ struct client_t		/* structure for client variables */
     bool	autoplayOk;		/* this account may use autoplay */
     double	circlesSent;		/* stats behind the last CIRCLES packet */
     bool	walking;		/* walking to a place chosen with Move To */
+    bool	firstBlow;		/* this fight's first blow is still to come */
+    time_t	phoenixReady;		/* when the Phoenix Amulet can save again */
+    double	deedChance;		/* a great deed this fight: chance of an artifact */
+    char	deedName[64];		/* and what the deed was */
     double	walkX, walkY;		/* where to */
     int		inCombat;		/* in a fight (no gear changes) */
     int		shownEvent;		/* world event the browser was told */

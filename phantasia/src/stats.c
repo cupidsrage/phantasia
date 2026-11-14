@@ -311,6 +311,11 @@ Do_experience(struct client_t *c, double theExperience, int force)
     double  inc;                    /* increment between new and old levels */
     char string_buffer[SZ_LINE];
 
+	/* the Helm of Ages: a fifth more experience */
+    if (theExperience > 0 && Do_gear_ability(c, AB_SAGE) > 0) {
+	theExperience *= 1.2;
+    }
+
 	/* add the experience */
     c->player.experience += theExperience;
 
@@ -670,7 +675,7 @@ Do_speed(struct client_t *c, double maxQuickness, double quicksilver, double spe
     }
 
 	/* see if the player is carrying too much treasure */
-    if (c->wizard < 3) {
+    if (c->wizard < 3 && Do_gear_ability(c, AB_HOARD) <= 0) {	/* the Ring of Hoarding: never */
 	    /* a bigger bag carries more gold before it slows you: the
 	       amount you carry counts as if divided by the bag's factor */
         dtemp = ((c->player.gold + c->player.gems / 2.0) /
@@ -1327,6 +1332,7 @@ Do_age(struct client_t *c)
 {
     struct event_t *event_ptr;
     double temp;
+    int ageBefore = c->player.age;
 
         /* take hit points if player has poison */
     if (c->player.poison > 0.0) {
@@ -1407,6 +1413,11 @@ Do_age(struct client_t *c)
 		c->morgothCount = 0;
 		}
 	}
+
+	/* the Helm of Ages: its wearer does not age */
+    if (Do_gear_ability(c, AB_TIMELESS) > 0) {
+	c->player.age = ageBefore;
+    }
 
     while (c->player.age / N_AGE > c->player.degenerated && (c->wizard < 3)) {
 	Do_degenerate(c, TRUE);

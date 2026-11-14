@@ -699,6 +699,7 @@ static void Do_quest_complete(struct client_t *c)
 
     q->done = TRUE;
     Do_deeds_quest(c);
+    Do_gear_artifact_chance(c, 0.02, "completing a daily quest");
 
     gold = floor((200.0 + level * 60.0) * (q->type == QT_CHAMPION ? 3.0 : 1.0));
     gems = floor((1.0 + level / 25.0) * (q->type == QT_CHAMPION ? 2.0 : 1.0));
