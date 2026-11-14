@@ -20,7 +20,7 @@
     NAME: 40, LOCATION: 41, ENERGY: 42, STRENGTH: 43, SPEED: 44,
     SHIELD: 45, SWORD: 46, QUICKSILVER: 47, MANA: 48, LEVEL: 49,
     GOLD: 50, GEMS: 51, CLOAK: 52, BLESSING: 53, CROWN: 54,
-    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61, WIZARD: 62, SELECT: 63, WORLD: 64, AUTOPLAY: 65, FIGHT: 66, CIRCLES: 67, AUTOSTATS: 68, GEARVALUE: 69
+    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61, WIZARD: 62, SELECT: 63, WORLD: 64, AUTOPLAY: 65, FIGHT: 66, CIRCLES: 67, AUTOSTATS: 68, GEARVALUE: 69, MONSTERS: 70
   };
 
   /* ---- client -> server ---- */
@@ -180,10 +180,20 @@
         case P.WORLD: await readWorld(); break;
         case P.AUTOPLAY: { var ap = (await next()).split(" "); auto.allow(ap[0] === "1", ap[1] || ""); break; }
         case P.FIGHT: auto.odds(await readFightOdds()); break;
+        case P.MONSTERS: {
+          var mn = await nextInt(), mons = [];
+          for (var mi = 0; mi < mn; mi++) {
+            var mf = (await next()).split(":");
+            mons.push({ id: +mf[0], loss: +mf[1], risk: +mf[2], exp: +mf[3], special: +mf[4], name: mf.slice(5).join(":") });
+          }
+          auto.monsterChoices(mons);
+          break;
+        }
         case P.GEARVALUE: {
           var gk = await next(), gh = (await next()).split(":"), gn = await nextInt(), gvals = [];
-          for (var gi = 0; gi < gn; gi++) gvals.push(+(await next()));
-          auto.gearValues(gk, +gh[0], +gh[1], gvals);
+          var ghunt = [];
+          for (var gi = 0; gi < gn; gi++) { var gf = (await next()).split(":"); gvals.push(+gf[0]); ghunt.push(+gf[1]); }
+          auto.gearValues(gk, +gh[0], +gh[1], gvals, ghunt);
           break;
         }
         case P.AUTOSTATS: {
@@ -1363,7 +1373,7 @@
   var auto = (window.PhantasiaAutoplay || function () {
     var none = function () { return false; };
     return { allow: none, at: none, level: none, bar: none, stat: none, world: none, line: none,
-      chat: none, buttons: none, dialog: none, odds: none, circles: none, status: none, gearValues: none, gearChanged: none, userTook: none, cancelPress: none, toggle: none,
+      chat: none, buttons: none, dialog: none, odds: none, circles: none, status: none, gearValues: none, monsterChoices: none, gearChanged: none, userTook: none, cancelPress: none, toggle: none,
       setSpeed: none, save: none, pressing: false };
   })({
     pending: function () { return pending; },

@@ -3570,6 +3570,45 @@ static int Do_circle_monster(double circle, double u1, double u2)
 /* What an average fight at a circle costs a character of this might,
    quickness and full energy (top): the energy lost, the share of monsters
    that would cost more than 60% of top, and the average experience. */
+/* One monster type at a circle against these stats: energy an average
+   fight costs, the chance a streak kills from full energy, its experience. */
+static void Do_monster_cost(struct client_t *c, int t, double circle, double might,
+	double quick, double top, double *loss, double *risk, double *exp)
+{
+    struct monster_t *m = &c->realm->monster[t];
+    double size = circle, str, en, q, n;
+
+    if (circle == 27 || circle == 28) size = MAX(circle, 0.225 * c->player.level);
+    else if (circle < 31 && circle > 24) size = MAX(circle, 0.1 * c->player.level);
+    str = (1.0 + size / 2.0) * m->strength;
+    en = size * m->energy;
+    q = MIN(0.95, Do_odds(m->speed, MAX(0.0, quick)));
+    n = MAX(1.0, ceil(en / (1.15 * MAX(1.0, might))));
+    *loss = n * q / (1.0 - q) * (str + 1.0) / 2.0;
+    *risk = 1.0 - pow(1.0 - pow(q, ceil(top / ((str + 1.0) / 2.0))), n + 1.0);
+    *exp = size * m->experience;
+}
+
+/* for a pick-your-monster scroll: every monster at this circle, for autoplay */
+void Do_autoplay_monster_choices(struct client_t *c)
+{
+    char line[SZ_LINE];
+    double might, top, loss, risk, xp;
+    int t;
+
+    if (!c->autoplayOk) return;
+    might = c->player.max_strength * (1 + sqrt(c->player.sword) * N_SWORDPOWER);
+    top = c->player.max_energy + c->player.shield;
+    Do_send_int(c, MONSTERS_PACKET);
+    Do_send_int(c, NUM_MONSTERS);
+    for (t = 0; t < NUM_MONSTERS; t++) {
+	Do_monster_cost(c, t, c->player.circle, might, c->player.quickness, top, &loss, &risk, &xp);
+	snprintf(line, sizeof line, "%d:%.0f:%.5f:%.0f:%d:%s\n", t, loss, risk, xp,
+		c->realm->monster[t].special_type, c->realm->monster[t].name);
+	Do_send_string(c, line);
+    }
+}
+
 double Do_fight_cost(struct client_t *c, double circle, double might, double quick,
 	double top, double *badShare, double *avgExp, double *deathRisk)
 {

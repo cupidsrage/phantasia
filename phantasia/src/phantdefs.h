@@ -313,6 +313,7 @@ typedef char bool;
 #define CIRCLES_PACKET		67	/* what each circle costs, for autoplay (browser only) */
 #define AUTOSTATS_PACKET	68	/* stats the screen doesn't show, for autoplay (browser only) */
 #define GEARVALUE_PACKET	69	/* what items would do, for autoplay (browser only) */
+#define MONSTERS_PACKET		70	/* every monster here, for a pick-your-monster scroll (autoplay) */
 #define SELECT_PACKET		63	/* pick one from a list (browser only) */
 
 	/* ceremonies shown to browser players (wizard levels are 2-4) */

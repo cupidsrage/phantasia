@@ -372,6 +372,7 @@ void Do_fight_odds(struct client_t *c);
 void Do_autoplay_circles(struct client_t *c);
 double Do_fight_cost(struct client_t *c, double circle, double might, double quick, double top, double *badShare, double *avgExp, double *deathRisk);
 int Do_hunt_circle(struct client_t *c, double might, double quick, double top);
+void Do_autoplay_monster_choices(struct client_t *c);
 void Do_autoplay_gear_values(struct client_t *c, const char *kind, struct gear_item_t *items, int n);
 void Do_autoplay_bag(struct client_t *c, char *out);
 void Do_autoplay_stats(struct client_t *c);

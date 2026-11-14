@@ -1373,6 +1373,14 @@ void Do_world_test(struct client_t *c, char *what)
     Do_world_save_locked();
     pthread_mutex_unlock(&world_lock);
     if (!strncmp(what, "meet", 4)) forceNemesis = TRUE;
+    if (!strncmp(what, "pickscroll", 10)) {	/* test builds: a pick-your-monster scroll */
+	struct event_t *ev = (struct event_t *) Do_create_event();
+	ev->type = TREASURE_EVENT;
+	ev->arg1 = c->player.circle;
+	ev->arg2 = 5;
+	ev->arg3 = 4;
+	Do_file_event(c, ev);
+    }
     if (!strncmp(what, "level", 5)) {	/* test builds: a few levels */
 	Do_experience(c, 20000.0, FALSE);
     }
