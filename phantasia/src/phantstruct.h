@@ -296,6 +296,7 @@ struct client_t		/* structure for client variables */
     bool	gearLoaded;		/* gear has been loaded */
     bool	isBrowser;		/* playing through the browser client */
     bool	autoplayOk;		/* this account may use autoplay */
+    double	circlesSent;		/* stats behind the last CIRCLES packet */
     int		inCombat;		/* in a fight (no gear changes) */
     int		shownEvent;		/* world event the browser was told */
     time_t	shownEventEnds;		/* and when it ends */

@@ -20,7 +20,7 @@
     NAME: 40, LOCATION: 41, ENERGY: 42, STRENGTH: 43, SPEED: 44,
     SHIELD: 45, SWORD: 46, QUICKSILVER: 47, MANA: 48, LEVEL: 49,
     GOLD: 50, GEMS: 51, CLOAK: 52, BLESSING: 53, CROWN: 54,
-    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61, WIZARD: 62, SELECT: 63, WORLD: 64, AUTOPLAY: 65, FIGHT: 66
+    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61, WIZARD: 62, SELECT: 63, WORLD: 64, AUTOPLAY: 65, FIGHT: 66, CIRCLES: 67
   };
 
   /* ---- client -> server ---- */
@@ -180,6 +180,15 @@
         case P.WORLD: await readWorld(); break;
         case P.AUTOPLAY: auto.allow((await next()) === "1"); break;
         case P.FIGHT: auto.odds(await readFightOdds()); break;
+        case P.CIRCLES: {
+          var nc = await nextInt(), circ = [];
+          for (var ci = 0; ci < nc; ci++) {
+            var f = (await next()).split(":");
+            circ.push({ circle: +f[0], loss: +f[1], bad: +f[2], exp: +f[3] });
+          }
+          auto.circles(circ);
+          break;
+        }
         default:
           if (type >= P.NAME && type <= P.VIRGIN) await updateStatus(type);
           else console.warn("Unknown packet", type);
@@ -1337,7 +1346,7 @@
   var auto = (window.PhantasiaAutoplay || function () {
     var none = function () { return false; };
     return { allow: none, at: none, level: none, bar: none, stat: none, world: none, line: none,
-      chat: none, buttons: none, dialog: none, odds: none, userTook: none, cancelPress: none, toggle: none,
+      chat: none, buttons: none, dialog: none, odds: none, circles: none, userTook: none, cancelPress: none, toggle: none,
       setSpeed: none, pressing: false };
   })({
     pending: function () { return pending; },

@@ -605,7 +605,9 @@ Do_play_loop(struct client_t *c)
 	}
 	else {
 
-		/* If no events, start a new turn */
+		/* If no events, start a new turn (autoplay first hears what
+		   each circle would cost this character) */
+	    if (c->autoplayOk) Do_autoplay_circles(c);
 	    Do_game_turn(c);
 
 		/* rulers are paid from the treasury as they reign, even
