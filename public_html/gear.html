@@ -54,27 +54,39 @@ equipped items add together into the numbers the game has always used:
    </P>
 
    <P>Each item's bonus is set by the <A HREF="realm.html#circle">circle</A>
-   (C) it comes from and its tier's quality (q).  Energy and damage follow
-   <B>how hard monsters hit at that circle</B> (H, below), so gear keeps
-   pace as you move out: a Fine armor and helm together soak up about seven
-   average hits wherever they were found.</P>
+   (C) it comes from and its tier's quality (q), measured from the real
+   monsters there, so gear keeps pace as you move out.  Energy follows
+   <B>how hard monsters hit at that circle</B> (H, below): a Fine armor and
+   helm together soak up about seven average hits wherever they were found.
+   Weapon damage follows <B>how much energy monsters have there</B> (M), so a
+   weapon from a circle kills its monsters in about as many blows as earlier
+   weapons did nearer in.</P>
+   <P><B>Damage</B> is added to every blow: a blow hits for your strength,
+   raised a little by your weapon (strength &times; (1 + &radic;damage &times; 4%)),
+   <B>plus the weapon's damage</B>.</P>
    <div class="table-scroll"><TABLE CLASS="nums">
     <TR><TH>Slot</TH><TH>Bonus</TH></TR>
-    <TR><TD>Weapon</TD><TD>+0.4 &times; H &times; q damage</TD></TR>
+    <TR><TD>Weapon</TD><TD>+M &times; q &divide; 7 damage</TD></TR>
     <TR><TD>Armor</TD><TD>+5.5 &times; H &times; q energy</TD></TR>
     <TR><TD>Helm</TD><TD>+2 &times; H &times; q energy</TD></TR>
     <TR><TD>Boots</TD><TD>+0.6 &times; (C &minus; 3) &times; q quicksilver (at least circle 1)</TD></TR>
-    <TR><TD>Trinket</TD><TD>+0.8 &times; H &times; q energy and +0.08 &times; H &times; q damage</TD></TR>
+    <TR><TD>Trinket</TD><TD>+0.8 &times; H &times; q energy and +M &times; q &divide; 70 damage</TD></TR>
    </TABLE></div>
    <P>Each item rolls within &plusmn;15% of these values.  H, the average
-   monster hit, by circle (in between, it scales smoothly; beyond 100 it
-   grows with the circle):</P>
+   monster hit, and M, the average monster's energy, by circle (in between
+   they scale smoothly; neither drops for a circle with weaker monsters,
+   such as the Dead Marshes, and far out they grow with the circle):</P>
    <div class="table-scroll"><TABLE CLASS="nums">
     <TR><TH>Circle</TH><TD>1</TD><TD>5</TD><TD>10</TD><TD>15</TD><TD>20</TD><TD>25</TD><TD>30</TD><TD>40</TD><TD>50</TD><TD>75</TD><TD>100</TD></TR>
-    <TR><TH>H</TH><TD>7</TD><TD>31</TD><TD>70</TD><TD>200</TD><TD>400</TD><TD>1,000</TD><TD>1,450</TD><TD>2,250</TD><TD>2,900</TD><TD>4,400</TD><TD>5,800</TD></TR>
+    <TR><TH>H</TH><TD>7</TD><TD>32</TD><TD>70</TD><TD>258</TD><TD>418</TD><TD>1,313</TD><TD>1,556</TD><TD>2,295</TD><TD>2,900</TD><TD>4,400</TD><TD>5,800</TD></TR>
+    <TR><TH>M</TH><TD>33</TD><TD>250</TD><TD>750</TD><TD>3,747</TD><TD>7,133</TD><TD>22,596</TD><TD>28,076</TD><TD>31,428</TD><TD>39,285</TD><TD>58,928</TD><TD>78,571</TD></TR>
    </TABLE></div>
-   <P>For example, Fine armor gives about 385 energy from circle 10, 8,000
-   from circle 30 and 32,000 from circle 100.</P>
+   <P>For example, Fine armor gives about 387 energy from circle 10, 8,557
+   from circle 30 and 31,900 from circle 100; a Fine weapon adds about 107
+   damage a blow from circle 10, 535 from circle 15 and 4,011 from circle 30.</P>
+   <P>Gear made before weapons and armor followed the real monsters was
+   reforged once, when its owner next played: each item keeps its own roll
+   and gets the new value for its circle and tier, and nothing got worse.</P>
 
    <A NAME="tiers"></A>
    <H3>Tiers</H3>

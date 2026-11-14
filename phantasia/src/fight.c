@@ -270,8 +270,7 @@ Do_monster(struct client_t *c, struct event_t *the_event)
 
             c->battle.opponent->energy = c->battle.opponent->max_energy = 
 		    floor((8 + (c->player.level / 250)) * 
-                          (c->player.strength * 
-                           (1 + sqrt(c->player.sword) * N_SWORDPOWER)) *
+                          Do_might(c, c->player.strength, c->player.sword) *
                           (.75 + RND() * .5));
 
             c->battle.opponent->strength = c->battle.opponent->max_strength = 
@@ -977,7 +976,7 @@ Do_playerhits(struct client_t *c, short *theAttack, double *theArg)
 
     case 0:               /* melee */
             /* melee affects monster's energy and strength */
-	might = c->player.strength * (1 + sqrt(c->player.sword) * N_SWORDPOWER) 
+	might = Do_might(c, c->player.strength, c->player.sword)
                 + c->battle.strengthSpell;
 
 	    /* use of ring doubles a player's might */
@@ -1005,7 +1004,7 @@ Do_playerhits(struct client_t *c, short *theAttack, double *theArg)
         break;
 
     case 1:               /* skirmish */
-	might = c->player.strength * (1 + sqrt(c->player.sword) * N_SWORDPOWER) 
+	might = Do_might(c, c->player.strength, c->player.sword)
                 + c->battle.strengthSpell;
 
 	    /* use of ring doubles a player's might */
@@ -3469,7 +3468,7 @@ void Do_fight_odds(struct client_t *c)
     double might, q, luck, evade, ml, top, brains = Do_eff_brains(c);
     int special = 0;
 
-    might = c->player.strength * (1 + sqrt(c->player.sword) * N_SWORDPOWER) +
+    might = Do_might(c, c->player.strength, c->player.sword) +
 	    c->battle.strengthSpell;
     if (c->battle.ring_in_use) might *= 2;
 
@@ -3495,10 +3494,10 @@ void Do_fight_odds(struct client_t *c)
     else if (c->championFight) special = 1;
 
     Do_send_int(c, FIGHT_PACKET);
-    sprintf(line, "%s\n%.0f\n%.0f\n%.0f\n%.3f\n%.1f\n%.1f\n%.3f\n%.3f\n%d\n%.0f\n%d\n%.0f\n",
+    sprintf(line, "%s\n%.0f\n%.0f\n%.0f\n%.3f\n%.1f\n%.1f\n%.3f\n%.3f\n%d\n%.0f\n%d\n%.0f\n%d\n",
 	    o->name, MAX(0.0, o->energy), o->max_energy, MAX(0.0, o->strength), q,
 	    1.15 * might, 0.88 * might, luck, evade, special, o->brains,
-	    (int) o->flock_percent, o->experience);
+	    (int) o->flock_percent, o->experience, o->special_type);
     Do_send_string(c, line);
 
 	/* spells: name, mana, average damage, average healing */
@@ -3549,7 +3548,7 @@ void Do_fight_odds(struct client_t *c)
 /
 /************************************************************************/
 
-static int Do_circle_monster(double circle, double u1, double u2)
+int Do_circle_monster(double circle, double u1, double u2)
 {
     int t;
 
@@ -3597,7 +3596,7 @@ void Do_autoplay_monster_choices(struct client_t *c)
     int t;
 
     if (!c->autoplayOk) return;
-    might = c->player.max_strength * (1 + sqrt(c->player.sword) * N_SWORDPOWER);
+    might = Do_might(c, c->player.max_strength, c->player.sword);
     top = c->player.max_energy + c->player.shield;
     Do_send_int(c, MONSTERS_PACKET);
     Do_send_int(c, NUM_MONSTERS);
@@ -3613,8 +3612,13 @@ double Do_fight_cost(struct client_t *c, double circle, double might, double qui
 	double top, double *badShare, double *avgExp, double *deathRisk)
 {
     double size, str, en, q, n, loss, sumLoss = 0, sumExp = 0, bad = 0, risk = 0;
-    int i, j, t, G = 20;
+    double pc, w, cl, cr;
+    int i, j, t, v, G = 20;
     struct monster_t *m;
+
+	/* a share of ordinary monsters are champions (Do_maybe_make_champion):
+	   strength x2, energy x3 */
+    pc = Do_current_world_event(c) == WE_CHAMPION_HUNT ? 0.15 : 0.03;
 
     might = MAX(1.0, might);
     for (i = 0; i < G; i++) for (j = 0; j < G; j++) {
@@ -3623,18 +3627,25 @@ double Do_fight_cost(struct client_t *c, double circle, double might, double qui
 	size = circle;
 	if (circle == 27 || circle == 28) size = MAX(circle, 0.225 * c->player.level);
 	else if (circle < 31 && circle > 24) size = MAX(circle, 0.1 * c->player.level);
-	str = (1.0 + size / 2.0) * m->strength;
-	en = size * m->energy;
-	q = MIN(0.95, Do_odds(m->speed, MAX(0.0, quick)));
-	n = MAX(1.0, ceil(en / (1.15 * might)));
-	loss = n * q / (1.0 - q) * (str + 1.0) / 2.0;
-	sumLoss += loss;
 	sumExp += size * m->experience;
-	if (loss > 0.6 * top) bad++;
-	    /* the chance of a streak that kills from full energy: before each
-	       of our n actions the monster lands k hits in a row with q^k,
-	       k being the average hits that empty top */
-	risk += 1.0 - pow(1.0 - pow(q, ceil(top / ((str + 1.0) / 2.0))), n + 1.0);
+	cl = cr = 0;
+	for (v = 0; v < 2; v++) {
+	    if (v == 1 && m->special_type != SM_NONE) break;
+	    w = v == 0 ? (m->special_type == SM_NONE ? 1.0 - pc : 1.0) : pc;
+	    str = (1.0 + size / 2.0) * m->strength * (v ? 2.0 : 1.0);
+	    en = size * m->energy * (v ? 3.0 : 1.0);
+	    q = MIN(0.95, Do_odds(m->speed, MAX(0.0, quick)));
+	    n = MAX(1.0, ceil(en / (1.15 * might)));
+	    loss = n * q / (1.0 - q) * (str + 1.0) / 2.0;
+	    cl += w * loss;
+		/* the chance of a streak that kills from full energy: before
+		   each of our n actions the monster lands k hits in a row with
+		   q^k, k being the average hits that empty top */
+	    cr += w * (1.0 - pow(1.0 - pow(q, ceil(top / ((str + 1.0) / 2.0))), n + 1.0));
+	}
+	sumLoss += cl;
+	if (cl > 0.6 * top) bad++;
+	risk += cr;
     }
     if (badShare) *badShare = bad / (G * G);
     if (deathRisk) *deathRisk = risk / (G * G);
@@ -3663,7 +3674,7 @@ void Do_autoplay_circles(struct client_t *c)
     double might, quick, top, key, cost[50][5], bad, xp, risk;
     int i, k = 0;
 
-    might = MAX(1.0, c->player.max_strength * (1 + sqrt(c->player.sword) * N_SWORDPOWER));
+    might = MAX(1.0, Do_might(c, c->player.max_strength, c->player.sword));
     quick = MAX(0.0, c->player.quickness);
     top = c->player.max_energy + c->player.shield;
 
@@ -3703,6 +3714,32 @@ void Do_autoplay_circles(struct client_t *c)
 /
 /************************************************************************/
 
+/* how many books in a row would each add at least one point of brains,
+   following Do_book (past level x the class cap they give less each) */
+static int Do_books_worth(struct client_t *c)
+{
+    struct charstats_t *cs = &c->realm->charstats[c->player.type];
+    double brains = c->player.brains, cap = c->player.level * cs->max_brains;
+    double inc = cs->brains.increase, over, gain, d2;
+    int n, multiple;
+
+    if (cap <= 0) return 0;
+    for (n = 0; n < 2000; n++) {
+	over = brains - cap;
+	if (over > 0) {
+	    multiple = (int) ceil(over / cap);
+	    d2 = multiple > 0 ? inc * (inc - 1) / multiple : inc * (inc - 1);
+	    gain = d2 / sqrt(over + d2);
+	}
+	else {
+	    gain = inc / 2;
+	}
+	if (gain < 1.0) break;
+	brains += gain;
+    }
+    return n;
+}
+
 void Do_autoplay_stats(struct client_t *c)
 {
     char line[SZ_LINE];
@@ -3721,11 +3758,32 @@ void Do_autoplay_stats(struct client_t *c)
     char bag[SZ_LINE];
 
     Do_autoplay_bag(c, bag);
-    snprintf(line, sizeof line, "%s:%.1f:%.1f:%.2f:%.1f:%.2f:%.2f:%d:%d:%d:%.0f:%.1f:%d:%.0f:%s\n",
+    snprintf(line, sizeof line, "%s:%.1f:%.1f:%.2f:%.1f:%.2f:%.2f:%d:%d:%d:%.0f:%.1f:%d:%.0f:%s:%d\n",
 	    cs->class_name, c->player.brains, c->player.level * cs->max_brains,
 	    cs->brains.increase / 2.0, Do_eff_magiclvl(c), c->player.sin,
 	    c->player.poison, c->player.amulets, c->player.charms,
 	    c->player.blind ? 1 : 0, cap, slow, Do_maxmove(c),
-	    1000.0 + c->player.level * cs->max_mana, bag);
+	    1000.0 + c->player.level * cs->max_mana, bag, Do_books_worth(c));
     Do_send_string(c, line);
+}
+
+
+/************************************************************************
+/
+/ FUNCTION NAME: Do_might(struct client_t *c, double strength, double sword)
+/
+/ FUNCTION: how hard a character hits with a blow
+/
+/ DESCRIPTION:
+/	Strength, raised a little by the weapon as in the original game
+/	(strength x (1 + sqrt(sword) x N_SWORDPOWER)), plus the weapon's
+/	damage itself on every blow, so weapons keep pace with the monsters
+/	as players move out.
+/
+/************************************************************************/
+
+double Do_might(struct client_t *c, double strength, double sword)
+{
+    sword = MAX(0.0, sword);
+    return strength * (1 + sqrt(sword) * N_SWORDPOWER) + sword;
 }

@@ -106,8 +106,7 @@ struct examine_t *Do_create_examine(struct client_t *c, struct game_t *requestor
     examine_ptr->experience = c->player.experience;
     examine_ptr->energy = c->player.energy;
     examine_ptr->max_energy = c->player.max_energy;
-    examine_ptr->strength = c->player.strength * 
-                            (1 + sqrt(c->player.sword) * N_SWORDPOWER);
+    examine_ptr->strength = Do_might(c, c->player.strength, c->player.sword);
     examine_ptr->max_strength = c->player.max_strength;
     examine_ptr->quickness = c->player.quickness;
     examine_ptr->max_quickness = c->player.max_quickness;

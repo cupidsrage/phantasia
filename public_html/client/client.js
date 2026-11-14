@@ -201,7 +201,8 @@
           auto.status({ cls: as[0], brains: +as[1], brainsCap: +as[2], perBook: +as[3], magic: +as[4],
             sin: +as[5], poison: +as[6], amulets: +as[7], charms: +as[8], blind: as[9] === "1",
             goldCap: +as[10], goldSlow: +as[11], maxMove: +as[12], maxMana: +as[13],
-            nextBag: { name: as[14], price: +as[15] }, bagGold: +as[16], nextBagGold: +as[17] });
+            nextBag: { name: as[14], price: +as[15] }, bagGold: +as[16], nextBagGold: +as[17],
+            booksWorth: +as[18] || 0 });
           break;
         }
         case P.CIRCLES: {
@@ -1359,7 +1360,7 @@
     var F = { name: await next(), energy: +(await next()), maxEnergy: +(await next()),
       str: +(await next()), q: +(await next()), melee: +(await next()), skirmish: +(await next()),
       luck: +(await next()), evade: +(await next()), special: +(await next()), brains: +(await next()),
-      flock: +(await next()), exp: +(await next()), spells: [] };
+      flock: +(await next()), exp: +(await next()), kind: +(await next()), spells: [] };
     (await next()).split(";").forEach(function (part) {
       var f = part.split(":");
       if (f.length === 4) F.spells.push({ name: f[0], mana: +f[1], dmg: +f[2], heal: +f[3] });

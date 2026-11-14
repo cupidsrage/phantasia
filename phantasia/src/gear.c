@@ -288,7 +288,7 @@ void Do_gear_describe(struct gear_item_t *item, char *buffer)
  * Gorgoroth at circle 25 is where monsters get much stronger).  Gear is
  * scaled by this so it keeps pace as players move out.
  */
-double Do_gear_threat(double circle)
+static double Do_gear_threat_old(double circle)
 {
     static const double at[][2] = {
 	{ 1, 7 }, { 5, 31 }, { 10, 70 }, { 15, 200 }, { 20, 400 },
@@ -312,18 +312,96 @@ double Do_gear_threat(double circle)
     return at[n - 1][1];
 }
 
+/*
+ * How hard an average monster hits, and how much energy it has, at each
+ * circle: measured from the monster table with the encounter rules of
+ * Do_monster (which monsters a circle picks from, size = circle, strength
+ * (1 + size/2) x base, energy size x base).  Never lower than a nearer
+ * circle (the Dead Marshes' weaker monsters don't make weaker gear), and
+ * from circle 36, where every monster can appear, it grows with size.
+ * Armor follows the hits; weapons follow the energy, so a weapon from a
+ * circle kills there in about as many blows as earlier ones did nearer in.
+ */
+static double gearHit[37], gearEnergy[37], gearHitBase, gearEnergyBase;
+static int gearMeasured = FALSE;
+
+static void Do_gear_measure(struct realm_t *realm)
+{
+    int c, i, j, t, G = 20;
+    double hit, en, best = 0, bestEn = 0;
+
+    for (c = 1; c <= 36; c++) {
+	hit = en = 0;
+	for (i = 0; i < G; i++) for (j = 0; j < G; j++) {
+	    t = Do_circle_monster(c, (i + 0.5) / G, (j + 0.5) / G);
+	    hit += ((1.0 + c / 2.0) * realm->monster[t].strength + 1.0) / 2.0;
+	    en += c * realm->monster[t].energy;
+	}
+	best = MAX(best, hit / (G * G));
+	bestEn = MAX(bestEn, en / (G * G));
+	gearHit[c] = best;
+	gearEnergy[c] = bestEn;
+    }
+	/* circle 36 on: every non-water monster (14 to 99), sized to the circle */
+    hit = en = 0;
+    for (t = 14; t < 100; t++) {
+	hit += realm->monster[t].strength;
+	en += realm->monster[t].energy;
+    }
+    gearHitBase = hit / 86.0;
+    gearEnergyBase = en / 86.0;
+    gearMeasured = TRUE;
+}
+
+static double Do_gear_table(struct realm_t *realm, double circle, int energy)
+{
+    double c = MAX(1.0, circle), lo, hi, f;
+    int k;
+
+    if (!gearMeasured) Do_gear_measure(realm);
+    if (c >= 36) {
+	return energy ? MAX(gearEnergy[36], c * gearEnergyBase) :
+		MAX(gearHit[36], ((1.0 + c / 2.0) * gearHitBase + 1.0) / 2.0);
+    }
+    k = (int) floor(c);
+    f = c - k;
+    lo = energy ? gearEnergy[k] : gearHit[k];
+    hi = energy ? gearEnergy[k + 1] : gearHit[k + 1];
+    return lo + (hi - lo) * f;
+}
+
+static struct realm_t *gearRealm = NULL;
+
+double Do_gear_threat(double circle)
+{
+    /* never below the old table, so no gear comes out weaker than before */
+    return gearRealm ? MAX(Do_gear_threat_old(circle), Do_gear_table(gearRealm, circle, FALSE)) :
+	    Do_gear_threat_old(circle);
+}
+
+double Do_gear_monster_energy(struct client_t *c, double circle)
+{
+    gearRealm = c->realm;
+    return Do_gear_table(c->realm, circle, TRUE);
+}
+
 	/* bonuses for an item of a slot, circle and quality */
+#define GEAR_VERSION	2	/* gear saved before this is rescaled on load */
+#define WEAPON_SHARE	(0.2 / 1.4)	/* weapon damage per point of quality, as a share of monster energy */
 static void Do_gear_set_stats(struct gear_item_t *item, double circle,
 	double q)
 {
     double c = MAX(1.0, circle), threat = Do_gear_threat(c);
+    double energy = gearRealm ? Do_gear_table(gearRealm, c, TRUE) : 10.0 * threat;
 
     item->shield = item->sword = item->quicksilver = 0;
     item->circle = (short) MIN(30000.0, floor(c));
 
     switch (item->slot) {
     case SLOT_WEAPON:
-	item->sword = MAX(1, floor(0.4 * threat * q));
+	    /* damage on every blow: a Masterwork weapon a fifth of an
+	       average monster's energy at its circle */
+	item->sword = MAX(1, floor(WEAPON_SHARE * energy * q));
 	break;
     case SLOT_ARMOR:
 	item->shield = MAX(1, floor(5.5 * threat * q));
@@ -336,7 +414,7 @@ static void Do_gear_set_stats(struct gear_item_t *item, double circle,
 	break;
     case SLOT_TRINKET:
 	item->shield = floor(0.8 * threat * q);
-	item->sword = floor(0.08 * threat * q);
+	item->sword = floor(0.1 * WEAPON_SHARE * energy * q);
 	break;
     }
 }
@@ -472,10 +550,10 @@ static void Do_gear_save_locked(struct client_t *c)
 
     for (i = 0; i < c->numGear; i++) {
 	struct gear_item_t *g = &c->gear[i];
-	fprintf(out_file, "%s %d %d %d %d %d %d %d %.0f %.0f %.0f %d\n",
+	fprintf(out_file, "%s %d %d %d %d %d %d %d %.0f %.0f %.0f %d %d\n",
 		c->player.lcname, g->slot, g->equipped, g->tier, g->base,
 		g->ability, g->ability2, g->artifact, g->shield, g->sword,
-		g->quicksilver, g->circle);
+		g->quicksilver, g->circle, GEAR_VERSION);
     }
 
 	/* the bag (slot -2), which also marks the character as converted */
@@ -616,7 +694,7 @@ static int Do_gear_upgrade_old(struct gear_item_t *g)
     }
 
     circle = MAX(1.0, floor(circle + 0.5));
-    threat = Do_gear_threat(circle);
+    threat = Do_gear_threat_old(circle);	/* the next step rescales to the real monsters */
     g->circle = (short) MIN(30000.0, circle);
 
     switch (g->slot) {
@@ -637,6 +715,49 @@ static int Do_gear_upgrade_old(struct gear_item_t *g)
     return g->shield + g->sword > before;
 }
 
+/*
+ * Gear made before it followed the real monsters (version 1): weapons
+ * were 0.4 x the old threat table x quality and added only a little to
+ * might; armor, helms and trinkets used the old table too.  Work out the
+ * item's own roll against the old formula, and give it the new formula's
+ * value with the same roll.  Nothing gets worse.
+ */
+static int Do_gear_upgrade_v2(struct gear_item_t *g)
+{
+    double q, c, oldT, newT, energy, roll, before = g->shield + g->sword;
+
+    if (g->slot == SLOT_BOOTS || !gearRealm) {
+	return FALSE;
+    }
+    q = Do_tier_quality(g->tier);
+    c = MAX(1.0, g->circle);
+    oldT = Do_gear_threat_old(c);
+    newT = Do_gear_threat(c);
+    energy = Do_gear_table(gearRealm, c, TRUE);
+
+    switch (g->slot) {
+    case SLOT_WEAPON:
+	roll = g->sword / MAX(1.0, 0.4 * oldT * q);
+	g->sword = MAX(g->sword, floor(WEAPON_SHARE * energy * q * roll));
+	break;
+    case SLOT_ARMOR:
+	roll = g->shield / MAX(1.0, 5.5 * oldT * q);
+	g->shield = MAX(g->shield, floor(5.5 * newT * q * roll));
+	break;
+    case SLOT_HELM:
+	roll = g->shield / MAX(1.0, 2.0 * oldT * q);
+	g->shield = MAX(g->shield, floor(2.0 * newT * q * roll));
+	break;
+    case SLOT_TRINKET:
+	roll = g->shield / MAX(1.0, 0.8 * oldT * q);
+	g->shield = MAX(g->shield, floor(0.8 * newT * q * roll));
+	roll = g->sword / MAX(1.0, 0.08 * oldT * q);
+	g->sword = MAX(g->sword, floor(0.1 * WEAPON_SHARE * energy * q * roll));
+	break;
+    }
+    return g->shield + g->sword > before;
+}
+
 	/* load (or create) this character's gear when entering the realm */
 void Do_gear_load(struct client_t *c)
 {
@@ -644,11 +765,12 @@ void Do_gear_load(struct client_t *c)
     char line[SZ_LINE], name[SZ_NAME + 1];
     struct gear_item_t g;
     int slot, equipped, tier, base, ab, ab2, art, found = FALSE, id, fields;
-    int circle, upgraded = 0;
+    int circle, upgraded = 0, version;
     double shield, sword, quick;
 
     c->numGear = 0;
     c->bagSize = BACKPACK_SIZE;
+    gearRealm = c->realm;	/* gear is measured against this realm's monsters */
 
     Do_lock_mutex(&c->realm->gear_lock);
 
@@ -656,9 +778,10 @@ void Do_gear_load(struct client_t *c)
 	while (fgets(line, sizeof(line), the_file) != NULL) {
 
 	    circle = 0;
-	    fields = sscanf(line, "%32s %d %d %d %d %d %d %d %lf %lf %lf %d",
+	    version = 1;
+	    fields = sscanf(line, "%32s %d %d %d %d %d %d %d %lf %lf %lf %d %d",
 		    name, &slot, &equipped, &tier, &base, &ab, &ab2, &art,
-		    &shield, &sword, &quick, &circle);
+		    &shield, &sword, &quick, &circle, &version);
 
 	    if (fields < 11 || strcmp(name, c->player.lcname) != 0) {
 		continue;
@@ -693,6 +816,10 @@ void Do_gear_load(struct client_t *c)
 
 		/* saved before the rebalance: bring it up to date once */
 	    if (fields == 11 && Do_gear_upgrade_old(&g)) {
+		++upgraded;
+	    }
+		/* saved before gear followed the real monsters: rescale once */
+	    if (fields < 13 && Do_gear_upgrade_v2(&g)) {
 		++upgraded;
 	    }
 
@@ -746,6 +873,8 @@ void Do_gear_load(struct client_t *c)
     Do_unlock_mutex(&c->realm->gear_lock);
 
     if (upgraded) {
+	    /* save at once: the version mark keeps it from being redone */
+	Do_gear_save(c);
 	Do_send_chat_self(c, "The realm's smiths have reforged your gear to match the dangers of the deeper circles.  Check it with /gear.\n");
     }
 }

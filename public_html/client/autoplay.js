@@ -219,6 +219,9 @@ window.PhantasiaAutoplay = function (host) {
       var d = 100 * n * n, a = Math.round(d * Math.SQRT2);
       [[d, d], [-d, d], [d, -d], [-d, -d], [a, 0], [-a, 0], [0, a], [0, -a]].forEach(function (p) {
         if ((st.badPosts[p[0] + "," + p[1]] || 0) > now) return;
+        /* the walk there and back must stay where it can hunt safely,
+           unless gold is already slowing it */
+        if (circleAt(p[0], p[1]) > cap() && !heavy()) return;
         /* a fallen town's posts lie in ruins */
         var r = ((Math.floor((Math.atan2(p[1], p[0]) + Math.PI / 8) / (Math.PI / 4)) % 8) + 8) % 8;
         if (st.fallen[r]) return;
@@ -407,14 +410,15 @@ window.PhantasiaAutoplay = function (host) {
   }
 
   /* Books (Do_book): each adds half the class's brains increase until
-     brains reach level x the class's cap, then far less, so buy up to the
-     cap.  Below level 20 a visit's purchases over level x 350 + 150 gold
+     brains reach level x the class's cap, then less and less; buy while a
+     book still adds a point.  Below level 20 a visit's purchases over level x 350 + 150 gold
      risk being taken for a thief (with chance 1 - that / spent): stay at
      or under it and the risk is nil. */
   function booksWanted(price) {
-    var b = st.brainsInfo;
-    if (!b || b.perBook <= 0 || b.brains >= b.cap) return 0;
-    var need = Math.ceil((b.cap - b.brains) / b.perBook);
+    /* the server counts the books that would each still add a point of
+       brains (Do_book gives less past level x the class cap, not nothing) */
+    var need = (st.status && st.status.booksWorth) || 0;
+    if (need <= 0) return 0;
     var afford = Math.floor((st.gold - reserve()) / price);
     var safe = st.level < 20 ? Math.floor((st.level * 350 + 150 - ((st.visit && st.visit.spent) || 0)) / price) : Infinity;
     return Math.max(0, Math.min(need, afford, safe));
@@ -625,7 +629,9 @@ window.PhantasiaAutoplay = function (host) {
       /* mana is cheap at the posts, but keep enough back to heal */
       var manaCost = st.mana >= 3 * sp.mana ? 0.05 * sp.mana * (D > 0 ? 1 : 0) : 0.5 * sp.mana;
       if (sp.name === "Mending Light") {
-        if (missing < 1) return;
+        /* healing costs a turn: only when hurt (the danger check below can
+           still heal when a fight turns risky) */
+        if (missing < 1 || e >= 0.5) return;
         var h = Math.min(sp.heal, missing);
         opts.push({ label: sp.name, spell: true, cost: D + n * D - h + manaCost, acts: n + 1, heal: h,
           why: "Mending Light: +" + Math.round(h) + " energy" });
@@ -640,6 +646,13 @@ window.PhantasiaAutoplay = function (host) {
 
     opts.sort(function (a, b) { return a.cost - b.cost || a.acts - b.acts; });
     var pick = opts[0];
+
+    /* a Shrieker does no harm itself, but striking it can call a far
+       stronger monster to the fight; you can always get away from one */
+    if (F.kind === 16 && has("Evade") >= 0) {
+      say("A Shrieker: getting away before it calls for help.", "on");
+      return press(has("Evade"));
+    }
 
     /* a flock that won't end: each kill brings another with this chance,
        so about 1/(1 - flock) of them in a row (a Moron's 100% never ends).
@@ -662,37 +675,57 @@ window.PhantasiaAutoplay = function (host) {
     var risky = pDie > 0.02 || st.e - pick.cost < worst;
     if (risky) {
       st.fightDanger = true;
-      /* Out of trouble by the best chance of living through it, worked out
-         action by action: before each action of ours the monster lands k
-         hits in a row with chance q^k, so with energy e and hits averaging
-         h we fall before acting with chance q^ceil(e/h); each action costs
-         about D energy on average. */
-      var h = Math.max(1, (F.str + 1) / 2);
-      var pFall = function (en) { return en <= 0 ? 1 : Math.pow(q, Math.ceil(en / h)); };
-      var liveThrough = function (en, actions) {
-        var alive = 1;
-        for (var i = 0; i < Math.min(actions, 80); i++) { alive *= 1 - pFall(en); en -= D; }
-        return alive;
+      /* Out of trouble by the best chance of living through it.  Each
+         option is played out a thousand times with the fight's own rules
+         (Do_monster, Do_playerhits, Do_monsthits): every tick the monster
+         acts first with chance q and hits for 1 + random x strength, its
+         strength falling a third as its energy goes; otherwise we act:
+         melee for (0.5 + 1.3 x random) x might, an evade that works with
+         chance evade, a luckout that wins with chance luck, a spell for
+         its damage x (0.7 + 0.6 x random), or Mending Light's healing. */
+      var might = F.melee / 1.15, ml = F.spells.filter(function (sp) { return sp.name === "Mending Light"; })[0];
+      var sim = function (plan) {
+        var lived = 0, runs = 1000;
+        for (var r = 0; r < runs; r++) {
+          var me = st.e, mo = F.energy, dealt = 0, mana = st.mana, tried = false, healed = false, cast = false;
+          for (var tick = 0; tick < 400; tick++) {
+            var str = Math.max(0, F.str * (1 - Math.min(1, dealt / Math.max(1, F.maxEnergy)) / 3));
+            if (Math.random() < q) {                   /* the monster acts */
+              me -= Math.floor(1 + Math.random() * str);
+              if (me <= 0) break;
+              continue;
+            }
+            var act = plan(me, tried, healed, cast, mana);
+            if (act === "evade") { if (Math.random() < F.evade) { lived++; break; } continue; }
+            if (act === "luck") { tried = true; if (Math.random() < F.luck) { lived++; break; } continue; }
+            if (act === "heal") { healed = true; mana -= ml.mana; me = Math.min(st.emax, me + ml.heal); continue; }
+            var hit = act && act.dmg ? (cast = true, mana -= act.mana, Math.floor(act.dmg * (0.7 + 0.6 * Math.random())))
+                                     : Math.floor((0.5 + 1.3 * Math.random()) * might);
+            if (act && act.heal) me = Math.min(st.emax, me + Math.min(act.heal, hit / 2));
+            mo -= hit; dealt += hit;
+            if (mo <= 0) { lived++; break; }
+          }
+        }
+        return lived / runs;
       };
-      var choices = [{ label: "Melee", live: liveThrough(st.e, n), why: "Fighting on" }];
+      var choices = [{ label: "Melee", live: sim(function () { return "melee"; }), why: "Fighting on" }];
       var ev = has("Evade") >= 0 ? F.evade : 0;
       if (ev > 0) {
-        var got = 0, still = 1, en2 = st.e;
-        for (var t = 0; t < 12; t++) { var f = pFall(en2); got += still * (1 - f) * ev; still *= (1 - f) * (1 - ev); en2 -= D; }
-        choices.push({ label: "Evade", live: got, why: "Getting away (" + Math.round(ev * 100) + "% a try)" });
+        choices.push({ label: "Evade", live: sim(function () { return "evade"; }), why: "Getting away (" + Math.round(ev * 100) + "% a try)" });
       }
       if (F.luck > 0 && has("Luckout") >= 0) {
-        var first = 1 - pFall(st.e);
-        choices.push({ label: "Luckout", live: first * (F.luck + (1 - F.luck) * liveThrough(st.e - D, n)),
+        choices.push({ label: "Luckout", live: sim(function (me, tried) { return tried ? "melee" : "luck"; }),
           why: "Luckout (" + Math.round(F.luck * 100) + "%, brains " + F.brains + " to beat)" });
       }
-      var heal = opts.filter(function (o) { return o.label === "Mending Light"; })[0];
-      if (heal) {
-        choices.push({ label: heal.label, spell: true, live: (1 - pFall(st.e)) * liveThrough(st.e + heal.heal - D, n),
-          why: "Healing (+" + Math.round(heal.heal) + ")" });
+      if (ml && st.mana >= ml.mana && missing >= 1 && has("Spell") >= 0) {
+        choices.push({ label: ml.name, spell: true, live: sim(function (me, tried, healed) { return healed ? "melee" : "heal"; }),
+          why: "Healing (+" + Math.round(Math.min(ml.heal, missing)) + ")" });
       }
-      opts.filter(function (o) { return o.spell && o.label !== "Mending Light"; }).forEach(function (o) {
-        choices.push({ label: o.label, spell: true, live: liveThrough(st.e, o.acts), why: o.why });
+      F.spells.forEach(function (sp) {
+        if (sp.name === "Mending Light" || st.mana < sp.mana || has("Spell") < 0) return;
+        choices.push({ label: sp.name, spell: true,
+          live: sim(function (me, tried, healed, cast, mana) { return !cast && mana >= sp.mana ? sp : "melee"; }),
+          why: sp.name });
       });
       choices.sort(function (a, b) { return b.live - a.live; });
       var best = choices[0];
@@ -980,7 +1013,7 @@ window.PhantasiaAutoplay = function (host) {
     circles: function (list) { st.circles = window.PhantasiaAutoplayCircles = list; if (st.target > cap()) st.target = cap(); },
     odds: function (F) {
       st.lastOdds = { m: F.name, me: F.energy, ms: F.str, q: F.q, melee: F.melee, luck: F.luck, ev: F.evade,
-        br: F.brains, fl: F.flock, xp: F.exp, sp: F.special };
+        br: F.brains, fl: F.flock, xp: F.exp, sp: F.special, kind: F.kind };
       st.odds = F;
       F.spells.forEach(function (sp) { st.spellCost[sp.name] = sp.mana; }); F.spells.forEach(function (sp) { st.spells[sp.name] = true; }); F.spellsFromServer = true; },
     buttons: function (labels, compass) {
