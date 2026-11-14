@@ -3449,7 +3449,8 @@ Do_starting_spells(struct client_t *c)
 /	allowed autoplay, before each choice in a fight: the monster's
 /	energy, strength and brains, the chance it acts before the player
 /	each tick, average melee and skirmish damage, the chances of
-/	luckout and evade, and each combat spell's cost and average effect.
+/	luckout and evade, the chance another of its flock follows it, its
+/	experience, and each combat spell's cost and average effect.
 /
 /************************************************************************/
 
@@ -3494,9 +3495,10 @@ void Do_fight_odds(struct client_t *c)
     else if (c->championFight) special = 1;
 
     Do_send_int(c, FIGHT_PACKET);
-    sprintf(line, "%s\n%.0f\n%.0f\n%.0f\n%.3f\n%.1f\n%.1f\n%.3f\n%.3f\n%d\n%.0f\n",
+    sprintf(line, "%s\n%.0f\n%.0f\n%.0f\n%.3f\n%.1f\n%.1f\n%.3f\n%.3f\n%d\n%.0f\n%d\n%.0f\n",
 	    o->name, MAX(0.0, o->energy), o->max_energy, MAX(0.0, o->strength), q,
-	    1.15 * might, 0.88 * might, luck, evade, special, o->brains);
+	    1.15 * might, 0.88 * might, luck, evade, special, o->brains,
+	    (int) o->flock_percent, o->experience);
     Do_send_string(c, line);
 
 	/* spells: name, mana, average damage, average healing */

@@ -493,6 +493,16 @@ window.PhantasiaAutoplay = function (host) {
     opts.sort(function (a, b) { return a.cost - b.cost || a.acts - b.acts; });
     var pick = opts[0];
 
+    /* a flock that won't end: each kill brings another with this chance,
+       so about 1/(1 - flock) of them in a row (a Moron's 100% never ends).
+       Get away once a long chain isn't worth its time */
+    var chain = F.flock >= 100 ? Infinity : 1 / Math.max(0.01, 1 - F.flock / 100);
+    if (has("Evade") >= 0 && F.evade > 0 && (chain > 15 || (st.flockKills >= 6 && F.flock >= 50))) {
+      say("A flock that won't end (" + F.name + ", " + F.flock + "% flock): getting away, " +
+        Math.round(F.evade * 100) + "%.", "on");
+      return press(has("Evade"));
+    }
+
     /* can we afford it?  Before each action of ours the monster acts k
        times in a row with chance q^k; k hits of up to its strength drop
        us.  Over the actions this fight needs (and with a flock, the friend
@@ -711,6 +721,8 @@ window.PhantasiaAutoplay = function (host) {
       var hm = /hit you for (\d+)/.exec(text);
       if (hm) { st.hits.push(+hm[1]); if (st.hits.length > 12) st.hits.shift(); }
       if (/(attacked by|attacks|find and attack)/.test(text) && /Size:/.test(text)) { st.evaded = false; st.lucked = false; }
+      if (/friend appears/.test(text)) st.flockKills = (st.flockKills || 0) + 1;
+      else if (/(attacked by|find and attack)/.test(text)) st.flockKills = 0;
       if (/You killed it|You made it!/.test(text)) {
         st.kills++; st.unknown = 0; st.fightKilled = true;
         /* each kill counts (a flock can go on for a long time) */
