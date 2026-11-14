@@ -54,6 +54,7 @@ Keep the service at **one replica**: the game state lives in that one process.
 | `PHANTASIA_EVENT_MINUTES` | `90` | Average minutes between world events (Blood Moon, Gold Rush, Champion Hunt). |
 | `PHANTASIA_EVENT_LENGTH` | `20` | How many minutes a world event lasts. |
 | `PHANTASIA_WIZARDS` | – | Game admins, as `account:Character:level` separated by commas (level 1 moderator, 2 apprentice, 3 wizard, 4 full wizard; default 4). Rewrites `data/wizards` on every start. Leave unset to manage that file by hand. |
+| `PHANTASIA_AUTOPLAY` | – | Accounts allowed to use the browser client's Autoplay switch, separated by commas. Leave unset to allow only the accounts in `data/wizards` (for example from `PHANTASIA_WIZARDS`). |
 | `PHANTASIA_MOTD` | – | Replaces the message of the day on startup. |
 | `PHANTASIA_EMAIL_CONFIRM` | unset | Set to `1` to require e-mailed confirmation codes for new accounts. This needs a working `mail` command in the image, which Railway does not provide, so leave it unset. |
 
