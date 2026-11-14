@@ -901,6 +901,9 @@ int Do_chat_command(struct client_t *c, char *text)
     else if (strncasecmp(text, "/realm", 6) == 0) {
 	Do_world_chat(c);
     }
+    else if (strncasecmp(text, "/muster", 7) == 0) {
+	Do_world_muster(c);
+    }
     else if (strncasecmp(text, "/war", 4) == 0) {
 	Do_world_war_chat(c);
     }
@@ -937,6 +940,7 @@ int Do_chat_command(struct client_t *c, char *text)
 	Do_send_chat_self(c, "/deeds - your account's deeds and the bonuses they give all your characters\n");
 	Do_send_chat_self(c, "/realm - the state of the realm: regions, towns, the season, projects and nemeses\n");
 	Do_send_chat_self(c, "/war - the War of the Seasons: the realm projects, your part, and the bonus at stake\n");
+	Do_send_chat_self(c, "/muster - the Banner's bearer calls the realm to arms (once a day)\n");
 	if (c->wizard >= 3) {
 	    Do_send_chat_self(c, "Wizards: /event start blood|gold|hunt|random [minutes], /event stop\n");
 	    Do_send_chat_self(c, "Wizards: Administrate > Realm Tools for artifacts, gear, bags, quests, champions, ceremonies\n");

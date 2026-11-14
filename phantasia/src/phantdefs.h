@@ -141,7 +141,7 @@ typedef char bool;
 #define AB_ARCHMAGE		34	/* spells half again as strong */
 #define AB_MANAFONT		35	/* spells cost half the mana */
 #define AB_CONQUEROR		36	/* the Banner of the Seasons: +10% experience and gold */
-#define AB_RALLY		37	/* the Banner: everyone gains 5% while its holder is online */
+#define AB_RALLY		37	/* the Banner: once a day, call the Muster (/muster) */
 #define NUM_ABILITIES		38
 
 #define NUM_ARTIFACTS		11

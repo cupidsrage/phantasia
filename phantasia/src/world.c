@@ -103,6 +103,7 @@ static struct {
     struct warbonus_t bonus[MAX_WAR];	/* from the last war won */
     int numBonus;
     char bannerAcct[SZ_NAME], bannerWho[SZ_NAME];	/* the last won war's greatest helper */
+    time_t musterUntil, musterLast;	/* the Banner's Muster: running until, last called */
 } W;
 
 static pthread_mutex_t world_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -352,6 +353,11 @@ static void Do_world_load_locked(void)
 	    struct warpart_t *p = &W.part[W.numPart];
 	    if (sscanf(rest, "%32s %32s %lf %ld", p->acct, p->who, &p->gold, &p->kills) == 4) ++W.numPart;
 	}
+	else if (!strcmp(word, "muster")) {
+	    long u = 0, l = 0;
+	    sscanf(rest, "%ld %ld", &u, &l);
+	    W.musterUntil = u; W.musterLast = l;
+	}
 	else if (!strcmp(word, "banner")) {
 	    sscanf(rest, "%32s %32s", W.bannerAcct, W.bannerWho);
 	    if (!strcmp(W.bannerAcct, "-")) W.bannerAcct[0] = W.bannerWho[0] = '\0';
@@ -396,6 +402,7 @@ static void Do_world_save_locked(void)
 		W.army, W.armyMax, W.project, W.projectGold, W.projectKills);
 	fprintf(f, "call %d %ld\n", W.callRegion, (long) W.callUntil);
 	fprintf(f, "war %ld %d %ld\n", W.war, W.lastWar, (long) W.warStart);
+	fprintf(f, "muster %ld %ld\n", (long) W.musterUntil, (long) W.musterLast);
 	fprintf(f, "banner %s %s\n", W.bannerAcct[0] ? W.bannerAcct : "-", W.bannerWho[0] ? W.bannerWho : "-");
 	for (i = 0; i < W.numPart; i++) {
 	    fprintf(f, "warpart %s %s %.0f %ld\n", W.part[i].acct, W.part[i].who,
@@ -471,7 +478,7 @@ static void Do_world_save_locked(void)
 	fprintf(f, "\"war\":{\"index\":%ld,\"endsAt\":%ld,\"lastWar\":%d,\"participants\":%d,\"banner\":",
 		W.war, (long) Do_war_ends(), W.lastWar, n);
 	Do_json_str(f, W.bannerWho);
-	fprintf(f, ",\"top\":[");
+	fprintf(f, ",\"musterUntil\":%ld,\"top\":[", (long) W.musterUntil);
 	for (k = 0; k < n && k < 5; k++) {
 	    fprintf(f, "%s{\"name\":", k ? "," : "");
 	    Do_json_str(f, W.part[order[k]].who);
@@ -656,20 +663,7 @@ void Do_world_banner_holder(char *out)
 double Do_world_war_factor(struct client_t *c)
 {
     double f = Do_gear_ability(c, AB_CONQUEROR) > 0 ? 1.1 : 1.0;	/* the Banner */
-    char holder[SZ_NAME];
-    struct game_t *g;
     int i;
-
-	/* the Rallying Banner: while its holder is in the realm, everyone
-	   gains a twentieth more */
-    Do_world_banner_holder(holder);
-    if (holder[0]) {
-	Do_lock_mutex(&c->realm->realm_lock);
-	for (g = c->realm->games; g != NULL; g = g->next_game) {
-	    if (g->description != NULL && !strcasecmp(g->account, holder)) { f *= 1.05; break; }
-	}
-	Do_unlock_mutex(&c->realm->realm_lock);
-    }
 
     pthread_mutex_lock(&world_lock);
     Do_world_ensure_locked();
@@ -725,6 +719,16 @@ static void Do_world_minutes_locked(double minutes)
     char msg[SZ_LINE], cap[64];
 
     if (Do_war_index() != W.war) Do_war_end_locked();
+
+	/* the Muster's hour is over */
+    {
+	static time_t endedFor = 0;
+	if (W.musterUntil && time(NULL) >= W.musterUntil && endedFor != W.musterUntil &&
+		time(NULL) - W.musterUntil < 600) {
+	    endedFor = W.musterUntil;
+	    Do_world_news_locked("The Muster is over. The Banner of the Seasons rests until tomorrow.", TRUE);
+	}
+    }
 
     for (i = 0; i < NUM_REGIONS; i++) {
 	struct region_t *r = &W.region[i];
@@ -1103,8 +1107,10 @@ void Do_world_kill(struct client_t *c)
 
 	/* the realm project */
     if (W.project < NUM_PROJECTS) {
-	W.projectKills++;
-	Do_war_help_locked(c, 0, 1);
+	    /* the Muster: everything counts double */
+	long count = time(NULL) < W.musterUntil ? 2 : 1;
+	W.projectKills += count;
+	Do_war_help_locked(c, 0, count);
 	if (W.projectGold >= projects[W.project].gold && W.projectKills >= projects[W.project].kills) {
 	    sprintf(msg, "The realm has completed %s! From now on, %s.",
 		    projects[W.project].name, projects[W.project].effect);
@@ -1502,6 +1508,8 @@ void Do_world_donate(struct client_t *c)
 
     pthread_mutex_lock(&world_lock);
     if (W.project < NUM_PROJECTS) {
+	    /* the Muster: everything counts double */
+	if (time(NULL) < W.musterUntil) gold *= 2;
 	W.projectGold += gold;
 	Do_war_help_locked(c, gold, 0);
 	for (i = 0; i < MAX_DONORS && W.donors[i].name[0] &&
@@ -1707,6 +1715,11 @@ void Do_world_war_chat(struct client_t *c)
 		toupper((unsigned char) W.bannerWho[0]), W.bannerWho + 1);
 	Do_send_chat_self(c, line);
     }
+    if (time(NULL) < W.musterUntil) {
+	sprintf(line, "The Muster is called: for %ld more minutes the realm project counts double and everyone gains 25%% more experience.\n",
+		(long) ((W.musterUntil - time(NULL)) / 60 + 1));
+	Do_send_chat_self(c, line);
+    }
     if (W.lastWar == 1) {
 	sprintf(line, have > 0 ? "The last war was won: you carry +%.1f%% experience and gold until this one ends.\n" :
 		"The last war was won (you didn't take part, so you carry no bonus).\n", have);
@@ -1716,4 +1729,56 @@ void Do_world_war_chat(struct client_t *c)
 	Do_send_chat_self(c, "The last war was lost: until this one ends, monsters are 10% stronger, the Shadow spreads 25% faster and shops cost 10% more.\n");
     }
     pthread_mutex_unlock(&world_lock);
+}
+
+
+/************************************************************************
+/
+/ FUNCTION NAME: Do_world_muster(struct client_t *c)
+/
+/ FUNCTION: /muster: the Banner's holder calls the realm to arms
+/
+/ DESCRIPTION:
+/	Once a day the holder of the Banner of the Seasons may call the
+/	Muster: for an hour every monster slain and every coin given counts
+/	double toward the realm project (and toward everyone's part in the
+/	war), and every adventurer gains a quarter more experience.
+/
+/************************************************************************/
+
+double Do_world_muster_factor(void)
+{
+    return time(NULL) < W.musterUntil ? 1.25 : 1.0;
+}
+
+void Do_world_muster(struct client_t *c)
+{
+    char line[SZ_LINE];
+    time_t now = time(NULL);
+    int ok = FALSE;
+
+    if (Do_gear_ability(c, AB_RALLY) <= 0) {
+	Do_send_chat_self(c, "Only the bearer of the Banner of the Seasons can call the Muster.\n");
+	return;
+    }
+    pthread_mutex_lock(&world_lock);
+    Do_world_ensure_locked();
+    if (now < W.musterUntil) {
+	sprintf(line, "The Muster is already under way (%ld minutes left).\n", (long) ((W.musterUntil - now) / 60 + 1));
+    }
+    else if (now - W.musterLast < 24 * 3600) {
+	sprintf(line, "The realm is still recovering from the last Muster. You can call it again in %.1f hours.\n",
+		(24 * 3600 - (now - W.musterLast)) / 3600.0);
+    }
+    else {
+	W.musterLast = now;
+	W.musterUntil = now + 3600;
+	snprintf(line, sizeof line, "%s raises the Banner of the Seasons and calls the Muster! For the next hour every monster slain and every coin given counts double toward the realm project, and everyone gains 25%% more experience.", c->modifiedName);
+	Do_world_news_locked(line, TRUE);
+	Do_world_save_locked();
+	ok = TRUE;
+    }
+    pthread_mutex_unlock(&world_lock);
+    if (ok) Do_world_flush(c);
+    else Do_send_chat_self(c, line);
 }

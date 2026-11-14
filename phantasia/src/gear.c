@@ -59,7 +59,7 @@ static const char *abilityNames[NUM_ABILITIES] = {
     "Soulreaper", "Execution", "Radiance", "Tideward", "Eagle's Flight",
     "Tailwind", "Dragonscale", "Fireborn", "Hoard", "Midas Touch",
     "First Blood", "Shadowmeld", "Unseen", "Timeless", "Sage's Wisdom",
-    "Windwalker", "Gale", "Archmage", "Manafont", "Conqueror's Due", "Rallying Banner"
+    "Windwalker", "Gale", "Archmage", "Manafont", "Conqueror's Due", "Call the Muster"
 };
 
 static const char *abilitySuffix[NUM_ABILITIES] = {
@@ -108,7 +108,7 @@ static const char *abilityHelp[NUM_ABILITIES] = {
     "your spells are half again as strong",
     "your spells cost half the mana",
     "you gain a tenth more experience and gold",
-    "while you are in the realm, every adventurer gains a twentieth more experience and gold"
+    "once a day, /muster calls the Muster: for an hour the realm project counts double and everyone gains 25% more experience"
 };
 
 struct artifact_def {
