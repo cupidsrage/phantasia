@@ -3495,10 +3495,10 @@ void Do_fight_odds(struct client_t *c)
     else if (c->championFight) special = 1;
 
     Do_send_int(c, FIGHT_PACKET);
-    sprintf(line, "%s\n%.0f\n%.0f\n%.0f\n%.3f\n%.1f\n%.1f\n%.3f\n%.3f\n%d\n%.0f\n%d\n%.0f\n",
+    sprintf(line, "%s\n%.0f\n%.0f\n%.0f\n%.3f\n%.1f\n%.1f\n%.3f\n%.3f\n%d\n%.0f\n%d\n%.0f\n%d\n",
 	    o->name, MAX(0.0, o->energy), o->max_energy, MAX(0.0, o->strength), q,
 	    1.15 * might, 0.88 * might, luck, evade, special, o->brains,
-	    (int) o->flock_percent, o->experience);
+	    (int) o->flock_percent, o->experience, o->special_type);
     Do_send_string(c, line);
 
 	/* spells: name, mana, average damage, average healing */

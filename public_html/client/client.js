@@ -1359,7 +1359,7 @@
     var F = { name: await next(), energy: +(await next()), maxEnergy: +(await next()),
       str: +(await next()), q: +(await next()), melee: +(await next()), skirmish: +(await next()),
       luck: +(await next()), evade: +(await next()), special: +(await next()), brains: +(await next()),
-      flock: +(await next()), exp: +(await next()), spells: [] };
+      flock: +(await next()), exp: +(await next()), kind: +(await next()), spells: [] };
     (await next()).split(";").forEach(function (part) {
       var f = part.split(":");
       if (f.length === 4) F.spells.push({ name: f[0], mana: +f[1], dmg: +f[2], heal: +f[3] });

@@ -219,6 +219,9 @@ window.PhantasiaAutoplay = function (host) {
       var d = 100 * n * n, a = Math.round(d * Math.SQRT2);
       [[d, d], [-d, d], [d, -d], [-d, -d], [a, 0], [-a, 0], [0, a], [0, -a]].forEach(function (p) {
         if ((st.badPosts[p[0] + "," + p[1]] || 0) > now) return;
+        /* the walk there and back must stay where it can hunt safely,
+           unless gold is already slowing it */
+        if (circleAt(p[0], p[1]) > cap() && !heavy()) return;
         /* a fallen town's posts lie in ruins */
         var r = ((Math.floor((Math.atan2(p[1], p[0]) + Math.PI / 8) / (Math.PI / 4)) % 8) + 8) % 8;
         if (st.fallen[r]) return;
@@ -641,6 +644,13 @@ window.PhantasiaAutoplay = function (host) {
     opts.sort(function (a, b) { return a.cost - b.cost || a.acts - b.acts; });
     var pick = opts[0];
 
+    /* a Shrieker does no harm itself, but striking it can call a far
+       stronger monster to the fight; you can always get away from one */
+    if (F.kind === 16 && has("Evade") >= 0) {
+      say("A Shrieker: getting away before it calls for help.", "on");
+      return press(has("Evade"));
+    }
+
     /* a flock that won't end: each kill brings another with this chance,
        so about 1/(1 - flock) of them in a row (a Moron's 100% never ends).
        Get away once a long chain isn't worth its time */
@@ -980,7 +990,7 @@ window.PhantasiaAutoplay = function (host) {
     circles: function (list) { st.circles = window.PhantasiaAutoplayCircles = list; if (st.target > cap()) st.target = cap(); },
     odds: function (F) {
       st.lastOdds = { m: F.name, me: F.energy, ms: F.str, q: F.q, melee: F.melee, luck: F.luck, ev: F.evade,
-        br: F.brains, fl: F.flock, xp: F.exp, sp: F.special };
+        br: F.brains, fl: F.flock, xp: F.exp, sp: F.special, kind: F.kind };
       st.odds = F;
       F.spells.forEach(function (sp) { st.spellCost[sp.name] = sp.mana; }); F.spells.forEach(function (sp) { st.spells[sp.name] = true; }); F.spellsFromServer = true; },
     buttons: function (labels, compass) {
