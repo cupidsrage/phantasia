@@ -20,7 +20,7 @@
     NAME: 40, LOCATION: 41, ENERGY: 42, STRENGTH: 43, SPEED: 44,
     SHIELD: 45, SWORD: 46, QUICKSILVER: 47, MANA: 48, LEVEL: 49,
     GOLD: 50, GEMS: 51, CLOAK: 52, BLESSING: 53, CROWN: 54,
-    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61, WIZARD: 62, SELECT: 63, WORLD: 64, AUTOPLAY: 65, FIGHT: 66, CIRCLES: 67, AUTOSTATS: 68
+    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61, WIZARD: 62, SELECT: 63, WORLD: 64, AUTOPLAY: 65, FIGHT: 66, CIRCLES: 67, AUTOSTATS: 68, GEARVALUE: 69
   };
 
   /* ---- client -> server ---- */
@@ -180,17 +180,25 @@
         case P.WORLD: await readWorld(); break;
         case P.AUTOPLAY: { var ap = (await next()).split(" "); auto.allow(ap[0] === "1", ap[1] || ""); break; }
         case P.FIGHT: auto.odds(await readFightOdds()); break;
+        case P.GEARVALUE: {
+          var gk = await next(), gh = (await next()).split(":"), gn = await nextInt(), gvals = [];
+          for (var gi = 0; gi < gn; gi++) gvals.push(+(await next()));
+          auto.gearValues(gk, +gh[0], +gh[1], gvals);
+          break;
+        }
         case P.AUTOSTATS: {
           var as = (await next()).split(":");
           auto.status({ cls: as[0], brains: +as[1], brainsCap: +as[2], perBook: +as[3], magic: +as[4],
-            sin: +as[5], poison: +as[6], amulets: +as[7], charms: +as[8], blind: as[9] === "1" });
+            sin: +as[5], poison: +as[6], amulets: +as[7], charms: +as[8], blind: as[9] === "1",
+            goldCap: +as[10], goldSlow: +as[11], maxMove: +as[12], maxMana: +as[13],
+            nextBag: { name: as[14], price: +as[15] }, bagGold: +as[16], nextBagGold: +as[17] });
           break;
         }
         case P.CIRCLES: {
           var nc = await nextInt(), circ = [];
           for (var ci = 0; ci < nc; ci++) {
             var f = (await next()).split(":");
-            circ.push({ circle: +f[0], loss: +f[1], bad: +f[2], exp: +f[3] });
+            circ.push({ circle: +f[0], loss: +f[1], bad: +f[2], exp: +f[3], risk: +f[4] });
           }
           auto.circles(circ);
           break;
@@ -1355,7 +1363,7 @@
   var auto = (window.PhantasiaAutoplay || function () {
     var none = function () { return false; };
     return { allow: none, at: none, level: none, bar: none, stat: none, world: none, line: none,
-      chat: none, buttons: none, dialog: none, odds: none, circles: none, status: none, gearChanged: none, userTook: none, cancelPress: none, toggle: none,
+      chat: none, buttons: none, dialog: none, odds: none, circles: none, status: none, gearValues: none, gearChanged: none, userTook: none, cancelPress: none, toggle: none,
       setSpeed: none, save: none, pressing: false };
   })({
     pending: function () { return pending; },

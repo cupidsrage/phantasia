@@ -29,13 +29,8 @@
 window.PhantasiaAutoplay = function (host) {
   "use strict";
 
-  var SPEEDS = { slow: 1500, normal: 700, fast: 250 };
+  var SPEEDS = { slow: 1500, normal: 700, fast: 250, fastest: 40 };
   var COMPASS_DIR = [[-1, 1], [0, 1], [1, 1], [-1, 0], null, [1, 0], [-1, -1], [0, -1], [1, -1]];
-  var BAGS = [
-    ["Belt Pouch", 0, 1], ["Satchel", 400, 1.5], ["Leather Rucksack", 1500, 2],
-    ["Traveler's Pack", 4000, 3], ["Adventurer's Pack", 9000, 4], ["Reinforced Pack", 18000, 6],
-    ["Bag of Holding", 40000, 8], ["Bag of the Endless Road", 80000, 12]
-  ];
   /* the eight regions, by compass angle (east = 0, counter-clockwise) */
   var REGIONS = ["eastern marches", "dawnwood", "northern reach", "frostfells",
     "western wastes", "sunken fens", "southern expanse", "ember coast"];
@@ -52,8 +47,8 @@ window.PhantasiaAutoplay = function (host) {
     target: 1, easy: 0, heading: Math.floor(Math.random() * 4),
     fights: 0, startLevel: null, kills: 0,
     plan: [], visit: null, trip: null, lastShopFight: -999, badPosts: {},
-    spells: {}, spellsAt: -1, noMana: {}, moveScale: 1,
-    sinceStep: 0, spin: 1, extra: {}, str: 0, strmax: 0, status: null,
+    spells: {}, spellsAt: -1, noMana: {},
+    sinceStep: 0, spin: 1, spellCost: {}, extra: {}, str: 0, strmax: 0, status: null,
     quest: null, callRegion: -1, fallen: {}, worldAt: 0, blessed: false, amulets: 0, unknown: 0
   };
   try { st.speed = localStorage.getItem("phantasia-autoplay-speed") || "normal"; } catch (e) {}
@@ -76,12 +71,13 @@ window.PhantasiaAutoplay = function (host) {
     if (rec.length > REC_MAX) rec.splice(0, rec.length - REC_MAX);
     recDirty = true;
   }
-  setInterval(function () {
+  function flushRecord() {
     if (!recDirty) return;
     recDirty = false;
     try { localStorage.setItem(REC_KEY, JSON.stringify(rec)); }
     catch (e) { rec.splice(0, Math.floor(rec.length / 3)); }
-  }, 5000);
+  }
+  setInterval(flushRecord, 5000);
   function snapshot() {
     return { lv: st.level, e: Math.round(st.e), emax: st.emax, x: st.x, y: st.y, c: circle(),
       gold: Math.floor(st.gold), gems: st.gems, mana: Math.floor(st.mana), target: st.target, cap: cap() };
@@ -116,8 +112,9 @@ window.PhantasiaAutoplay = function (host) {
     return rec.slice();
   }
   function sendRecord(reason) {
-    if (!st.key || !window.fetch) return;
     record({ k: "send", reason: reason });
+    flushRecord();
+    if (!st.key || !window.fetch) return;
     fetch("/api/autoplay/report", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key: st.key, character: host.name(), reason: reason, summary: summary(), log: sessionLog() }) })
       .then(function (r) { return r.json(); })
@@ -147,79 +144,61 @@ window.PhantasiaAutoplay = function (host) {
   function circleAt(x, y) { return Math.floor(Math.hypot(x, y) / 125) + 1; }
   function circle() { return circleAt(st.x, st.y); }
   /* how far out a character of this level belongs (fights decide within it) */
-  /* How hard an average monster hits at each circle: the server's own
-     table (Do_gear_threat).  A character belongs as far out as monsters
-     hit for no more than a sixth of its energy; fights decide within that. */
-  var THREAT = [[1, 7], [5, 31], [10, 70], [15, 200], [20, 400], [25, 1000], [30, 1450],
-    [40, 2250], [50, 2900], [75, 4400], [100, 5800]];
-  function threat(c) {
-    for (var i = 1; i < THREAT.length; i++) {
-      if (c <= THREAT[i][0]) {
-        var a = THREAT[i - 1], b = THREAT[i];
-        return a[1] + (b[1] - a[1]) * (c - a[0]) / (b[0] - a[0]);
-      }
-    }
-    return THREAT[THREAT.length - 1][1];
-  }
   /* The server works out, from the real encounter rules and this
      character's might, quickness and energy, what an average fight costs
      at each circle and how many monsters there could nearly kill it.  A
      character belongs as far out as every circle on the way costs no more
      than a fifth of full energy a fight, with under one monster in ten
-     that dangerous. */
+     that dangerous, and under a 1% chance a fight from full energy kills. */
   function cap() {
     if (st.circles && st.circles.length) {
       var best = 1;
       for (var i = 0; i < st.circles.length; i++) {
         var k = st.circles[i];
-        if (k.loss > 0.2 * st.emax || k.bad > 0.1) break;
+        if (k.loss > 0.2 * st.emax || k.bad > 0.1 || k.risk > 0.01) break;
         best = k.circle;
       }
       return best;
     }
-    var c = 1;
-    while (c < 100 && threat(c + 1) <= st.emax / 6) c++;
-    return c;
+    return 1;
   }
   function recent(n) { return st.lines.slice(-n).join("\n"); }
   function frac() { return st.e / (st.emax || 1); }
   function reserve() { return Math.floor(60 + st.level * 25); }   /* for medics */
-  function maxHit() { return Math.max(st.emax * 0.1, Math.max.apply(null, st.hits.concat([0]))); }
+  /* what an average fight costs here (the server's figure) */
+  function fightCost(c) { var k = st.circles && st.circles[(c || circle()) - 1]; return k ? k.loss : 0; }
 
-  /* how far one step can go (the server's rule), a little under */
-  function maxMove() {
-    var c = circle(), m;
-    if (c > 19 && c < 36) m = Math.min(Math.ceil(st.level / 50) + 1.5, 10);
-    else m = Math.min(Math.floor(st.level * 1.5 + 1.5), 100);
-    return Math.max(1, Math.floor(m * st.moveScale));
-  }
+  /* how far one step goes (the server's Do_maxmove) */
+  function maxMove() { return Math.max(1, (st.status && st.status.maxMove) || 1); }
 
-  /* gear */
-  function worth(stats, abilities) {
-    if (!stats) return 0;
-    var v = 0, m;
-    if ((m = /\+(\d+) energy/.exec(stats))) v += +m[1];
-    if ((m = /\+(\d+) damage/.exec(stats))) v += 2 * m[1];
-    if ((m = /\+(\d+) quicksilver/.exec(stats))) v += 3 * m[1];
-    if (abilities) v *= 1.15;
-    return v;
+  /* gear, judged by the server with the fight math: the share of full
+     energy an average fight at the hunting circle costs with each item worn
+     (Do_autoplay_gear_values); lower is better */
+  var gv = { gear: null, offer: null, armory: null };
+  function gearCost(it) {
+    var v = gv.gear;
+    return v && it && v.vals[it.index] !== undefined ? v.vals[it.index] : null;
   }
-  function itemWorth(it) { return it ? worth(it.stats, it.ab1 || it.ab2) : 0; }
+  function improves(costWith, costNow) { return costWith !== null && costWith < costNow * 0.995; }
   function gear() { return host.gear(); }
   function worn(slot) { return gear().items.filter(function (g) { return g.equipped && g.slot === slot; })[0]; }
-  function bagIndex() {
-    var name = gear().bag || "";
-    for (var i = BAGS.length - 1; i >= 0; i--) if (name.indexOf(BAGS[i][0]) >= 0) return i;
-    return 0;
+  /* the next bag at this town's prices, and its name (the server's) */
+  function nextBag() {
+    var b = st.status && st.status.nextBag;
+    return b && b.name !== "-" ? [b.name, b.price] : null;
   }
-  function nextBag() { var i = bagIndex(); return i + 1 < BAGS.length ? BAGS[i + 1] : null; }
-  /* gold the character carries before it slows (the lightest class's tote) */
-  function capacity() { return (1000 + Math.max(0, st.level) * 125) * BAGS[bagIndex()][2]; }
+  /* gold the character carries before it slows (the server's Do_gold_capacity) */
+  function capacity() { return (st.status && st.status.goldCap) || 1000; }
+  /* gold is already costing quickness: shopping can't wait */
+  function heavy() { return (st.status && st.status.goldSlow > 0) || load() > 0.85 * capacity(); }
   function load() { return st.gold + st.gems / 2; }
-  /* backpack pieces worth selling: not artifacts, not better than what's worn */
+  /* backpack pieces worth selling: not artifacts, and no better than
+     what's worn by the fight math */
   function spareGear() {
+    var now = gv.gear ? gv.gear.now : null;
     return gear().items.filter(function (g) {
-      return !g.equipped && g.tier < 5 && itemWorth(g) <= itemWorth(worn(g.slot));
+      var c = gearCost(g);
+      return !g.equipped && g.tier < 5 && c !== null && now !== null && !improves(c, now);
     });
   }
 
@@ -335,6 +314,7 @@ window.PhantasiaAutoplay = function (host) {
   }
 
   function wantsToShop() {
+    if (heavy()) return true;
     /* a full bag of spares: go and sell them */
     if (backpackFull() && spareGear().length) return true;
     if (st.fights - st.lastShopFight < 15 && load() < 0.8 * capacity()) return false;
@@ -354,7 +334,7 @@ window.PhantasiaAutoplay = function (host) {
     if (!p) return false;
     /* only when the walk is reasonable */
     var steps = p.d / maxMove();
-    if (steps > 45 && load() < 0.9 * capacity() && !(backpackFull() && steps <= 160)) return false;
+    if (steps > 45 && !heavy() && !(backpackFull() && steps <= 160)) return false;
     st.trip = p;
     return true;
   }
@@ -363,8 +343,8 @@ window.PhantasiaAutoplay = function (host) {
   function planVisit() {
     var tasks = [], nb = nextBag();
     if (st.gems > 0 && nb && st.gold < nb[1] + reserve()) tasks.push("gems");
-    tasks.push("books");
     if (nb) tasks.push("bag");
+    tasks.push("books");
     tasks.push("armory");
     if (st.level >= 3 && st.amulets < 3) tasks.push("amulets");
     if (Object.keys(st.spells).length) tasks.push("mana");
@@ -435,7 +415,9 @@ window.PhantasiaAutoplay = function (host) {
   /* press label if this shop sells it, else back out */
   function orCancel(label) { return function () { return has(label) >= 0 ? has(label) : hasAny(["Cancel"]); }; }
 
-  function manaWanted() { return Math.min(400 + st.level * 20, 2000); }
+  /* mana: up to the most this character can hold (1000 + level x the
+     class's mana), and only if it has spells to spend it on */
+  function manaWanted() { return (st.status && st.status.maxMana) || 0; }
 
   /* the armory: sell spare pieces, then buy the best upgrade we can afford */
   function armoryStep() {
@@ -465,8 +447,10 @@ window.PhantasiaAutoplay = function (host) {
     wares.forEach(function (line, i) {
       var m = /^(.*) \((Weapon|Armor|Helm|Boots|Trinket)\) (.*) - (\d+) gold$/.exec(line);
       if (!m) return;
-      var price = +m[4], g = worth(m[3], / - /.test(m[3])) - itemWorth(worn(m[2]));
-      if (price <= budget && g > Math.max(2, 0.08 * itemWorth(worn(m[2]))) && g > gain) { gain = g; best = i; }
+      var price = +m[4], v = gv.armory;
+      if (!v || v.vals[i] === undefined) return;
+      var g = v.now - v.vals[i];      /* energy share an average fight saves */
+      if (price <= budget && improves(v.vals[i], v.now) && g > gain) { gain = g; best = i; }
     });
     if (best >= 0 && lastLabels[best]) {
       say("Buying an upgrade at the armory.", "on");
@@ -483,13 +467,8 @@ window.PhantasiaAutoplay = function (host) {
       if (has(s) >= 0) st.spells[s] = true;
     });
   }
-  var SPELL_COST = { "Frost Lance": 30, "Mending Light": 50, "Drain Life": 65, "Fireball": 140 };
-  /* healing may spend down to the cost; attacks keep enough back to heal */
-  function canCast(s, attack) {
-    if (!st.spells[s]) return false;
-    if (st.noMana[s] && st.mana < st.noMana[s]) return false;
-    return st.mana >= SPELL_COST[s] * (attack ? 3 : 1.5);
-  }
+  /* exact spell costs, from the server's fight odds */
+  function canCast(s) { return !!st.spells[s] && st.spellCost[s] > 0 && st.mana >= st.spellCost[s]; }
   function castPlan(spell) {
     st.lastSpell = spell;
     st.plan = ["Spell", "More Spells", spell];
@@ -516,9 +495,11 @@ window.PhantasiaAutoplay = function (host) {
     var e = frac(), c = circle();
 
     /* wear anything in the bag that beats what's on */
-    var swap = gear().items.filter(function (g) {
-      return !g.equipped && itemWorth(g) > itemWorth(worn(g.slot)) + 0.5;
-    })[0];
+    var swap = null, now = gv.gear ? gv.gear.now : null;
+    gear().items.forEach(function (g) {
+      var c = gearCost(g);
+      if (!g.equipped && now !== null && improves(c, now) && (!swap || c < gearCost(swap))) swap = g;
+    });
     if (swap && !st.swapped) {
       st.swapped = true;
       host.wear(swap);
@@ -527,7 +508,7 @@ window.PhantasiaAutoplay = function (host) {
     }
 
     /* rest until nearly full: a second monster can follow the first */
-    if (e < 0.85 || st.e < 3 * maxHit()) st.resting = true;
+    if (e < 0.85 || st.e < 3 * fightCost(c)) st.resting = true;
     if (st.resting && e >= 0.98) st.resting = false;
     if (st.resting && has("Rest") >= 0) { say("Resting: energy " + Math.round(e * 100) + "%.", "on"); return press(has("Rest")); }
 
@@ -577,7 +558,8 @@ window.PhantasiaAutoplay = function (host) {
     }
     if (has("Hunt") >= 0) {
       var here = st.circles && st.circles[c - 1];
-      say("Hunting in circle " + c + (here ? " (a fight costs about " + here.loss + " energy, for " + here.exp + " experience)" : "") +
+      say("Hunting in circle " + c + (here ? " (a fight costs about " + here.loss + " energy, " +
+        (here.risk * 100).toFixed(2) + "% risk, for " + here.exp + " experience)" : "") +
         ". Fights " + st.fights + ", levels gained " +
         Math.max(0, Math.floor(st.level - (st.startLevel || 0))) + ", gold " + Math.floor(st.gold) + ".", "on");
       return press(has("Hunt"));
@@ -747,9 +729,8 @@ window.PhantasiaAutoplay = function (host) {
 
     /* a found piece of gear */
     if ((has("Leave") >= 0 || has("Refuse") >= 0) && (has("Equip") >= 0 || has("Stow") >= 0 || has("Swap") >= 0)) {
-      var found = after("You found:"), wear = /You are wearing:/.test(recent(8)) ? after("You are wearing:") : "";
-      var artifact = has("Refuse") >= 0;
-      var better = !wear || worth(found, / - /.test(found)) > worth(wear, / - /.test(wear)) || artifact;
+      var artifact = has("Refuse") >= 0, o = gv.offer;
+      var better = artifact || (o && improves(o.vals[0], o.now));
       if (better && has("Equip") >= 0) { say("Wearing an upgrade.", "on"); return press(has("Equip")); }
       if (better && has("Swap") >= 0) { say("Swapping in an upgrade.", "on"); return press(has("Swap")); }
       /* keep spare pieces to sell while there's room */
@@ -897,6 +878,10 @@ window.PhantasiaAutoplay = function (host) {
         setTimeout(function () { charSnapshot("level", true); }, 1500);
       }
     },
+    gearValues: function (kind, hunt, now, vals) {
+      gv[kind] = { hunt: hunt, now: now, vals: vals };
+      if (st.on && kind !== "gear") record({ k: "gearvalue", kind: kind, hunt: hunt, now: now, vals: vals });
+    },
     status: function (o) {
       st.status = o;
       st.brainsInfo = { brains: o.brains, cap: o.brainsCap, perBook: o.perBook };
@@ -939,7 +924,6 @@ window.PhantasiaAutoplay = function (host) {
         /* each kill counts (a flock can go on for a long time) */
         if (st.inFight) { fightOver(); st.inFight = true; st.fightStartE = st.e; st.fightDanger = false; st.fightKilled = false; }
       }
-      if (/That's too far to move in 1 step/.test(text)) st.moveScale = Math.max(0.3, st.moveScale * 0.8);
       if (/You do not have enough mana/.test(text) && st.lastSpell) st.noMana[st.lastSpell] = st.mana * 1.3 + 10;
       if (/in ruins|no trade/i.test(text) && st.atPost) {
         st.badPosts[st.atPost.x + "," + st.atPost.y] = Date.now() + 30 * 60 * 1000;
@@ -964,7 +948,8 @@ window.PhantasiaAutoplay = function (host) {
     odds: function (F) {
       st.lastOdds = { m: F.name, me: F.energy, ms: F.str, q: F.q, melee: F.melee, luck: F.luck, ev: F.evade,
         br: F.brains, fl: F.flock, xp: F.exp, sp: F.special };
-      st.odds = F; F.spells.forEach(function (sp) { st.spells[sp.name] = true; }); F.spellsFromServer = true; },
+      st.odds = F;
+      F.spells.forEach(function (sp) { st.spellCost[sp.name] = sp.mana; }); F.spells.forEach(function (sp) { st.spells[sp.name] = true; }); F.spellsFromServer = true; },
     buttons: function (labels, compass) {
       lastLabels = labels; lastCompass = compass;
       if (st.on) schedule();
