@@ -140,7 +140,9 @@ typedef char bool;
 #define AB_GALE			33	/* monsters half as quick */
 #define AB_ARCHMAGE		34	/* spells half again as strong */
 #define AB_MANAFONT		35	/* spells cost half the mana */
-#define NUM_ABILITIES		36
+#define AB_CONQUEROR		36	/* the Banner of the Seasons: +10% experience and gold */
+#define AB_RALLY		37	/* the Banner: everyone gains 5% while its holder is online */
+#define NUM_ABILITIES		38
 
 #define NUM_ARTIFACTS		11
 #define NUM_CHARS		6	/* number of character types */

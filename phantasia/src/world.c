@@ -102,6 +102,7 @@ static struct {
     int numPart;
     struct warbonus_t bonus[MAX_WAR];	/* from the last war won */
     int numBonus;
+    char bannerAcct[SZ_NAME], bannerWho[SZ_NAME];	/* the last won war's greatest helper */
 } W;
 
 static pthread_mutex_t world_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -351,6 +352,10 @@ static void Do_world_load_locked(void)
 	    struct warpart_t *p = &W.part[W.numPart];
 	    if (sscanf(rest, "%32s %32s %lf %ld", p->acct, p->who, &p->gold, &p->kills) == 4) ++W.numPart;
 	}
+	else if (!strcmp(word, "banner")) {
+	    sscanf(rest, "%32s %32s", W.bannerAcct, W.bannerWho);
+	    if (!strcmp(W.bannerAcct, "-")) W.bannerAcct[0] = W.bannerWho[0] = '\0';
+	}
 	else if (!strcmp(word, "warbonus") && W.numBonus < MAX_WAR) {
 	    struct warbonus_t *b = &W.bonus[W.numBonus];
 	    if (sscanf(rest, "%32s %lf", b->acct, &b->pct) == 2) ++W.numBonus;
@@ -391,6 +396,7 @@ static void Do_world_save_locked(void)
 		W.army, W.armyMax, W.project, W.projectGold, W.projectKills);
 	fprintf(f, "call %d %ld\n", W.callRegion, (long) W.callUntil);
 	fprintf(f, "war %ld %d %ld\n", W.war, W.lastWar, (long) W.warStart);
+	fprintf(f, "banner %s %s\n", W.bannerAcct[0] ? W.bannerAcct : "-", W.bannerWho[0] ? W.bannerWho : "-");
 	for (i = 0; i < W.numPart; i++) {
 	    fprintf(f, "warpart %s %s %.0f %ld\n", W.part[i].acct, W.part[i].who,
 		    W.part[i].gold, W.part[i].kills);
@@ -462,8 +468,10 @@ static void Do_world_save_locked(void)
 	for (k = 0; k < n; k++) order[k] = k;
 	for (k = 0; k < n; k++) for (m = k + 1; m < n; m++)
 	    if (Do_war_share_locked(order[m]) > Do_war_share_locked(order[k])) { int t = order[k]; order[k] = order[m]; order[m] = t; }
-	fprintf(f, "\"war\":{\"index\":%ld,\"endsAt\":%ld,\"lastWar\":%d,\"participants\":%d,\"top\":[",
+	fprintf(f, "\"war\":{\"index\":%ld,\"endsAt\":%ld,\"lastWar\":%d,\"participants\":%d,\"banner\":",
 		W.war, (long) Do_war_ends(), W.lastWar, n);
+	Do_json_str(f, W.bannerWho);
+	fprintf(f, ",\"top\":[");
 	for (k = 0; k < n && k < 5; k++) {
 	    fprintf(f, "%s{\"name\":", k ? "," : "");
 	    Do_json_str(f, W.part[order[k]].who);
@@ -570,15 +578,15 @@ static double Do_war_share_locked(int i)
     return 0.5 * W.part[i].gold / g + 0.5 * W.part[i].kills / k;
 }
 
-	/* the bonus a share earns if the war is won: +0.5% for any help, up
-	   to +3% for the one who did the most */
+	/* the bonus a share earns if the war is won: +2% for any help, up
+	   to +10% for the one who did the most */
 static double Do_war_bonus_for_locked(int i)
 {
     double top = 0, sh = Do_war_share_locked(i);
     int j;
 
     for (j = 0; j < W.numPart; j++) top = MAX(top, Do_war_share_locked(j));
-    return top > 0 ? 0.5 + 2.5 * sh / top : 0;
+    return top > 0 ? 2.0 + 8.0 * sh / top : 0;
 }
 
 	/* the four seasons have turned: was the war won? */
@@ -592,13 +600,25 @@ static void Do_war_end_locked(void)
 	    time(NULL) - W.warStart < 21 * 86400;
 
     W.numBonus = 0;
+    W.bannerAcct[0] = W.bannerWho[0] = '\0';	/* the Banner flies only over a won war */
     if (won) {
+	int top = -1;
+	for (i = 0; i < W.numPart; i++) {
+	    if (top < 0 || Do_war_share_locked(i) > Do_war_share_locked(top)) top = i;
+	}
+	if (top >= 0) {
+	    snprintf(W.bannerAcct, SZ_NAME, "%s", W.part[top].acct);
+	    snprintf(W.bannerWho, SZ_NAME, "%s", W.part[top].who);
+	    sprintf(msg, "%c%s did the most to win the war and carries the Banner of the Seasons until the next one ends!",
+		    toupper((unsigned char) W.bannerWho[0]), W.bannerWho + 1);
+	    Do_world_news_locked(msg, TRUE);
+	}
 	for (i = 0; i < W.numPart && W.numBonus < MAX_WAR; i++) {
 	    snprintf(W.bonus[W.numBonus].acct, SZ_NAME, "%s", W.part[i].acct);
 	    W.bonus[W.numBonus].pct = Do_war_bonus_for_locked(i);
 	    ++W.numBonus;
 	}
-	sprintf(msg, "The War of the Seasons is won! Every realm project stands. %d adventurer%s a bonus of up to 3%% more experience and gold through the next war.",
+	sprintf(msg, "The War of the Seasons is won! Every realm project stands. %d adventurer%s a bonus of up to 10%% more experience and gold through the next war.",
 		W.numPart, W.numPart == 1 ? " carries" : "s carry");
     }
     else if (shortWar) {
@@ -625,15 +645,36 @@ static void Do_war_end_locked(void)
 	/* the last war's outcome, for this one */
 static int Do_war_lost_locked(void) { return W.lastWar == 0; }
 
+void Do_world_banner_holder(char *out)
+{
+    pthread_mutex_lock(&world_lock);
+    Do_world_ensure_locked();
+    snprintf(out, SZ_NAME, "%s", W.bannerAcct);
+    pthread_mutex_unlock(&world_lock);
+}
+
 double Do_world_war_factor(struct client_t *c)
 {
-    double f = 1.0;
+    double f = Do_gear_ability(c, AB_CONQUEROR) > 0 ? 1.1 : 1.0;	/* the Banner */
+    char holder[SZ_NAME];
+    struct game_t *g;
     int i;
+
+	/* the Rallying Banner: while its holder is in the realm, everyone
+	   gains a twentieth more */
+    Do_world_banner_holder(holder);
+    if (holder[0]) {
+	Do_lock_mutex(&c->realm->realm_lock);
+	for (g = c->realm->games; g != NULL; g = g->next_game) {
+	    if (g->description != NULL && !strcasecmp(g->account, holder)) { f *= 1.05; break; }
+	}
+	Do_unlock_mutex(&c->realm->realm_lock);
+    }
 
     pthread_mutex_lock(&world_lock);
     Do_world_ensure_locked();
     for (i = 0; i < W.numBonus; i++) {
-	if (!strcmp(W.bonus[i].acct, c->lcaccount)) { f = 1.0 + W.bonus[i].pct / 100.0; break; }
+	if (!strcmp(W.bonus[i].acct, c->lcaccount)) { f *= 1.0 + W.bonus[i].pct / 100.0; break; }
     }
     pthread_mutex_unlock(&world_lock);
     return f;
@@ -1661,6 +1702,11 @@ void Do_world_war_chat(struct client_t *c)
     }
     Do_send_chat_self(c, line);
     for (i = 0; i < W.numBonus; i++) if (!strcmp(W.bonus[i].acct, c->lcaccount)) have = W.bonus[i].pct;
+    if (W.bannerWho[0]) {
+	sprintf(line, "%c%s carries the Banner of the Seasons, for doing the most to win the last war.\n",
+		toupper((unsigned char) W.bannerWho[0]), W.bannerWho + 1);
+	Do_send_chat_self(c, line);
+    }
     if (W.lastWar == 1) {
 	sprintf(line, have > 0 ? "The last war was won: you carry +%.1f%% experience and gold until this one ends.\n" :
 		"The last war was won (you didn't take part, so you carry no bonus).\n", have);

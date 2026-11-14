@@ -382,6 +382,8 @@ int Do_gear_artifact_grow(struct client_t *c, int *grew);
 double Do_gear_soak(struct client_t *c, double inflict);
 void Do_gear_on_kill(struct client_t *c);
 double Do_world_war_factor(struct client_t *c);
+void Do_world_banner_holder(char *out);
+void Do_gear_banner(struct client_t *c);
 void Do_world_war_chat(struct client_t *c);
 int Do_gear_artifact_chance(struct client_t *c, double chance, const char *deed);
 double Do_battle_quickness(struct client_t *c);
