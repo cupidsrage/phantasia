@@ -284,6 +284,11 @@ button {
   padding: 6px 12px 0; border-top: 1px solid var(--line); font-size: 13px; min-height: 30px; }
 .actions-bar + .actions { border-top: 0; padding-top: 6px; }
 .arrange-hint { flex: 1; color: var(--gold-2); font-style: italic; }
+.autoplay-status { flex: 1; color: var(--muted); font-style: italic; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.autoplay-status.on { color: var(--gold-2); }
+.autoplay-status.warn { color: #e8a25c; }
+.autoplay-speed { background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; font-size: 12px; padding: 1px 4px; }
+.autoplay.on { color: #1a1208; background: linear-gradient(180deg, #f6d98c, #c8952f); padding: 3px 12px; border-radius: 999px; }
 .arrange-link { background: none; border: 0; padding: 2px 0; color: var(--muted); font-family: "Cinzel", serif;
   font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
 .arrange-link:hover { color: var(--gold-2); }

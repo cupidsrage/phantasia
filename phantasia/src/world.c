@@ -1373,11 +1373,16 @@ void Do_world_test(struct client_t *c, char *what)
     Do_world_save_locked();
     pthread_mutex_unlock(&world_lock);
     if (!strncmp(what, "meet", 4)) forceNemesis = TRUE;
+    if (!strncmp(what, "rich", 4)) {	/* test builds: gold and gems to spend */
+	Do_gold(c, 2500.0 + 500.0 * c->player.level, FALSE);
+	Do_gems(c, 3.0, FALSE);
+    }
     if (!strncmp(what, "tough", 5)) {
 	c->player.max_energy = 200000;
 	Do_energy(c, 200000, 200000, c->player.shield, 0, TRUE);
     }
-    if (!strncmp(what, "posteast", 8)) Do_location(c, 1273, 0, TRUE);	/* rank 3, main road */
+    if (!strncmp(what, "postnear", 8)) Do_location(c, 140, 0, TRUE);	/* by the rank 1 east post */
+    else if (!strncmp(what, "posteast", 8)) Do_location(c, 1273, 0, TRUE);	/* rank 3, main road */
     else if (!strncmp(what, "gotonorth", 9)) Do_location(c, 60, 900, TRUE);	/* the Northern Reach */
     else if (!strncmp(what, "goto", 4)) Do_location(c, 900, 120, TRUE);	/* the Eastern Marches */
     if (!strncmp(what, "doom", 4)) {

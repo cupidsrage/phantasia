@@ -308,6 +308,8 @@ typedef char bool;
 #define WORLD_EVENT_PACKET	61	/* current world event (browser only) */
 #define WIZARD_PACKET		62	/* a ceremony to show (browser only) */
 #define WORLD_PACKET		64	/* region, town, time and season (browser only) */
+#define AUTOPLAY_PACKET		65	/* this account may use autoplay (browser only) */
+#define FIGHT_PACKET		66	/* the odds of a fight, for autoplay (browser only) */
 #define SELECT_PACKET		63	/* pick one from a list (browser only) */
 
 	/* ceremonies shown to browser players (wizard levels are 2-4) */

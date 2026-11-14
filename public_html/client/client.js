@@ -20,7 +20,7 @@
     NAME: 40, LOCATION: 41, ENERGY: 42, STRENGTH: 43, SPEED: 44,
     SHIELD: 45, SWORD: 46, QUICKSILVER: 47, MANA: 48, LEVEL: 49,
     GOLD: 50, GEMS: 51, CLOAK: 52, BLESSING: 53, CROWN: 54,
-    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61, WIZARD: 62, SELECT: 63, WORLD: 64
+    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61, WIZARD: 62, SELECT: 63, WORLD: 64, AUTOPLAY: 65, FIGHT: 66
   };
 
   /* ---- client -> server ---- */
@@ -178,6 +178,8 @@
         case P.WIZARD: { var kind = await nextInt(); ceremony(kind, await next()); break; }
         case P.SELECT: await askSelect(); break;
         case P.WORLD: await readWorld(); break;
+        case P.AUTOPLAY: auto.allow((await next()) === "1"); break;
+        case P.FIGHT: auto.odds(await readFightOdds()); break;
         default:
           if (type >= P.NAME && type <= P.VIRGIN) await updateStatus(type);
           else console.warn("Unknown packet", type);
@@ -197,6 +199,7 @@
         break;
       case P.LOCATION: {
         var x = await next(), y = await next(), place = await next();
+        auto.at(parseFloat(x) || 0, parseFloat(y) || 0);
         $("title-tail").textContent = "( " + x + " , " + y + " )";
         $("title-head").textContent = name ? name + " is in " + place : "Character starts at: " + place;
         break;
@@ -214,12 +217,12 @@
       case P.SHIELD: $("val-shield").textContent = await next(); break;
       case P.SWORD: $("val-sword").textContent = await next(); break;
       case P.QUICKSILVER: $("val-quicksilver").textContent = await next(); break;
-      case P.MANA: $("val-mana").textContent = await next(); break;
-      case P.LEVEL: $("val-level").textContent = await next(); break;
-      case P.GOLD: $("val-gold").textContent = await next(); break;
-      case P.GEMS: $("val-gems").textContent = await next(); break;
+      case P.MANA: { var mn = await next(); $("val-mana").textContent = mn; auto.stat("mana", parseFloat(mn) || 0); break; }
+      case P.LEVEL: { var lv = await next(); $("val-level").textContent = lv; auto.level(parseFloat(lv) || 0); break; }
+      case P.GOLD: { var gd = await next(); $("val-gold").textContent = gd; auto.stat("gold", parseFloat(gd) || 0); break; }
+      case P.GEMS: { var gm = await next(); $("val-gems").textContent = gm; auto.stat("gems", parseFloat(gm) || 0); break; }
       case P.CLOAK: setItem("cloak", await nextBool()); break;
-      case P.BLESSING: setItem("blessing", await nextBool()); break;
+      case P.BLESSING: { var bl = await nextBool(); setItem("blessing", bl); auto.stat("blessing", bl); break; }
       case P.CROWN: setItem("crown", await nextBool()); break;
       case P.PALANTIR: setItem("palantir", await nextBool()); break;
       case P.RING: setItem("ring", await nextBool()); break;
@@ -228,6 +231,7 @@
   }
 
   function setBar(which, value, max) {
+    auto.bar(which, parseFloat(value) || 0, max);
     $("val-" + which).textContent = value + (max ? " / " + max : "");
     var v = parseFloat(value) || 0;
     var pct = max > 0 ? Math.max(0, Math.min(100, 100 * v / max)) : 0;
@@ -269,6 +273,7 @@
   }
 
   function addLog(text, cls) {
+    auto.line(text);
     var log = $("log");
     var stick = log.scrollTop + log.clientHeight >= log.scrollHeight - 30;
     var p = document.createElement("p");
@@ -328,6 +333,8 @@
       actionButtons.push(b);
     }
     $("arrange").addEventListener("click", function () { setArranging(!arranging); });
+    $("autoplay").addEventListener("click", function () { auto.toggle(); });
+    $("autoplay-speed").addEventListener("change", function (e) { auto.setSpeed(e.target.value); });
     $("arrange-reset").addEventListener("click", function () {
       layoutPrefs = {}; saveLayout(); placeButtons(); arrangePick = -1; drawButtons();
     });
@@ -436,6 +443,7 @@
     compassLive = !!withCompass;
     compassButtons.forEach(function (b) { b.disabled = !withCompass || arranging; });
     pending = "buttons";
+    auto.buttons(serverLabels.map(function (l) { return l.trim(); }), !!withCompass);
   }
 
   function disableButtons() {
@@ -447,6 +455,7 @@
 
   function clickAction(d) {
     if (arranging) { arrangeClick(d); return; }
+    if (!auto.pressing) auto.userTook();
     if (pending !== "buttons" || actionButtons[d].disabled || slotServer[d] === null) return;
     pending = null;
     disableButtons();
@@ -494,6 +503,7 @@
 
   function clickCompass(i) {
     if (pending !== "buttons" || compassButtons[i].disabled) return;
+    if (!auto.pressing) auto.userTook();
     pending = null;
     disableButtons();
     respond(String(i + 8));
@@ -501,6 +511,7 @@
 
   /* the server timed out waiting for us */
   function handlePing() {
+    auto.cancelPress();
     if (!pending) return;
     pending = null;
     send(C.PING);
@@ -562,6 +573,7 @@
       [{ label: "Cancel", cancel: true, action: cancelDialog },
        { label: "OK", primary: true, action: submitString }]);
     $("dlg-form").addEventListener("submit", function (e) { e.preventDefault(); submitString(); });
+    if (!secret) setTimeout(function () { auto.dialog("string", prompt); }, 300);
   }
 
   function submitString() {
@@ -589,6 +601,7 @@
       [{ label: "Cancel", cancel: true, action: cancelDialog },
        { label: "OK", primary: true, action: submitCoords }]);
     $("dlg-form").addEventListener("submit", function (e) { e.preventDefault(); submitCoords(); });
+    setTimeout(function () { auto.dialog("coords", prompt); }, 300);
   }
 
   function submitCoords() {
@@ -600,6 +613,7 @@
   }
 
   function askPlayer(prompt) {
+    auto.dialog("player", prompt);
     pending = "dialog";
     var opts = players.map(function (p) {
       return "<option>" + esc(p.name) + "</option>";
@@ -623,6 +637,7 @@
       opts += "<option value='" + i + "'>" + esc(await next()) + "</option>";
     }
     pending = "dialog";
+    auto.dialog("select", prompt);
     showModal("Phantasia Reimagined",
       "<p>" + esc(prompt) + "</p><select id='dlg-select'>" + opts + "</select>",
       [{ label: "Cancel", cancel: true, action: cancelDialog },
@@ -742,7 +757,7 @@
     return WEAPONS.blade;
   }
 
-  var gearItems = [];
+  var gearItems = [], gearCapacity = 6, gearBag = "";
 
   /* equip ("e") or take off ("u") straight from the gear panel */
   function gearClick(action, it) {
@@ -779,6 +794,7 @@
       items.push(g);
     }
     gearItems = items;
+    gearCapacity = capacity; gearBag = bagName;
 
     /* the regalia: a crown, halo or seal drawn on the adventurer */
     var rl = $("d-Regalia");
@@ -877,6 +893,7 @@
     var region = await next(), state = await next(), shadow = await nextInt();
     var town = await next(), townState = await next(), night = (await next()) === "1";
     var season = await next(), call = await next();
+    auto.world(call);
     var box = $("world-status");
     var SEASON_ICON = { "Bloom": "🌸", "Harvest": "🌾", "Hunter's Moon": "🍂", "Deep Frost": "❄️" };
     box.hidden = false;
@@ -1262,6 +1279,7 @@
     });
   }
   function addChat(text) {
+    auto.chat(text);
     var log = $("chat-log");
     var p = document.createElement("p");
     var m = /^(\((\d+)\) - )?([^:]{1,48}?)( proclaims)?: (.*)$/.exec(text);
@@ -1297,6 +1315,58 @@
     while (log.childNodes.length > MAX_CHAT) log.removeChild(log.firstChild);
     log.scrollTop = log.scrollHeight;
   }
+
+  /* ------------------------------------------------------- autoplay */
+
+  /* the odds of a fight, for autoplay (see Do_fight_odds on the server) */
+  async function readFightOdds() {
+    var F = { name: await next(), energy: +(await next()), maxEnergy: +(await next()),
+      str: +(await next()), q: +(await next()), melee: +(await next()), skirmish: +(await next()),
+      luck: +(await next()), evade: +(await next()), special: +(await next()), brains: +(await next()),
+      spells: [] };
+    (await next()).split(";").forEach(function (part) {
+      var f = part.split(":");
+      if (f.length === 4) F.spells.push({ name: f[0], mana: +f[1], dmg: +f[2], heal: +f[3] });
+    });
+    return F;
+  }
+
+  /* autoplay.js plays for the accounts the server allows; these are the
+     few things it may do: what a player could do with this screen */
+  var autoPressing = false;
+  var auto = (window.PhantasiaAutoplay || function () {
+    var none = function () { return false; };
+    return { allow: none, at: none, level: none, bar: none, stat: none, world: none, line: none,
+      chat: none, buttons: none, dialog: none, odds: none, userTook: none, cancelPress: none, toggle: none,
+      setSpeed: none, pressing: false };
+  })({
+    pending: function () { return pending; },
+    isPressing: function () { return autoPressing; },
+    press: function (i) {
+      if (pending !== "buttons") return;
+      autoPressing = true;
+      try { for (var d = 0; d < 8; d++) if (slotServer[d] === i) { clickAction(d); return; } }
+      finally { autoPressing = false; }
+    },
+    compass: function (k) {
+      if (pending !== "buttons") return;
+      autoPressing = true;
+      try { clickCompass(k); } finally { autoPressing = false; }
+    },
+    answerString: function (v) {
+      if (pending !== "dialog" || !$("dlg-input")) return;
+      $("dlg-input").value = v;
+      submitString();
+    },
+    answerCoords: function (x, y) {
+      if (pending !== "dialog" || !$("dlg-x")) return;
+      $("dlg-x").value = x; $("dlg-y").value = y;
+      submitCoords();
+    },
+    gear: function () { return { items: gearItems, capacity: gearCapacity, bag: gearBag }; },
+    wear: function (it) { gearClick("e", it); },
+    chat: function (text) { send(C.CHAT + text + "\0"); }
+  });
 
   /* ------------------------------------------------------- misc UI */
 

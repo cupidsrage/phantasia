@@ -3210,3 +3210,44 @@ int Do_anglemove(struct client_t *c) {
     return (int) MAX(1.0, floor(Do_maxmove(c) * .707106781));
 }
 
+
+
+/************************************************************************
+/
+/ FUNCTION NAME: Do_autoplay_allowed(struct client_t *c)
+/
+/ FUNCTION: may this account let the browser client play for it?
+/
+/ DESCRIPTION:
+/	PHANTASIA_AUTOPLAY lists the accounts allowed, separated by commas
+/	or spaces.  Without it, only the accounts in the wizards file may.
+/
+/************************************************************************/
+
+int Do_autoplay_allowed(struct client_t *c)
+{
+    char list[2048], *tok, line[SZ_LINE], acct[SZ_NAME + 1];
+    const char *env = getenv("PHANTASIA_AUTOPLAY");
+    FILE *fp;
+    int i, ok = FALSE;
+
+    if (!c->lcaccount[0]) return FALSE;
+
+    if (env && *env) {
+	snprintf(list, sizeof list, "%s", env);
+	for (tok = strtok(list, ", \t\n"); tok; tok = strtok(NULL, ", \t\n")) {
+	    for (i = 0; tok[i]; i++) tok[i] = tolower((unsigned char) tok[i]);
+	    if (!strcmp(tok, c->lcaccount)) return TRUE;
+	}
+	return FALSE;
+    }
+
+	/* wizards file lines: "<level> <ip> <account> <character> ..." */
+    if ((fp = fopen(WIZARD_FILE, "r")) == NULL) return FALSE;
+    while (!ok && fgets(line, sizeof line, fp)) {
+	if (sscanf(line, "%*s %*s %32s", acct) == 1 &&
+		!strcasecmp(acct, c->lcaccount)) ok = TRUE;
+    }
+    fclose(fp);
+    return ok;
+}
