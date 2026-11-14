@@ -370,6 +370,7 @@ int Do_autoplay_allowed(struct client_t *c);
 const char *Do_autoplay_key(struct client_t *c);
 void Do_fight_odds(struct client_t *c);
 void Do_autoplay_circles(struct client_t *c);
+void Do_autoplay_stats(struct client_t *c);
 void Do_gear_chat(struct client_t *c);
 void Do_artifacts_chat(struct client_t *c);
 

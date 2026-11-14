@@ -53,7 +53,7 @@ window.PhantasiaAutoplay = function (host) {
     fights: 0, startLevel: null, kills: 0,
     plan: [], visit: null, trip: null, lastShopFight: -999, badPosts: {},
     spells: {}, spellsAt: -1, noMana: {}, moveScale: 1,
-    sinceStep: 0, spin: 1,
+    sinceStep: 0, spin: 1, extra: {}, str: 0, strmax: 0, status: null,
     quest: null, callRegion: -1, fallen: {}, worldAt: 0, blessed: false, amulets: 0, unknown: 0
   };
   try { st.speed = localStorage.getItem("phantasia-autoplay-speed") || "normal"; } catch (e) {}
@@ -86,6 +86,27 @@ window.PhantasiaAutoplay = function (host) {
     return { lv: st.level, e: Math.round(st.e), emax: st.emax, x: st.x, y: st.y, c: circle(),
       gold: Math.floor(st.gold), gems: st.gems, mana: Math.floor(st.mana), target: st.target, cap: cap() };
   }
+  /* the whole character: stats, status, gear, bag, spells, and (when
+     asked) the per-circle costs it is choosing its hunting ground from */
+  function charSnapshot(why, withCircles) {
+    var g = gear(), entry = snapshot();
+    entry.k = "char"; entry.why = why;
+    entry.str = st.str; entry.strmax = st.strmax; entry.spd = st.spd; entry.spdmax = st.spdmax;
+    entry.shield = st.extra.shield; entry.sword = st.extra.sword; entry.quicksilver = st.extra.quicksilver;
+    entry.status = st.status || null;
+    entry.items = {};
+    Object.keys(st.extra).forEach(function (k) { if (k.indexOf("item:") === 0) entry.items[k.slice(5)] = st.extra[k]; });
+    entry.bag = g.bag; entry.bagSize = g.capacity;
+    entry.gear = g.items.map(function (it) {
+      return { slot: it.slot, name: it.name, stats: it.stats, tier: it.tier, worn: it.equipped,
+        ab: [it.ab1, it.ab2].filter(Boolean) };
+    });
+    entry.spells = Object.keys(st.spells);
+    entry.quest = st.quest ? st.quest.text : "";
+    if (withCircles && st.circles) entry.circles = st.circles;
+    record(entry);
+  }
+
   function summary() {
     return { character: host.name(), level: st.level, startLevel: st.startLevel, fights: st.fights,
       kills: st.kills, minutes: st.startedAt ? Math.round((Date.now() - st.startedAt) / 60000) : 0 };
@@ -533,17 +554,9 @@ window.PhantasiaAutoplay = function (host) {
         return press(has("Hunt") >= 0 ? has("Hunt") : has("Rest"));
       }
       say("Walking to the trading post at (" + st.trip.x + ", " + st.trip.y + "), " + Math.ceil(d) + " away.", "on");
-      var step = Math.min(d, maxMove());
-      var tx = st.x + (st.trip.x - st.x) * step / d, ty = st.y + (st.trip.y - st.y) * step / d;
-      if (d <= maxMove()) { tx = st.trip.x; ty = st.trip.y; }
-      else {
-        tx = Math.round(tx); ty = Math.round(ty);
-        while (dist(st.x, st.y, tx, ty) > maxMove() && (tx !== Math.round(st.x) || ty !== Math.round(st.y))) {
-          tx += Math.sign(st.x - tx) * (Math.abs(st.x - tx) >= 1 ? 1 : 0);
-          ty += Math.sign(st.y - ty) * (Math.abs(st.y - ty) >= 1 ? 1 : 0);
-        }
-      }
-      st.moveTo = { x: tx, y: ty };
+      /* Move To walks the whole way, a step a turn (stopping to rest
+         below half energy, when we just ask again) */
+      st.moveTo = { x: st.trip.x, y: st.trip.y };
       return press(has("Move To"));
     }
 
@@ -854,6 +867,7 @@ window.PhantasiaAutoplay = function (host) {
     if (st.startLevel === null) st.startLevel = st.level;
     if (!st.startedAt) st.startedAt = Date.now();
     var s0 = snapshot(); s0.k = "start"; s0.character = host.name(); s0.speed = st.speed; record(s0);
+    charSnapshot("start", true);
     draw();
     say("Autoplay is on.", "on");
     if (!st.quest) host.chat("/quest");
@@ -875,16 +889,35 @@ window.PhantasiaAutoplay = function (host) {
   return {
     allow: function (yes, key) { st.allowed = yes; st.key = key || ""; if (!yes) stop(); draw(); if (yes) say("Autoplay is ready."); },
     at: function (x, y) { st.x = x; st.y = y; },
-    level: function (lv) { st.level = lv; },
+    level: function (lv) {
+      var was = st.level;
+      st.level = lv;
+      if (st.on && Math.floor(lv) !== Math.floor(was)) {
+        record({ k: "levelup", from: was, to: lv });
+        setTimeout(function () { charSnapshot("level", true); }, 1500);
+      }
+    },
+    status: function (o) {
+      st.status = o;
+      st.brainsInfo = { brains: o.brains, cap: o.brainsCap, perBook: o.perBook };
+      st.amulets = o.amulets;
+    },
+    gearChanged: function () {
+      if (!st.on) return;
+      clearTimeout(st.gearTimer);
+      st.gearTimer = setTimeout(function () { charSnapshot("gear", false); }, 1200);
+    },
     bar: function (which, v, max) {
       if (which === "energy") { st.e = v; st.emax = max || 1; }
       if (which === "speed") { st.spd = v; st.spdmax = max || v; }
+      if (which === "strength") { st.str = v; st.strmax = max || v; }
     },
     stat: function (which, v) {
       if (which === "mana") st.mana = v;
       else if (which === "gold") st.gold = v;
       else if (which === "gems") st.gems = v;
       else if (which === "blessing") st.blessed = !!v;
+      else st.extra[which] = v;
     },
     world: function (callRegion) {
       var name = (callRegion || "").toLowerCase();
@@ -908,13 +941,13 @@ window.PhantasiaAutoplay = function (host) {
       }
       if (/That's too far to move in 1 step/.test(text)) st.moveScale = Math.max(0.3, st.moveScale * 0.8);
       if (/You do not have enough mana/.test(text) && st.lastSpell) st.noMana[st.lastSpell] = st.mana * 1.3 + 10;
-      if (/protects you|amulet/i.test(text) && /cursed|protect/i.test(text)) st.amulets = Math.max(0, st.amulets - 1);
       if (/in ruins|no trade/i.test(text) && st.atPost) {
         st.badPosts[st.atPost.x + "," + st.atPost.y] = Date.now() + 30 * 60 * 1000;
         st.visit = null;
       }
       if (st.on && DEATH.test(text)) {
         var d = snapshot(); d.k = "death"; d.s = text; record(d);
+        charSnapshot("death", true);
         stop("Autoplay stopped: your character died.", "warn");
         sendRecord("death");
       }

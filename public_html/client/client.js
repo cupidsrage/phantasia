@@ -20,7 +20,7 @@
     NAME: 40, LOCATION: 41, ENERGY: 42, STRENGTH: 43, SPEED: 44,
     SHIELD: 45, SWORD: 46, QUICKSILVER: 47, MANA: 48, LEVEL: 49,
     GOLD: 50, GEMS: 51, CLOAK: 52, BLESSING: 53, CROWN: 54,
-    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61, WIZARD: 62, SELECT: 63, WORLD: 64, AUTOPLAY: 65, FIGHT: 66, CIRCLES: 67
+    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61, WIZARD: 62, SELECT: 63, WORLD: 64, AUTOPLAY: 65, FIGHT: 66, CIRCLES: 67, AUTOSTATS: 68
   };
 
   /* ---- client -> server ---- */
@@ -180,6 +180,12 @@
         case P.WORLD: await readWorld(); break;
         case P.AUTOPLAY: { var ap = (await next()).split(" "); auto.allow(ap[0] === "1", ap[1] || ""); break; }
         case P.FIGHT: auto.odds(await readFightOdds()); break;
+        case P.AUTOSTATS: {
+          var as = (await next()).split(":");
+          auto.status({ cls: as[0], brains: +as[1], brainsCap: +as[2], perBook: +as[3], magic: +as[4],
+            sin: +as[5], poison: +as[6], amulets: +as[7], charms: +as[8], blind: as[9] === "1" });
+          break;
+        }
         case P.CIRCLES: {
           var nc = await nextInt(), circ = [];
           for (var ci = 0; ci < nc; ci++) {
@@ -187,8 +193,6 @@
             circ.push({ circle: +f[0], loss: +f[1], bad: +f[2], exp: +f[3] });
           }
           auto.circles(circ);
-          var bk = (await next()).split(":");
-          auto.brains({ brains: +bk[0], cap: +bk[1], perBook: +bk[2] });
           break;
         }
         default:
@@ -225,9 +229,9 @@
       }
       case P.STRENGTH: { var s = await next(); setBar("strength", s, await nextInt()); break; }
       case P.SPEED: { var q = await next(); setBar("speed", q, await nextInt()); break; }
-      case P.SHIELD: $("val-shield").textContent = await next(); break;
-      case P.SWORD: $("val-sword").textContent = await next(); break;
-      case P.QUICKSILVER: $("val-quicksilver").textContent = await next(); break;
+      case P.SHIELD: { var sh = await next(); $("val-shield").textContent = sh; auto.stat("shield", parseFloat(sh) || 0); break; }
+      case P.SWORD: { var sw = await next(); $("val-sword").textContent = sw; auto.stat("sword", parseFloat(sw) || 0); break; }
+      case P.QUICKSILVER: { var qs = await next(); $("val-quicksilver").textContent = qs; auto.stat("quicksilver", parseFloat(qs) || 0); break; }
       case P.MANA: { var mn = await next(); $("val-mana").textContent = mn; auto.stat("mana", parseFloat(mn) || 0); break; }
       case P.LEVEL: { var lv = await next(); $("val-level").textContent = lv; auto.level(parseFloat(lv) || 0); break; }
       case P.GOLD: { var gd = await next(); $("val-gold").textContent = gd; auto.stat("gold", parseFloat(gd) || 0); break; }
@@ -250,6 +254,7 @@
   }
 
   function setItem(which, on) {
+    auto.stat("item:" + which, on);
     $("item-" + which).classList.toggle("on", on);
     $("item-" + which).title = $("item-" + which).title.split(":")[0] + (on ? ": yes" : ": no");
   }
@@ -807,6 +812,7 @@
     }
     gearItems = items;
     gearCapacity = capacity; gearBag = bagName;
+    auto.gearChanged();
 
     /* the regalia: a crown, halo or seal drawn on the adventurer */
     var rl = $("d-Regalia");
@@ -1349,7 +1355,7 @@
   var auto = (window.PhantasiaAutoplay || function () {
     var none = function () { return false; };
     return { allow: none, at: none, level: none, bar: none, stat: none, world: none, line: none,
-      chat: none, buttons: none, dialog: none, odds: none, circles: none, brains: none, userTook: none, cancelPress: none, toggle: none,
+      chat: none, buttons: none, dialog: none, odds: none, circles: none, status: none, gearChanged: none, userTook: none, cancelPress: none, toggle: none,
       setSpeed: none, save: none, pressing: false };
   })({
     pending: function () { return pending; },
