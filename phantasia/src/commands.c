@@ -4140,6 +4140,7 @@ Do_trading_post(struct client_t *c)
 	strcpy(theButtons.button[3], "Armory\n");
 	strcpy(theButtons.button[4], "Bags\n");
 	strcpy(theButtons.button[5], "Realm Project\n");
+	strcpy(theButtons.button[6], "Stables\n");
 
 	if (Do_buttons(c, &itemp, &theButtons) != S_NORM) {
 	    Do_send_clear(c);
@@ -4162,6 +4163,10 @@ Do_trading_post(struct client_t *c)
         case 5:           /* give gold to the realm project */
 	    Do_world_donate(c);
 	    Do_send_clear(c);
+	    break;
+
+        case 6:           /* buy, feed and heal mounts */
+	    Do_stables(c);
 	    break;
 
         case 0:           /* make purchase */

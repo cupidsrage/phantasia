@@ -104,6 +104,7 @@ static struct {
     int numBonus;
     char bannerAcct[SZ_NAME], bannerWho[SZ_NAME];	/* the last won war's greatest helper */
     time_t musterUntil, musterLast;	/* the Banner's Muster: running until, last called */
+    char dragon[SZ_NAME];		/* who rides the one Dragon Hatchling */
 } W;
 
 static pthread_mutex_t world_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -358,6 +359,10 @@ static void Do_world_load_locked(void)
 	    sscanf(rest, "%ld %ld", &u, &l);
 	    W.musterUntil = u; W.musterLast = l;
 	}
+	else if (!strcmp(word, "dragon")) {
+	    sscanf(rest, "%32s", W.dragon);
+	    if (!strcmp(W.dragon, "-")) W.dragon[0] = '\0';
+	}
 	else if (!strcmp(word, "banner")) {
 	    sscanf(rest, "%32s %32s", W.bannerAcct, W.bannerWho);
 	    if (!strcmp(W.bannerAcct, "-")) W.bannerAcct[0] = W.bannerWho[0] = '\0';
@@ -403,6 +408,7 @@ static void Do_world_save_locked(void)
 	fprintf(f, "call %d %ld\n", W.callRegion, (long) W.callUntil);
 	fprintf(f, "war %ld %d %ld\n", W.war, W.lastWar, (long) W.warStart);
 	fprintf(f, "muster %ld %ld\n", (long) W.musterUntil, (long) W.musterLast);
+	fprintf(f, "dragon %s\n", W.dragon[0] ? W.dragon : "-");
 	fprintf(f, "banner %s %s\n", W.bannerAcct[0] ? W.bannerAcct : "-", W.bannerWho[0] ? W.bannerWho : "-");
 	for (i = 0; i < W.numPart; i++) {
 	    fprintf(f, "warpart %s %s %.0f %ld\n", W.part[i].acct, W.part[i].who,
@@ -657,6 +663,24 @@ void Do_world_banner_holder(char *out)
     pthread_mutex_lock(&world_lock);
     Do_world_ensure_locked();
     snprintf(out, SZ_NAME, "%s", W.bannerAcct);
+    pthread_mutex_unlock(&world_lock);
+}
+
+	/* the one Dragon Hatchling: who rides it ("" when it's free) */
+void Do_world_dragon_holder(char *out)
+{
+    pthread_mutex_lock(&world_lock);
+    Do_world_ensure_locked();
+    snprintf(out, SZ_NAME, "%s", W.dragon);
+    pthread_mutex_unlock(&world_lock);
+}
+
+void Do_world_set_dragon(const char *who)
+{
+    pthread_mutex_lock(&world_lock);
+    Do_world_ensure_locked();
+    snprintf(W.dragon, SZ_NAME, "%s", who);
+    Do_world_save_locked();
     pthread_mutex_unlock(&world_lock);
 }
 
@@ -1396,7 +1420,7 @@ int Do_world_shape_monster(struct client_t *c)
 double Do_world_monster_chance_factor(struct client_t *c)
 {
     int r = Do_player_region(c);
-    double f = Do_world_is_night() ? 1.2 : 1.0;
+    double f = (Do_world_is_night() && !Do_mount_night_ok(c)) ? 1.2 : 1.0;
 
     if (r != HEARTLANDS) {
 	if (W.region[r].shadow >= BLIGHTED) f *= 1.25;
@@ -1427,7 +1451,7 @@ double Do_world_spell_factor(void)
 double Do_world_price_factor(struct client_t *c)
 {
     int r = Do_player_region(c);
-    double f = Do_project_done(1) ? 0.95 : 1.0;
+    double f = (Do_project_done(1) ? 0.95 : 1.0) * Do_mount_price_factor(c);
     const char *tier;
 
     pthread_mutex_lock(&world_lock);

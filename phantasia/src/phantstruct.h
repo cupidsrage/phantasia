@@ -303,6 +303,11 @@ struct client_t		/* structure for client variables */
     double	deedChance;		/* a great deed this fight: chance of an artifact */
     char	deedName[64];		/* and what the deed was */
     double	walkX, walkY;		/* where to */
+    int		mountType;		/* MOUNT_ ridden, or 0 */
+    double	mountStamina;		/* steps left before it tires */
+    time_t	mountFedUntil;		/* fed until */
+    int		mountInjured;		/* rests until an injury heals */
+    bool	mountHungryTold;	/* told it's hungry */
     int		inCombat;		/* in a fight (no gear changes) */
     int		shownEvent;		/* world event the browser was told */
     time_t	shownEventEnds;		/* and when it ends */

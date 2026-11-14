@@ -20,7 +20,7 @@
     NAME: 40, LOCATION: 41, ENERGY: 42, STRENGTH: 43, SPEED: 44,
     SHIELD: 45, SWORD: 46, QUICKSILVER: 47, MANA: 48, LEVEL: 49,
     GOLD: 50, GEMS: 51, CLOAK: 52, BLESSING: 53, CROWN: 54,
-    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61, WIZARD: 62, SELECT: 63, WORLD: 64, AUTOPLAY: 65, FIGHT: 66, CIRCLES: 67, AUTOSTATS: 68, GEARVALUE: 69, MONSTERS: 70
+    PALANTIR: 55, RING: 56, VIRGIN: 57, GEAR: 60, WORLD_EVENT: 61, WIZARD: 62, SELECT: 63, WORLD: 64, AUTOPLAY: 65, FIGHT: 66, CIRCLES: 67, AUTOSTATS: 68, GEARVALUE: 69, MONSTERS: 70, MOUNT: 71
   };
 
   /* ---- client -> server ---- */
@@ -174,6 +174,15 @@
         case P.PLAYER_INFO: await showExamine(); break;
         case P.CONNECTION_DETAIL: await showDetail(); break;
         case P.GEAR: await readGear(); break;
+        case P.MOUNT: {
+          var mName = await next(), mState = await next(), mGift = await next(), mEl = $("mount");
+          mEl.hidden = !mName;
+          mEl.title = mGift;
+          mEl.querySelector(".mount-name").textContent = mName;
+          mEl.querySelector(".mount-state").textContent = mState;
+          mEl.classList.toggle("tired", /hungry|injured|stamina 0\//.test(mState));
+          break;
+        }
         case P.WORLD_EVENT: await readWorldEvent(); break;
         case P.WIZARD: { var kind = await nextInt(); ceremony(kind, await next()); break; }
         case P.SELECT: await askSelect(); break;
@@ -203,7 +212,10 @@
             goldCap: +as[10], goldSlow: +as[11], maxMove: +as[12], maxMana: +as[13],
             nextBag: { name: as[14], price: +as[15] }, bagGold: +as[16], nextBagGold: +as[17],
             booksWorth: +as[18] || 0, huntCircle: +as[19] || 0, riskNow: +as[20] || 0,
-            age: +as[21] || 0, degenerated: +as[22] || 0 });
+            age: +as[21] || 0, degenerated: +as[22] || 0,
+            mount: { type: +as[23] || 0, step: +as[24] || 1, stamina: +as[25] || 0, price: +as[26] || 0,
+              fedDays: +as[27] || 0, injured: +as[28] || 0,
+              next: as[29] && as[29] !== "-" ? { name: as[29], price: +as[30] || 0, rank: +as[31] || 1 } : null } });
           break;
         }
         case P.CIRCLES: {

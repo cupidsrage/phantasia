@@ -144,6 +144,18 @@ typedef char bool;
 #define AB_RALLY		37	/* the Banner: once a day, call the Muster (/muster) */
 #define NUM_ABILITIES		38
 
+	/* mounts */
+#define MOUNT_PONY		1
+#define MOUNT_MULE		2
+#define MOUNT_HORSE		3
+#define MOUNT_WARHORSE		4
+#define MOUNT_STRIDER		5
+#define MOUNT_EAGLE		6
+#define MOUNT_WARG		7
+#define MOUNT_NIGHTMARE		8
+#define MOUNT_DRAGON		9
+#define NUM_MOUNTS		10
+
 #define NUM_ARTIFACTS		11
 #define NUM_CHARS		6	/* number of character types */
 #define NUM_ITEMS		7	/* items in the shops */
@@ -336,6 +348,7 @@ typedef char bool;
 #define AUTOSTATS_PACKET	68	/* stats the screen doesn't show, for autoplay (browser only) */
 #define GEARVALUE_PACKET	69	/* what items would do, for autoplay (browser only) */
 #define MONSTERS_PACKET		70	/* every monster here, for a pick-your-monster scroll (autoplay) */
+#define MOUNT_PACKET		71	/* the mount you ride (browser only) */
 #define SELECT_PACKET		63	/* pick one from a list (browser only) */
 
 	/* ceremonies shown to browser players (wizard levels are 2-4) */

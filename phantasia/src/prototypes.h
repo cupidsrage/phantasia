@@ -459,3 +459,36 @@ void Do_valar_bless_realm(struct client_t *c);
 void Do_royal_gift(struct client_t *c, struct event_t *the_event);
 void Do_court_chat(struct client_t *c);
 
+
+/* mount.c */
+const char *Do_mount_name(int type);
+int Do_mount_usable(struct client_t *c);
+double Do_mount_step_factor(struct client_t *c);
+int Do_mount_marsh_speed(struct client_t *c);
+double Do_mount_carry_factor(struct client_t *c);
+double Do_mount_encounter_factor(struct client_t *c);
+int Do_mount_night_ok(struct client_t *c);
+double Do_mount_price_factor(struct client_t *c);
+void Do_mount_on_step(struct client_t *c);
+void Do_mount_on_rest(struct client_t *c);
+void Do_mount_grant(struct client_t *c, int type, const char *how);
+void Do_mount_death(struct client_t *c);
+void Do_mount_monster_hit(struct client_t *c, double inflict);
+void Do_mount_after_attack(struct client_t *c, double inflict);
+int Do_mount_kin_leave(struct client_t *c);
+void Do_mount_turn(struct client_t *c);
+int Do_mount_can_tame(struct client_t *c);
+void Do_mount_tame(struct client_t *c);
+void Do_mount_after_kill(struct client_t *c);
+void Do_mount_eagle_chance(struct client_t *c, double chance, const char *how);
+void Do_stables(struct client_t *c);
+void Do_mount_send(struct client_t *c);
+void Do_mount_chat(struct client_t *c);
+void Do_mount_save_line(struct client_t *c, FILE *f);
+void Do_mount_load_line(struct client_t *c, const char *line);
+void Do_mount_autoplay(struct client_t *c, char *out);
+void Do_world_dragon_holder(char *out);
+void Do_world_set_dragon(const char *who);
+#ifdef GEAR_TEST
+void Do_mount_test(struct client_t *c, char *what);
+#endif

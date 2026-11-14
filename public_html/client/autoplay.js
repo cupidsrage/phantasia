@@ -208,6 +208,12 @@ window.PhantasiaAutoplay = function (host) {
   /* gold is already costing quickness: shopping can't wait */
   function heavy() { return (st.status && st.status.goldSlow > 0) || load() > 0.85 * capacity(); }
   function load() { return st.gold + st.gems / 2; }
+  /* the mount we ride (from the server): type, step factor, stamina share,
+     price (0 for one that can't be bought), days of food, injury */
+  function mount() { return (st.status && st.status.mount) || { type: 0 }; }
+  /* the next mount up for sale (the server's price here, and the smallest
+     post that sells it) */
+  function nextMount() { return mount().next || null; }
   /* backpack pieces worth selling: not artifacts, and no better than
      what's worn by the fight math */
   function spareGear() {
@@ -343,6 +349,11 @@ window.PhantasiaAutoplay = function (host) {
     var nb = nextBag();
     if (load() > 0.9 * capacity()) return "carrying a lot of gold";
     if (nb && spend >= nb[1]) return "can buy the " + nb[0];
+    /* a swifter mount: every step of every walk goes farther (after the
+       bag, which keeps gold from slowing it; with its feed and a reserve) */
+    var nm = nextMount();
+    if (nm && !nb && st.gold - reserve() >= nm.price * 1.1 + 50 &&
+        (nm.rank <= 1 || cap() >= circleAt(nm.rank * nm.rank * 100, nm.rank * nm.rank * 100))) return "can buy a " + nm.name;
     /* books are the one other thing worth a walk: at least fifty that
        each still add brains, and the gold for them */
     if (booksWanted(100) >= 50) return "books to buy";
@@ -354,6 +365,8 @@ window.PhantasiaAutoplay = function (host) {
     /* books need a rank 2 post (about circle 5): go to one when we can
        safely hunt that far out */
     var bookRank = booksWanted(100) > 0 && cap() >= circleAt(400, 400) ? 2 : 1;
+    var nm = nextMount();
+    if (nm && nm.rank > bookRank && /buy a /.test(st.shopWhy || "") && cap() >= circleAt(nm.rank * nm.rank * 100, nm.rank * nm.rank * 100)) bookRank = nm.rank;
     var p = nearestPost(bookRank);
     if (!p) return false;
     /* only when the walk is reasonable */
@@ -368,6 +381,7 @@ window.PhantasiaAutoplay = function (host) {
     var tasks = [], nb = nextBag();
     if (st.gems > 0 && nb && st.gold < nb[1] + reserve()) tasks.push("gems");
     if (nb) tasks.push("bag");
+    tasks.push("stables");
     tasks.push("books");
     tasks.push("armory");
     if (st.level >= 3 && st.amulets < 3) tasks.push("amulets");
@@ -397,6 +411,9 @@ window.PhantasiaAutoplay = function (host) {
             st.plan = ["Bags", "Upgrade", function () { return has("Upgrade") >= 0 ? has("Leave") : -1; }];
             return true;
           }
+          break;
+        case "stables":
+          if (has("Stables") >= 0) { st.visit.stable = {}; st.plan = ["Stables", stablesStep]; return true; }
           break;
         case "armory":
           if (spareGear().length || st.gold - reserve() >= 100) {
@@ -443,6 +460,53 @@ window.PhantasiaAutoplay = function (host) {
   /* mana: up to the most this character can hold (1000 + level x the
      class's mana), and only if it has spells to spend it on */
   function manaWanted() { return (st.status && st.status.maxMana) || 0; }
+
+  /* the Stables: buy the best mount we can comfortably afford, keep it fed
+     and mend it; every figure is read off the Stables' own lines */
+  function stablesStep() {
+    if (has("Leave") < 0 || has("Stables") >= 0) return -1;
+    var done = st.visit.stable, m = mount(), spare = st.gold - reserve();
+    var feedM = /Feed it for \d+ days: (\d+) gold\.\s+Heal and rest it: (\d+) gold/.exec(st.lines.join(" "));
+    st.plan.unshift(stablesStep);
+    /* a better mount: the dearest one for sale, if we'd still have its
+       feed and a reserve left (never in place of one we couldn't buy back) */
+    if (!done.bought && (!m.type || m.price > 0)) {
+      var best = null;
+      st.lines.forEach(function (l) {
+        var w = /^(.+): (\d+) gold, eats (\d+) a day;/.exec(l);
+        if (!w || has(w[1]) < 0) return;
+        var price = +w[2], back = m.type ? Math.floor(m.price / 2) : 0;
+        if (price <= (m.price || 0)) return;
+        if (price - back + 3 * +w[3] > spare) return;
+        if (!best || price > best.price) best = { name: w[1], price: price };
+      });
+      done.bought = true;
+      if (best) {
+        done.fed = done.healed = true;     /* a new mount comes fed and rested */
+        record({ k: "mount", buy: best.name, price: best.price, gold: Math.floor(st.gold) });
+        say("Buying a " + best.name + " to travel faster.", "on");
+        st.plan.unshift(function () { return has("More") >= 0 ? has("More") : -1; });
+        return has(best.name);
+      }
+    }
+    if (m.type) {
+      if (!done.fed && feedM && has("Feed") >= 0 && m.type && m.fedDays < 3 && +feedM[1] <= spare) {
+        done.fed = true;
+        say("Feeding the mount.", "on");
+        st.plan.unshift(function () { return has("More") >= 0 ? has("More") : -1; });
+        return has("Feed");
+      }
+      if (!done.healed && feedM && has("Heal") >= 0 && (m.injured > 0 || m.stamina < 0.3) &&
+          +feedM[2] <= 0.25 * Math.max(0, spare)) {
+        done.healed = true;
+        say("Healing and resting the mount.", "on");
+        st.plan.unshift(function () { return has("More") >= 0 ? has("More") : -1; });
+        return has("Heal");
+      }
+    }
+    st.plan.shift();
+    return has("Leave");
+  }
 
   /* the armory: sell spare pieces, then buy the best upgrade we can afford */
   function armoryStep() {
@@ -557,6 +621,17 @@ window.PhantasiaAutoplay = function (host) {
     }
     if (st.resting && has("Rest") >= 0) { say("Resting: energy " + Math.round(e * 100) + "%.", "on"); return press(has("Rest")); }
 
+    /* a long walk ahead and the mount is spent: a few rests let it carry
+       us again (each rest gives back many steps' worth of distance) */
+    var mt = mount();
+    if (mt.type && !mt.injured && has("Rest") >= 0 && (st.trip || st.mountRest) && mt.stamina < (st.mountRest ? 0.5 : 0.02) &&
+        (!st.trip || dist(st.x, st.y, st.trip.x, st.trip.y) > 20 * maxMove())) {
+      st.mountRest = true;
+      say("Resting so the mount can carry me again.", "on");
+      return press(has("Rest"));
+    }
+    st.mountRest = false;
+
     /* standing at a trading post */
     if (has("Enter Post") >= 0) {
       if (st.trip || wantsToShop()) {
@@ -658,8 +733,16 @@ window.PhantasiaAutoplay = function (host) {
      fight at all, when the best way out wins. */
   function fight() {
     var e = frac(), F = st.odds;
-    if (!st.inFight) { st.inFight = true; st.fightStartE = st.e; st.fightDanger = false; st.fightKilled = false; }
+    if (!st.inFight) { st.inFight = true; st.fightStartE = st.e; st.fightDanger = false; st.fightKilled = false; st.tameTries = 0; }
     st.odds = null;
+
+    /* a weakened Warg or marsh beast: tame it as a mount (the server
+       offers it only when it would be swifter than what we ride) */
+    if (has("Tame") >= 0 && (st.tameTries || 0) < 3 && frac() > 0.4) {
+      st.tameTries = (st.tameTries || 0) + 1;
+      say("Trying to tame it as a mount.", "on");
+      return press(has("Tame"));
+    }
 
     /* learn this level's spells once, in an easy moment */
     if (!F && st.spellsAt !== Math.floor(st.level) && e > 0.9 && st.mana >= 30 && has("Spell") >= 0 &&

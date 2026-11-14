@@ -679,7 +679,7 @@ Do_speed(struct client_t *c, double maxQuickness, double quicksilver, double spe
 	    /* a bigger bag carries more gold before it slows you: the
 	       amount you carry counts as if divided by the bag's factor */
         dtemp = ((c->player.gold + c->player.gems / 2.0) /
-	    Do_bag_gold_factor(c->bagSize) - 1000.0) /
+	    (Do_bag_gold_factor(c->bagSize) * Do_mount_carry_factor(c)) - 1000.0) /
             c->realm->charstats[c->player.type].goldtote - c->player.level;
     } else {
         dtemp = 0.0;

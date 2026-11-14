@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mounts · Phantasia Reimagined</title>
+<meta name="description" content="Phantasia Reimagined: Mounts">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+</head>
+<body class="page-mounts">
+<header class="site-head">
+  <a class="logo" href="index.html">Phantasia<span>Reimagined</span></a>
+  <nav class="site-nav" aria-label="Site"><a href="whatsnew.html">What's New</a><a href="intro.html" class="here">Guide</a><a href="world.html">Realm Today</a><a href="legends.html">Legends</a><a href="info.html">About</a><a class="play" href="play.html">Play</a></nav>
+</header>
+<main class="wrap with-side">
+<aside class="side panel"><details open><summary>Guide</summary><div class="side-inner"><h3>Getting started</h3><ul><li><a href="intro.html">Introduction</a></li><li><a href="characters.html">Characters</a></li><li><a href="stats.html">Statistics</a></li><li><a href="interface.html">The Game Screen</a></li><li><a href="commands.html">Commands</a></li><li><a href="tips.html">Tips</a></li></ul><h3>Adventuring</h3><ul><li><a href="realm.html">The Realm</a></li><li><a href="living.html">The Living Realm</a></li><li><a href="combat.html">Combat</a></li><li><a href="itcombat.html">Player Combat</a></li><li><a href="spells.html">Spells</a></li><li><a href="monsters.html">Monsters</a></li><li><a href="treasure.html">Treasure</a></li><li><a href="deeds.html">Deeds</a></li></ul><h3>Gear</h3><ul><li><a href="gear.html">Gear and Artifacts</a></li><li><a href="equipment.html">Equipment</a></li><li><a href="mounts.html" class="here">Mounts</a></li></ul><h3>Rulers</h3><ul><li><a href="steward.html">The Steward</a></li><li><a href="king.html">The King or Queen</a></li><li><a href="valar.html">The Valar</a></li><li><a href="council.html">The Council of the Wise</a></li></ul></div></details></aside><script>if (window.innerWidth < 860) document.querySelector(".side details").removeAttribute("open");</script>
+<article class="content">
+<h1>Mounts</h1><div class="rule"></div>
+<div class="center">
+   <P>Ride instead of walking: every step goes farther.</P>
+   </div>
+
+   <P>
+   <A HREF="#kinds">The mounts</A> |
+   <A HREF="#stables">The Stables</A> |
+   <A HREF="#care">Food, stamina and injury</A> |
+   <A HREF="#wild">Taming and finding</A> |
+   <A HREF="#dragon">The Dragon Hatchling</A> |
+   <A HREF="#loss">Losing a mount</A>
+   </P>
+
+   <HR>
+
+   <A NAME="kinds"></A>
+   <H3>The mounts</H3>
+   <P>You ride one mount at a time. A mount makes each of your steps longer, with the compass
+   and with Move To, and a few have a gift of their own. Only the Dragon Hatchling fights.</P>
+   <div class="table-scroll"><TABLE>
+    <TR><TH>Mount</TH><TH>Where from</TH><TH>Steps</TH><TH>Its gift</TH></TR>
+    <TR><TD>Pony</TD><TD>Stables, 500 gold</TD><TD>&times;1.5</TD><TD></TD></TR>
+    <TR><TD>Pack Mule</TD><TD>Stables, 800 gold</TD><TD>&times;1.25</TD><TD>carries 50% more gold before it slows you</TD></TR>
+    <TR><TD>Riding Horse</TD><TD>Stables at rank 2 posts and up, 3,000 gold</TD><TD>&times;2</TD><TD>no faster than on foot in circles 20 to 35</TD></TR>
+    <TR><TD>Warhorse</TD><TD>Stables at rank 4 posts and up, 15,000 gold</TD><TD>&times;2</TD><TD>carries 25% more gold, and is half as likely to be injured</TD></TR>
+    <TR><TD>Marsh Strider</TD><TD>tamed from a water monster in circles 20 to 24</TD><TD>&times;2</TD><TD>full speed in circles 20 to 35, where everyone else is slowed</TD></TR>
+    <TR><TD>Great Eagle</TD><TD>sometimes when you free Gwaihir, or for a great deed</TD><TD>&times;2</TD><TD>monsters find you 75% less often on a Move To walk</TD></TR>
+    <TR><TD>Warg</TD><TD>tamed from a Warg</TD><TD>&times;2</TD><TD>wargs and wolves leave you alone; shops charge you 10% more</TD></TR>
+    <TR><TD>Nightmare</TD><TD>rarely, after slaying a Nazg&ucirc;l or the Dark Lord</TD><TD>&times;2.5</TD><TD>the night brings you no more monsters than the day; it slowly adds sin</TD></TR>
+    <TR><TD>Dragon Hatchling</TD><TD>rarely, after slaying a dragon champion or nemesis; only one in the realm</TD><TD>&times;3</TD><TD>breathes fire on your foes</TD></TR>
+   </TABLE></div>
+   <P>Prices change from town to town, like everything else in the shops.
+   Type <B>/mount</B> in the chat to see your mount, its stamina and how long its food lasts. In
+   the browser client it is shown under your gear.</P>
+   <P><B>Gwaihir's Feather</B> works like an eagle: worn, your steps go three times as far and
+   monsters find you 75% less often on a Move To walk. It doesn't add to a mount: you get the
+   better of the two.</P>
+
+   <A NAME="stables"></A>
+   <H3>The Stables</H3>
+   <P>Every trading post has a <B>Stables</B> counter. There you can:</P>
+   <UL>
+    <LI><B>Buy</B> a mount. Your old one, if the Stables sell its kind, is taken in part exchange
+    for half its price. A mount you tamed or found has to be released first.</LI>
+    <LI><B>Feed</B> it: three days of food, at its daily cost (a Pony eats 10 gold a day, a
+    Warhorse 60, a Dragon Hatchling 100).</LI>
+    <LI><B>Heal</B> it: mends any injury and restores all its stamina, for 10% of its price plus
+    50 gold per level of yours (at least 100 gold).</LI>
+    <LI><B>Sell</B> a bought mount for half its price, or <B>release</B> one you tamed or found.</LI>
+   </UL>
+
+   <A NAME="care"></A>
+   <H3>Food, stamina and injury</H3>
+   <div class="table-scroll"><TABLE>
+    <TR><TD>Hungry</TD><TD>A new mount comes with three days of food. When it runs out, the mount gives only
+    half its extra distance until you feed it at any Stables.</TD></TR>
+    <TR><TD>Tired</TD><TD>Each step you take tires it a little (a Pony manages 80 steps, a Dragon Hatchling
+    200). Exhausted, it carries you no farther than your own feet. Each rest gives it back 25 steps.</TD></TR>
+    <TR><TD>Injured</TD><TD>A hard blow from a monster (more than a tenth of your energy) can injure it. An
+    injured mount gives no extra distance until six rests have healed it, or the Stables heal it.</TD></TR>
+    <TR><TD>Killed</TD><TD>A crushing blow (more than 40% of your energy) can, rarely, kill it outright.</TD></TR>
+   </TABLE></div>
+   <P>A Pack Mule or Warhorse carries its extra gold even when tired, hungry or hurt.</P>
+
+   <A NAME="wild"></A>
+   <H3>Taming and finding</H3>
+   <P>Beat a <B>Warg</B>, or a water monster of the Dead Marshes (circles 20 to 24), down to a
+   quarter of its energy and a <B>Tame</B> button appears in the fight (where Use Ring would be).
+   Whether it lets you climb on depends on your brains against the monster's: half your luckout
+   odds. A failed try gives the monster its turn. Taming is offered only when the beast would be
+   swifter than what you ride, and a bought mount you give up for it fetches half its price.
+   Champions and nemeses can't be tamed.</P>
+   <P>The <B>Great Eagle</B> comes to those who free Gwaihir (sometimes one of his kin stays
+   behind) and to those who do great deeds, the same deeds that can earn an artifact. A
+   <B>Nightmare</B> is the riderless steed of a slain Nazg&ucirc;l or Dark Lord, one time in ten.</P>
+
+   <A NAME="dragon"></A>
+   <H3>The Dragon Hatchling</H3>
+   <P>There is only one. Slay a dragon champion or a dragon nemesis and, one time in twenty, an
+   egg among its hoard cracks open, if no one else rides the hatchling. The whole realm hears of it.</P>
+   <P>After each of your blows it breathes fire on your foe for a share of the damage you dealt:
+   a fifth at first, growing with your level up to three fifths at level 400. It doesn't fight
+   other players.</P>
+
+   <A NAME="loss"></A>
+   <H3>Losing a mount</H3>
+   <P>Your mount is lost with your character. A Dragon Hatchling goes back into the world for
+   another dragon-slayer to find.</P>
+<nav class="pager" aria-label="Guide pages"><a class="prev" href="equipment.html"><small>Previous</small>&lsaquo; Equipment</a><a class="next" href="steward.html"><small>Next</small>The Steward &rsaquo;</a></nav>
+</article>
+</main>
+<footer class="site-foot">
+  <a class="logo" href="index.html">Phantasia<span>Reimagined</span></a>
+  <nav aria-label="Footer"><a href="play.html">Play</a><a href="whatsnew.html">What's New</a><a href="intro.html">Guide</a><a href="world.html">Realm Today</a><a href="legends.html">Legends</a><a href="info.html">About</a><a href="credits.html">Credits</a></nav>
+  <div>Built on <i>Phantasia</i> by Edward Estes and <i>Phantasia 4</i> by Brian Kelly.</div>
+</footer>
+<script src="event-banner.js"></script>
+</body>
+</html>
