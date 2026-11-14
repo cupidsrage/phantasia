@@ -40,9 +40,10 @@ RUN mkdir -p /pkg/Phantasia \
 FROM debian:bookworm-slim
 
 # perl runs the (optional) account e-mail scripts, tini forwards signals,
-# python3 serves the website and the browser client's WebSocket bridge
+# python3 serves the website and the browser client's WebSocket bridge,
+# ca-certificates lets it reach HTTPS sites (autoplay records to GitHub)
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends perl tini python3 \
+    && apt-get install -y --no-install-recommends perl tini python3 ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app/phantasia
